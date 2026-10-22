@@ -219,11 +219,12 @@ export class HackathonRepository implements IHackathonRepository {
     const currency = input.currency || "$";
     const prizes = JSON.stringify(input.prizes || []);
     const tags = Array.isArray(input.tags) ? input.tags : [];
+    const rawRules = input.rules as unknown;
     const rules =
-      typeof input.rules === "string"
-        ? input.rules.split("\n").map((r) => r.trim()).filter(Boolean)
-        : Array.isArray(input.rules)
-        ? input.rules
+      typeof rawRules === "string"
+        ? rawRules.split("\n").map((r: string) => r.trim()).filter(Boolean)
+        : Array.isArray(rawRules)
+        ? (rawRules as string[])
         : [];
     const start_date = new Date(input.start_date).toISOString();
     const end_date = new Date(input.end_date).toISOString();
@@ -303,12 +304,13 @@ export class HackathonRepository implements IHackathonRepository {
     const currency = input.currency !== undefined ? input.currency : existing.currency || "$";
     const prizes = input.prizes !== undefined ? JSON.stringify(input.prizes) : JSON.stringify(existing.prizes || []);
     const tags = input.tags !== undefined ? (Array.isArray(input.tags) ? input.tags : []) : existing.tags;
+    const rawInputRules = input.rules as unknown;
     const rules =
-      input.rules !== undefined
-        ? typeof input.rules === "string"
-          ? input.rules.split("\n").map((r) => r.trim()).filter(Boolean)
-          : Array.isArray(input.rules)
-          ? input.rules
+      rawInputRules !== undefined
+        ? typeof rawInputRules === "string"
+          ? rawInputRules.split("\n").map((r: string) => r.trim()).filter(Boolean)
+          : Array.isArray(rawInputRules)
+          ? (rawInputRules as string[])
           : []
         : existing.rules || [];
     const start_date = input.start_date !== undefined ? new Date(input.start_date).toISOString() : existing.start_date;

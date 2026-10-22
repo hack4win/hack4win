@@ -25,6 +25,12 @@ import {
   getOrganizerProvisionedEmailTemplate,
   getHostInquiryEmailTemplate,
   getMarketingCampaignEmailTemplate,
+  getDirectAdminMessageEmailTemplate,
+  getPrizePayoutEmailTemplate,
+  getCertificateAwardEmailTemplate,
+  getSurveyFeedbackEmailTemplate,
+  getAccountWarningEmailTemplate,
+  getProjectApprovedEmailTemplate,
   EMAIL_TEMPLATE_CATALOG,
   wrapInEmailLayout,
 } from "../src/lib/email/templates.ts";
@@ -317,8 +323,98 @@ describe("3. Email Templates Generator", () => {
     assert.ok(t.html.includes("Browse Challenges"));
   });
 
-  test("EMAIL_TEMPLATE_CATALOG contains 15 registered templates with verified senders", () => {
-    assert.equal(EMAIL_TEMPLATE_CATALOG.length, 15);
+  test("Direct admin message template renders personal communication block and leadership signature", () => {
+    const t = getDirectAdminMessageEmailTemplate({
+      recipientName: "Jonathan",
+      senderName: "Antigravity Engineering",
+      subject: "Invitation to Hack4Win Fellowship",
+      messageMarkdownOrHtml: "<p>We reviewed your impressive project and would like to offer you an invitation.</p>",
+      ctaText: "Review Fellowship Details",
+      ctaUrl: "https://hack4win.online/fellowship",
+    });
+    assert.ok(t.subject.includes("Invitation to Hack4Win Fellowship"));
+    assert.ok(t.html.includes("Jonathan"));
+    assert.ok(t.html.includes("Antigravity Engineering"));
+    assert.ok(t.html.includes("Review Fellowship Details"));
+    assert.ok(t.text.includes("Antigravity Engineering"));
+  });
+
+  test("Prize payout notice template renders cash amount, claim instructions, and winner name", () => {
+    const t = getPrizePayoutEmailTemplate({
+      winnerName: "Alex Mercer",
+      hackathonTitle: "Autonomous Agent Challenge",
+      prizeAmount: "$15,000 USD",
+      awardTitle: "1st Place Grand Winner",
+      claimUrl: "https://hack4win.online/profile?tab=billing",
+      claimDeadline: "November 15, 2026",
+      paymentMethod: "USDC & Wire Transfer",
+    });
+    assert.ok(t.subject.includes("$15,000 USD"));
+    assert.ok(t.html.includes("$15,000 USD"));
+    assert.ok(t.html.includes("1st Place Grand Winner"));
+    assert.ok(t.html.includes("Alex Mercer"));
+    assert.ok(t.html.includes("November 15, 2026"));
+  });
+
+  test("Certificate award template renders cryptographic verification chip and credential link", () => {
+    const t = getCertificateAwardEmailTemplate({
+      recipientName: "Maria Garcia",
+      hackathonTitle: "NextGen AI Sprint",
+      completionDate: "October 2026",
+      certificateUrl: "https://hack4win.online/certificates/H4W-9921",
+      verificationId: "H4W-CERT-9921-VERIFIED",
+      shareUrl: "https://linkedin.com/sharing",
+    });
+    assert.ok(t.subject.includes("NextGen AI Sprint"));
+    assert.ok(t.html.includes("Maria Garcia"));
+    assert.ok(t.html.includes("H4W-CERT-9921-VERIFIED"));
+    assert.ok(t.html.includes("View & Download Certificate"));
+  });
+
+  test("Post-hackathon survey template renders response time estimate and feedback CTA", () => {
+    const t = getSurveyFeedbackEmailTemplate({
+      recipientName: "Devon",
+      hackathonTitle: "Web3 Global Hack",
+      surveyUrl: "https://hack4win.online/feedback/web3",
+      estimatedMinutes: 3,
+      incentive: "Hack4Win Pro Badge + Swag Pack",
+    });
+    assert.ok(t.subject.includes("Web3 Global Hack"));
+    assert.ok(t.html.includes("Devon"));
+    assert.ok(t.html.includes("3 minutes"));
+    assert.ok(t.html.includes("Hack4Win Pro Badge + Swag Pack"));
+  });
+
+  test("Account warning template renders violation type, response window, and appeal link", () => {
+    const t = getAccountWarningEmailTemplate({
+      userName: "BadActorDev",
+      violationType: "Code Plagiarism / Duplicate Repository",
+      details: "Your project submission matched an existing open source repository created prior to the competition.",
+      appealUrl: "https://hack4win.online/appeal",
+      deadlineHours: 48,
+    });
+    assert.ok(t.subject.includes("Code Plagiarism"));
+    assert.ok(t.html.includes("BadActorDev"));
+    assert.ok(t.html.includes("48 hours"));
+    assert.ok(t.html.includes("Review Notice & Submit Clarification"));
+  });
+
+  test("Project approved for judging template renders verification checkmark and project link", () => {
+    const t = getProjectApprovedEmailTemplate({
+      userName: "Team Innovate",
+      projectTitle: "AgentSwarm OS",
+      hackathonTitle: "Autonomous Agents 2026",
+      projectUrl: "https://hack4win.online/projects/agent-swarm",
+      judgingStartsAt: "Tomorrow at 10:00 AM UTC",
+    });
+    assert.ok(t.subject.includes("AgentSwarm OS"));
+    assert.ok(t.html.includes("AgentSwarm OS"));
+    assert.ok(t.html.includes("Autonomous Agents 2026"));
+    assert.ok(t.html.includes("Tomorrow at 10:00 AM UTC"));
+  });
+
+  test("EMAIL_TEMPLATE_CATALOG contains 21 registered templates with verified senders", () => {
+    assert.equal(EMAIL_TEMPLATE_CATALOG.length, 21);
     const ids = EMAIL_TEMPLATE_CATALOG.map((c) => c.id);
     assert.ok(ids.includes("welcome"));
     assert.ok(ids.includes("password_reset"));
@@ -335,6 +431,12 @@ describe("3. Email Templates Generator", () => {
     assert.ok(ids.includes("organizer_provisioned"));
     assert.ok(ids.includes("host_inquiry"));
     assert.ok(ids.includes("campaign"));
+    assert.ok(ids.includes("direct_message"));
+    assert.ok(ids.includes("prize_payout"));
+    assert.ok(ids.includes("certificate_award"));
+    assert.ok(ids.includes("survey_feedback"));
+    assert.ok(ids.includes("account_warning"));
+    assert.ok(ids.includes("project_approved"));
   });
 });
 
@@ -480,6 +582,57 @@ describe("5. Brevo API Endpoints (/api/email/send & /api/email/verify)", () => {
     const data = await res.json();
     assert.equal(data.success, true);
     assert.equal(data.recipientCount, 2);
+  });
+
+  test("POST /api/email/send dispatches direct_message template to single user", async () => {
+    const res = await fetch(`${BASE_URL}/api/email/send`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `neon-auth.session_token=${ADMIN_TOKEN}`,
+      },
+      body: JSON.stringify({
+        to: "developer@hack4win.online",
+        template: "direct_message",
+        templateData: {
+          recipientName: "Selected Builder",
+          senderName: "Platform Director",
+          subject: "Exclusive Invitation",
+          message: "<p>We loved your previous submission.</p>",
+          ctaText: "Reply Now",
+          ctaUrl: "https://hack4win.online/dashboard",
+        },
+      }),
+    });
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.success, true);
+    assert.ok(data.messageId);
+  });
+
+  test("POST /api/email/send dispatches prize_payout template", async () => {
+    const res = await fetch(`${BASE_URL}/api/email/send`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `neon-auth.session_token=${ADMIN_TOKEN}`,
+      },
+      body: JSON.stringify({
+        to: "winner@hack4win.online",
+        template: "prize_payout",
+        templateData: {
+          winnerName: "Grand Champ",
+          hackathonTitle: "AI World Cup",
+          prizeAmount: "$10,000",
+          awardTitle: "1st Prize",
+          claimUrl: "https://hack4win.online/profile",
+        },
+      }),
+    });
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.success, true);
+    assert.ok(data.messageId);
   });
 
   test("GET /api/email/verify rejects unauthenticated requests with 401", async () => {

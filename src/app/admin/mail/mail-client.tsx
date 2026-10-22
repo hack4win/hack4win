@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import type { Hackathon, Skill, EmailCampaign, EmailType } from "@/lib/db/types";
+import React, { useState, useEffect, useMemo } from "react";
+import type { Hackathon, Skill, EmailCampaign, EmailType, User } from "@/lib/db/types";
 import { useModalAlert } from "@/components/ui/modal-alert";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,9 @@ import {
   Server,
   ShieldCheck,
   ExternalLink,
+  UserCheck,
+  Search,
+  X,
 } from "lucide-react";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { MarkdownPreview } from "@/components/ui/markdown-preview";
@@ -52,6 +55,7 @@ interface MailClientProps {
     transactionalCount: number;
   };
   totalUsersCount: number;
+  initialUsers?: User[];
 }
 
 export function MailClient({
@@ -60,6 +64,7 @@ export function MailClient({
   initialCampaigns,
   initialStats,
   totalUsersCount,
+  initialUsers = [],
 }: MailClientProps) {
   const { showConfirm, showAlert } = useModalAlert();
   // Targeting state
@@ -68,6 +73,13 @@ export function MailClient({
   const [selectedRole, setSelectedRole] = useState<string>("user");
   const [selectedSkill, setSelectedSkill] = useState<string>(skills[0]?.name || "Next.js");
   const [directEmail, setDirectEmail] = useState<string>("");
+
+  // Direct user picker state
+  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [directInputMode, setDirectInputMode] = useState<"list" | "manual">("list");
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
 
   // Email form state
   const [mailType, setMailType] = useState<EmailType>("marketing");
@@ -124,6 +136,49 @@ export function MailClient({
   const [stats, setStats] = useState(initialStats);
   const [notification, setNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
+  // Filter users based on search query
+  const filteredUsers = useMemo(() => {
+    const q = userSearchQuery.trim().toLowerCase();
+    if (!q) return users.slice(0, 50);
+    return users.filter((u) =>
+      (u.name && u.name.toLowerCase().includes(q)) ||
+      u.email.toLowerCase().includes(q) ||
+      (u.username && u.username.toLowerCase().includes(q)) ||
+      u.role.toLowerCase().includes(q)
+    ).slice(0, 50);
+  }, [users, userSearchQuery]);
+
+  const handleUserSearchChange = async (query: string) => {
+    setUserSearchQuery(query);
+    if (!query.trim()) return;
+
+    if (query.trim().length >= 2) {
+      setIsSearchingUsers(true);
+      try {
+        const res = await fetch(`/api/admin/users?search=${encodeURIComponent(query.trim())}&limit=20`);
+        const data = await res.json();
+        if (data.users && Array.isArray(data.users)) {
+          setUsers((prev) => {
+            const map = new Map(prev.map((u) => [u.id, u]));
+            for (const u of data.users) {
+              map.set(u.id, u);
+            }
+            return Array.from(map.values());
+          });
+        }
+      } catch (err) {
+        console.warn("User search error:", err);
+      } finally {
+        setIsSearchingUsers(false);
+      }
+    }
+  };
+
+  const handleSelectUser = (user: User) => {
+    setSelectedUser(user);
+    setDirectEmail(user.email);
+  };
+
   // Compute target filter string
   const getComputedFilter = () => {
     switch (filterMode) {
@@ -151,6 +206,9 @@ export function MailClient({
       case "skill":
         return `Skill: ${selectedSkill}`;
       case "direct":
+        if (selectedUser) {
+          return `Direct: ${selectedUser.name || selectedUser.username || "User"} (${selectedUser.email})`;
+        }
         return `Direct: ${directEmail.trim() || "Single Recipient"}`;
       default:
         return "All Platform Users";
@@ -243,6 +301,7 @@ export function MailClient({
 
       case "update":
         setMailType("marketing");
+        setSenderKey("NEWS");
         setSubject(`Hack4Win Monthly Developer Brief: New Challenges & Platform Updates`);
         setPreheader(`Discover our newest technical tracks, partner prizes, and hackathons.`);
         setContent(
@@ -256,6 +315,118 @@ export function MailClient({
         setCtaText("Explore All Hackathons");
         setCtaUrl("https://hack4win.online/hackathons");
         break;
+
+      case "direct_msg": {
+        const name = selectedUser?.name || selectedUser?.username || "Builder";
+        setFilterMode("direct");
+        setMailType("transactional");
+        setSenderKey("SUPPORT");
+        setSubject(`Important Update from Hack4Win Platform Leadership`);
+        setPreheader(`Personal message regarding your activity and opportunities on Hack4Win.`);
+        setContent(
+          `Hi ${name},\n\n` +
+          `I am reaching out directly from the Hack4Win leadership team regarding your profile and contributions.\n\n` +
+          `We noticed your active work on our hackathon platform and wanted to check in to see how your experience has been, or if there is anything our engineering team can assist you with.\n\n` +
+          `Feel free to reply directly to this email with any thoughts, feature requests, or questions.`
+        );
+        setCtaText("Go to Hack4Win Dashboard");
+        setCtaUrl("https://hack4win.online/dashboard");
+        break;
+      }
+
+      case "payout": {
+        const name = selectedUser?.name || selectedUser?.username || "Winner";
+        setMailType("transactional");
+        setSenderKey("NOTIFICATIONS");
+        setSubject(`💰 Prize Disbursement Notification: ${hackathonTitle}`);
+        setPreheader(`Your cash bounty for ${hackathonTitle} is queued for release.`);
+        setContent(
+          `Congratulations ${name}!\n\n` +
+          `Following the conclusion of **${hackathonTitle}**, your prize payout has been approved by the competition organizers.\n\n` +
+          `### Bounty Summary:\n` +
+          `- **Hackathon**: ${hackathonTitle}\n` +
+          `- **Prize Tier**: Grand Prize / Category Winner\n` +
+          `- **Disbursement Method**: Direct Bank Wire / USDC / Stripe\n\n` +
+          `Please visit your billing settings or reply to verify your tax form (W-8/W-9) and payout address so our finance team can release the funds without delay.`
+        );
+        setCtaText("Confirm Payout Details");
+        setCtaUrl("https://hack4win.online/profile?tab=billing");
+        break;
+      }
+
+      case "certificate": {
+        const name = selectedUser?.name || selectedUser?.username || "Builder";
+        setMailType("transactional");
+        setSenderKey("WELCOME");
+        setSubject(`🎓 Certificate of Achievement: ${hackathonTitle}`);
+        setPreheader(`Your official verified digital completion credential has been generated.`);
+        setContent(
+          `Dear ${name},\n\n` +
+          `Congratulations on successfully participating in **${hackathonTitle}**!\n\n` +
+          `Your dedication, ingenuity, and high-impact build have earned you an official Hack4Win Certificate of Achievement.\n\n` +
+          `### Credential Details:\n` +
+          `- **Recipient**: ${name}\n` +
+          `- **Event**: ${hackathonTitle}\n` +
+          `- **Verification Status**: Cryptographically Signed & Verifiable\n\n` +
+          `You can download your high-resolution certificate and add the verified credential directly to your LinkedIn profile.`
+        );
+        setCtaText("View Verified Certificate");
+        setCtaUrl(`https://hack4win.online/hackathons/${hackathonSlug}`);
+        break;
+      }
+
+      case "survey": {
+        const name = selectedUser?.name || selectedUser?.username || "Builder";
+        setMailType("marketing");
+        setSenderKey("NEWS");
+        setSubject(`📋 How Was Your Experience in ${hackathonTitle}? (3-Min Survey)`);
+        setPreheader(`Help us shape the future of Hack4Win competitions with your quick feedback.`);
+        setContent(
+          `Hi ${name},\n\n` +
+          `Now that **${hackathonTitle}** has wrapped up, we would love to hear your honest thoughts!\n\n` +
+          `Your feedback directly helps us improve the platform, judging fairness, workshops, and sponsor prize tracks for upcoming events.\n\n` +
+          `It only takes about 3 minutes to complete, and all respondents will be entered into our monthly developer swag draw.`
+        );
+        setCtaText("Start 3-Minute Survey");
+        setCtaUrl(`https://hack4win.online/hackathons/${hackathonSlug}`);
+        break;
+      }
+
+      case "warning": {
+        const name = selectedUser?.name || selectedUser?.username || "User";
+        setMailType("transactional");
+        setSenderKey("REQUESTS");
+        setSubject(`⚠️ Account Notice: Community Guidelines & Fair Play Compliance`);
+        setPreheader(`Please review an important notice regarding Hack4Win platform policies.`);
+        setContent(
+          `Hello ${name},\n\n` +
+          `This is an administrative communication regarding your account activity on Hack4Win.\n\n` +
+          `Our integrity monitoring has identified a potential issue regarding fair competition rules (e.g. codebase pre-existence, code duplication, or terms of service compliance).\n\n` +
+          `Please review our platform guidelines and submit any necessary clarification within **48 hours** to ensure your account remains in good standing.`
+        );
+        setCtaText("Review Community Guidelines");
+        setCtaUrl("https://hack4win.online/terms");
+        break;
+      }
+
+      case "approved": {
+        const name = selectedUser?.name || selectedUser?.username || "Builder";
+        setMailType("transactional");
+        setSenderKey("NOTIFICATIONS");
+        setSubject(`✅ Project Submission Approved for Judging in ${hackathonTitle}`);
+        setPreheader(`Your project has passed compliance checks and advanced to evaluator scoring.`);
+        setContent(
+          `Hi ${name},\n\n` +
+          `We are pleased to inform you that your submission for **${hackathonTitle}** has passed our compliance checklist and has been officially forwarded to the technical judging panel!\n\n` +
+          `### What Happens Next?\n` +
+          `1. Judges will score your repo, live demo, and video according to the rubric.\n` +
+          `2. Keep your public demo links and repositories active throughout the judging period.\n` +
+          `3. Final scores and winner podiums will be published on the leaderboard when evaluation concludes.`
+        );
+        setCtaText("View Project Scorecard");
+        setCtaUrl(`https://hack4win.online/hackathons/${hackathonSlug}`);
+        break;
+      }
     }
   };
 
@@ -478,47 +649,124 @@ export function MailClient({
         <CardContent className="p-6">
           <form onSubmit={handleSendMail} className="space-y-6">
             {/* Template Selector Bar */}
-            <div className="p-4 rounded-xl border bg-muted/20 space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                <Sparkles className="size-3 text-primary" /> 1-Click Templates:
-              </span>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => applyTemplate("launch")}
-                  className="rounded-full text-xs h-7.5 cursor-pointer bg-background"
-                >
-                  🚀 Hackathon Launch
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => applyTemplate("deadline")}
-                  className="rounded-full text-xs h-7.5 cursor-pointer bg-background"
-                >
-                  ⏳ 24h Deadline Warning
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => applyTemplate("winners")}
-                  className="rounded-full text-xs h-7.5 cursor-pointer bg-background"
-                >
-                  🏆 Winners Announcement
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => applyTemplate("update")}
-                  className="rounded-full text-xs h-7.5 cursor-pointer bg-background"
-                >
-                  📢 Monthly Newsletter
-                </Button>
+            <div className="p-4 rounded-xl border bg-muted/20 space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Sparkles className="size-3.5 text-primary" /> 1-Click Production Templates (10):
+                </span>
+                {selectedUser && (
+                  <Badge variant="outline" className="text-[10px] font-bold text-primary border-primary/30 gap-1 bg-primary/5">
+                    <UserCheck className="size-3" /> Auto-personalizing for {selectedUser.name || selectedUser.email}
+                  </Badge>
+                )}
+              </div>
+
+              <div className="space-y-2.5">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                    Direct Messaging & User Awards:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => applyTemplate("direct_msg")}
+                      className="rounded-full text-xs h-7.5 cursor-pointer bg-primary/10 border-primary/40 text-primary font-bold hover:bg-primary/20"
+                    >
+                      💬 Direct User Message
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => applyTemplate("payout")}
+                      className="rounded-full text-xs h-7.5 cursor-pointer bg-amber-500/10 border-amber-500/30 text-amber-500 font-semibold hover:bg-amber-500/20"
+                    >
+                      💰 Prize Payout Notice
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => applyTemplate("certificate")}
+                      className="rounded-full text-xs h-7.5 cursor-pointer bg-emerald-500/10 border-emerald-500/30 text-emerald-500 font-semibold hover:bg-emerald-500/20"
+                    >
+                      🎓 Certificate Award
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => applyTemplate("warning")}
+                      className="rounded-full text-xs h-7.5 cursor-pointer bg-destructive/10 border-destructive/30 text-destructive font-semibold hover:bg-destructive/20"
+                    >
+                      ⚠️ Guidelines Warning
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                    Hackathons & Submissions:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => applyTemplate("launch")}
+                      className="rounded-full text-xs h-7.5 cursor-pointer bg-background"
+                    >
+                      🚀 Hackathon Launch
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => applyTemplate("deadline")}
+                      className="rounded-full text-xs h-7.5 cursor-pointer bg-background"
+                    >
+                      ⏳ 24h Deadline Warning
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => applyTemplate("approved")}
+                      className="rounded-full text-xs h-7.5 cursor-pointer bg-background"
+                    >
+                      ✅ Project Approved
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => applyTemplate("winners")}
+                      className="rounded-full text-xs h-7.5 cursor-pointer bg-background"
+                    >
+                      🏆 Winners Announcement
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => applyTemplate("survey")}
+                      className="rounded-full text-xs h-7.5 cursor-pointer bg-background"
+                    >
+                      📋 Post-Event Survey
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => applyTemplate("update")}
+                      className="rounded-full text-xs h-7.5 cursor-pointer bg-background"
+                    >
+                      📢 Monthly Newsletter
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -549,7 +797,7 @@ export function MailClient({
                   <option value="hackathon">🏆 Specific Hackathon Participants</option>
                   <option value="skill">⚡ Participants with Specific Tech Skill</option>
                   <option value="role">👥 By User Role (Participants / Organizers / Judges)</option>
-                  <option value="direct">✉️ Single Direct Email Address (Test Mail)</option>
+                  <option value="direct">🎯 Direct Message to User / Single Email</option>
                 </select>
 
                 {/* Sub-Filters based on filter mode */}
@@ -604,15 +852,152 @@ export function MailClient({
                 )}
 
                 {filterMode === "direct" && (
-                  <div className="space-y-1.5 pt-1">
-                    <Label className="text-[11px] font-semibold text-muted-foreground">Recipient Email Address:</Label>
-                    <Input
-                      type="email"
-                      value={directEmail}
-                      onChange={(e) => setDirectEmail(e.target.value)}
-                      placeholder="e.g. developer@gmail.com"
-                      className="h-8.5 rounded-full text-xs"
-                    />
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                        <UserCheck className="size-3 text-primary" /> Target Recipient:
+                      </Label>
+                      <div className="inline-flex rounded-lg bg-muted/40 p-0.5 border text-[10px]">
+                        <button
+                          type="button"
+                          onClick={() => setDirectInputMode("list")}
+                          className={`px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
+                            directInputMode === "list" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          Select User ({users.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDirectInputMode("manual")}
+                          className={`px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
+                            directInputMode === "manual" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          Custom Email
+                        </button>
+                      </div>
+                    </div>
+
+                    {directInputMode === "list" ? (
+                      <div className="space-y-2">
+                        {selectedUser ? (
+                          <div className="flex items-center justify-between p-3 rounded-xl border border-primary/30 bg-primary/5">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="size-9 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs uppercase shrink-0 overflow-hidden">
+                                {selectedUser.image ? (
+                                  <img src={selectedUser.image} alt={selectedUser.name || ""} className="size-full object-cover" />
+                                ) : (
+                                  (selectedUser.name?.[0] || selectedUser.email[0] || "U")
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-xs font-bold text-foreground truncate">
+                                    {selectedUser.name || "Unnamed Builder"}
+                                  </span>
+                                  <Badge variant="outline" className="text-[9px] uppercase font-bold py-0 h-4 px-1.5">
+                                    {selectedUser.role}
+                                  </Badge>
+                                </div>
+                                <div className="text-[11px] text-muted-foreground truncate font-mono">
+                                  {selectedUser.email} {selectedUser.username ? `(@${selectedUser.username})` : ""}
+                                </div>
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedUser(null);
+                                setDirectEmail("");
+                              }}
+                              className="h-7 text-xs px-2 text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
+                            >
+                              <X className="size-3.5 mr-1" /> Change
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="space-y-1.5">
+                            <div className="relative">
+                              <Search className="size-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                              <Input
+                                type="text"
+                                value={userSearchQuery}
+                                onChange={(e) => handleUserSearchChange(e.target.value)}
+                                placeholder="Search user by name, email, or @username..."
+                                className="h-8.5 pl-8 text-xs rounded-lg"
+                              />
+                              {isSearchingUsers && (
+                                <Loader2 className="size-3.5 animate-spin text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
+                              )}
+                            </div>
+
+                            <div className="max-h-48 overflow-y-auto rounded-xl border bg-background/80 divide-y divide-border/60">
+                              {filteredUsers.length === 0 ? (
+                                <div className="p-4 text-center text-xs text-muted-foreground">
+                                  No users found matching &ldquo;{userSearchQuery}&rdquo;
+                                </div>
+                              ) : (
+                                filteredUsers.map((u) => (
+                                  <button
+                                    key={u.id}
+                                    type="button"
+                                    onClick={() => handleSelectUser(u)}
+                                    className="w-full flex items-center justify-between p-2.5 text-left hover:bg-muted/50 transition-colors cursor-pointer group"
+                                  >
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                      <div className="size-7 rounded-full bg-muted flex items-center justify-center font-bold text-[10px] uppercase shrink-0 text-foreground overflow-hidden">
+                                        {u.image ? (
+                                          <img src={u.image} alt={u.name || ""} className="size-full object-cover" />
+                                        ) : (
+                                          (u.name?.[0] || u.email[0] || "U")
+                                        )}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <div className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors flex items-center gap-1.5">
+                                          <span>{u.name || "Unnamed"}</span>
+                                          <span className="text-[10px] font-normal text-muted-foreground">
+                                            {u.username ? `@${u.username}` : ""}
+                                          </span>
+                                        </div>
+                                        <div className="text-[11px] text-muted-foreground truncate font-mono">
+                                          {u.email}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <Badge variant="outline" className="text-[9px] uppercase font-bold h-4 px-1 shrink-0 ml-2">
+                                      {u.role}
+                                    </Badge>
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground flex items-center justify-between px-1">
+                              <span>Showing {filteredUsers.length} of {users.length} loaded users</span>
+                              <span className="font-medium text-primary">Click a user to select</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <Input
+                          type="email"
+                          value={directEmail}
+                          onChange={(e) => {
+                            setDirectEmail(e.target.value);
+                            setSelectedUser(null);
+                          }}
+                          placeholder="e.g. developer@gmail.com"
+                          className="h-8.5 rounded-lg text-xs font-mono"
+                        />
+                        <p className="text-[10px] text-muted-foreground">
+                          Type any custom email address to test deliverability or message an external contact.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

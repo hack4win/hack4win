@@ -21,12 +21,13 @@ export default async function AdminMailPage() {
     redirect("/");
   }
 
-  const [hackathons, skills, campaigns, mailStats, userStats] = await Promise.all([
+  const [hackathons, skills, campaigns, mailStats, userStats, initialUsers] = await Promise.all([
     hackathonRepository.listHackathons({ limit: 100 }),
     skillRepository.listSkills(),
     mailRepository.listCampaigns(),
     mailRepository.getCampaignStats(),
     userRepository.getStats(),
+    userRepository.listUsers({ limit: 100 }),
   ]);
 
   return (
@@ -44,6 +45,7 @@ export default async function AdminMailPage() {
         initialCampaigns={campaigns}
         initialStats={mailStats}
         totalUsersCount={userStats.totalUsers}
+        initialUsers={initialUsers}
       />
     </main>
   );

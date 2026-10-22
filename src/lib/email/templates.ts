@@ -1075,6 +1075,359 @@ export function getHostInquiryEmailTemplate(params: {
   return { subject, html, text };
 }
 
+/**
+ * 6.3 Direct Admin / Executive Message Template (1:1 to User)
+ */
+export function getDirectAdminMessageEmailTemplate(params: {
+  recipientName: string;
+  senderName?: string;
+  subject: string;
+  messageMarkdownOrHtml: string;
+  ctaText?: string;
+  ctaUrl?: string;
+  replyToEmail?: string;
+}): GeneratedEmail {
+  const senderDisplay = params.senderName || "Hack4Win Leadership Team";
+  const content = `
+    <h1 style="margin: 0 0 14px; font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">
+      Message from ${escapeHtml(senderDisplay)} ✉️
+    </h1>
+    <p style="margin: 0 0 16px; font-size: 14px; line-height: 1.6; color: #d1d5db;">
+      Hi <strong>${escapeHtml(params.recipientName)}</strong>,
+    </p>
+    <div style="background-color: #0d1322; border-left: 3px solid #6366f1; border-radius: 0 12px 12px 0; padding: 18px 20px; margin: 18px 0; font-size: 14px; line-height: 1.7; color: #e5e7eb;">
+      ${params.messageMarkdownOrHtml}
+    </div>
+    ${params.ctaText && params.ctaUrl ? `
+    <div style="text-align: center; margin: 26px 0 20px;">
+      <a href="${params.ctaUrl}" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: #ffffff; font-size: 14px; font-weight: 700; padding: 13px 30px; border-radius: 9999px; text-decoration: none; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);">
+        ${escapeHtml(params.ctaText)} &rarr;
+      </a>
+    </div>
+    ` : ""}
+    <p style="margin: 20px 0 0; font-size: 13px; color: #9ca3af; line-height: 1.6;">
+      Warm regards,<br>
+      <strong style="color: #ffffff;">${escapeHtml(senderDisplay)}</strong><br>
+      Hack4Win Platform Administration
+    </p>
+  `;
+
+  const html = wrapInEmailLayout(content, {
+    preheader: `Direct communication from ${senderDisplay}.`,
+    badgeText: "Direct Message",
+    gradientStart: "#4338ca",
+    gradientEnd: "#6366f1",
+  });
+
+  const text = `Message from ${senderDisplay}\n\n` +
+    `Hi ${params.recipientName},\n\n` +
+    `${stripHtml(params.messageMarkdownOrHtml)}\n\n` +
+    (params.ctaUrl ? `Action link: ${params.ctaUrl}\n\n` : "") +
+    `Best regards,\n${senderDisplay}\nHack4Win`;
+
+  return { subject: params.subject, html, text };
+}
+
+/**
+ * 6.4 Prize Pool Payout & Cash Bounty Notice
+ */
+export function getPrizePayoutEmailTemplate(params: {
+  winnerName: string;
+  hackathonTitle: string;
+  prizeAmount: string;
+  awardTitle: string;
+  claimUrl: string;
+  claimDeadline?: string;
+  paymentMethod?: string;
+}): GeneratedEmail {
+  const subject = `Prize Payout Alert: Claim your ${params.prizeAmount} bounty for ${params.hackathonTitle}! 💰`;
+
+  const content = `
+    <div style="text-align: center; margin-bottom: 20px;">
+      <span style="font-size: 38px;">💰</span>
+      <h1 style="margin: 8px 0 6px; font-size: 22px; font-weight: 900; color: #fbbf24; letter-spacing: -0.5px;">
+        Prize Bounty Ready for Disbursement!
+      </h1>
+      <p style="margin: 0; font-size: 14px; color: #d1d5db;">
+        Congratulations <strong>${escapeHtml(params.winnerName)}</strong>! Your award for <strong>${escapeHtml(params.hackathonTitle)}</strong> is queued.
+      </p>
+    </div>
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: linear-gradient(145deg, #1f1903, #130f02); border: 1px solid #d97706; border-radius: 14px; margin: 20px 0; padding: 20px; text-align: center;">
+      <tr>
+        <td>
+          <div style="font-size: 11px; text-transform: uppercase; font-weight: 800; color: #fde68a; letter-spacing: 0.5px; margin-bottom: 4px;">
+            ${escapeHtml(params.awardTitle)}
+          </div>
+          <div style="font-size: 32px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px; margin-bottom: 8px;">
+            ${escapeHtml(params.prizeAmount)}
+          </div>
+          <div style="font-size: 12px; color: #d1d5db;">
+            ${params.paymentMethod ? `Payout Channel: <strong>${escapeHtml(params.paymentMethod)}</strong> &bull; ` : ""}
+            ${params.claimDeadline ? `Claim Deadline: <strong>${escapeHtml(params.claimDeadline)}</strong>` : "Prompt processing recommended"}
+          </div>
+        </td>
+      </tr>
+    </table>
+
+    <div style="text-align: center; margin: 28px 0 20px;">
+      <a href="${params.claimUrl}" style="display: inline-block; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #ffffff; font-size: 14px; font-weight: 800; padding: 14px 34px; border-radius: 9999px; text-decoration: none; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);">
+        Confirm Payout Credentials &rarr;
+      </a>
+    </div>
+
+    <p style="margin: 16px 0 0; font-size: 12px; color: #9ca3af; text-align: center;">
+      Need assistance with banking, invoice tax forms, or crypto addresses? Email us at <a href="mailto:support@hack4win.online" style="color: #fbbf24;">support@hack4win.online</a>.
+    </p>
+  `;
+
+  const html = wrapInEmailLayout(content, {
+    preheader: `Claim your ${params.prizeAmount} prize for ${params.hackathonTitle}. Confirm your disbursement details.`,
+    badgeText: "Prize Disbursement",
+    gradientStart: "#b45309",
+    gradientEnd: "#f59e0b",
+  });
+
+  const text = `Prize Payout Alert: ${params.prizeAmount}\n\n` +
+    `Hi ${params.winnerName},\n` +
+    `Your award for ${params.hackathonTitle} (${params.awardTitle}) is ready.\n` +
+    `Amount: ${params.prizeAmount}\n` +
+    `Claim details: ${params.claimUrl}\n\n` +
+    `The Hack4Win Team`;
+
+  return { subject, html, text };
+}
+
+/**
+ * 6.5 Verifiable Certificate of Completion / Achievement Template
+ */
+export function getCertificateAwardEmailTemplate(params: {
+  recipientName: string;
+  hackathonTitle: string;
+  completionDate: string;
+  certificateUrl: string;
+  verificationId: string;
+  shareUrl?: string;
+}): GeneratedEmail {
+  const subject = `Your Certificate is Ready: Congratulations on finishing ${params.hackathonTitle}! 🎓`;
+
+  const content = `
+    <div style="text-align: center; margin-bottom: 20px;">
+      <span style="font-size: 38px;">🎓</span>
+      <h1 style="margin: 8px 0 6px; font-size: 22px; font-weight: 900; color: #34d399; letter-spacing: -0.5px;">
+        Certificate of Achievement Issued!
+      </h1>
+      <p style="margin: 0; font-size: 14px; color: #d1d5db;">
+        Honoring <strong>${escapeHtml(params.recipientName)}</strong> for participation in <strong>${escapeHtml(params.hackathonTitle)}</strong>.
+      </p>
+    </div>
+
+    <!-- Certificate Chip Box -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: linear-gradient(145deg, #062b1a, #03180e); border: 1px solid #059669; border-radius: 14px; margin: 20px 0; padding: 20px; text-align: center;">
+      <tr>
+        <td>
+          <div style="font-size: 11px; text-transform: uppercase; font-weight: 800; color: #6ee7b7; letter-spacing: 0.5px; margin-bottom: 6px;">
+            Verified Digital Credential
+          </div>
+          <div style="font-size: 18px; font-weight: 800; color: #ffffff; margin-bottom: 8px;">
+            ${escapeHtml(params.hackathonTitle)}
+          </div>
+          <div style="font-size: 12px; font-family: monospace; color: #a7f3d0; background: rgba(5, 150, 105, 0.25); display: inline-block; padding: 4px 12px; border-radius: 6px; margin-bottom: 6px;">
+            ID: ${escapeHtml(params.verificationId)}
+          </div>
+          <div style="font-size: 12px; color: #9ca3af; margin-top: 6px;">
+            Issued on ${escapeHtml(params.completionDate)} &bull; Permanently verifiable on Hack4Win
+          </div>
+        </td>
+      </tr>
+    </table>
+
+    <div style="text-align: center; margin: 28px 0 20px;">
+      <a href="${params.certificateUrl}" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; font-size: 14px; font-weight: 800; padding: 14px 32px; border-radius: 9999px; text-decoration: none; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);">
+        View & Download Certificate &rarr;
+      </a>
+    </div>
+
+    ${params.shareUrl ? `
+    <p style="margin: 16px 0 0; font-size: 13px; color: #9ca3af; text-align: center;">
+      Add this credential to your <a href="${params.shareUrl}" style="color: #34d399; font-weight: bold;">LinkedIn profile or portfolio</a>!
+    </p>
+    ` : ""}
+  `;
+
+  const html = wrapInEmailLayout(content, {
+    preheader: `Your verifiable certificate of completion for ${params.hackathonTitle} is ready.`,
+    badgeText: "Certificate Award",
+    gradientStart: "#047857",
+    gradientEnd: "#10b981",
+  });
+
+  const text = `Certificate Issued: ${params.hackathonTitle}\n\n` +
+    `Congratulations ${params.recipientName}!\n` +
+    `Credential ID: ${params.verificationId}\n` +
+    `View certificate: ${params.certificateUrl}\n\n` +
+    `The Hack4Win Team`;
+
+  return { subject, html, text };
+}
+
+/**
+ * 6.6 Post-Hackathon Feedback & Survey Request Template
+ */
+export function getSurveyFeedbackEmailTemplate(params: {
+  recipientName: string;
+  hackathonTitle: string;
+  surveyUrl: string;
+  estimatedMinutes?: number;
+  incentive?: string;
+}): GeneratedEmail {
+  const mins = params.estimatedMinutes || 3;
+  const subject = `Your Thoughts? Help us improve: ${params.hackathonTitle} Feedback Survey 📋`;
+
+  const content = `
+    <h1 style="margin: 0 0 14px; font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">
+      How Was Your Experience? 📋
+    </h1>
+    <p style="margin: 0 0 16px; font-size: 14px; line-height: 1.6; color: #d1d5db;">
+      Hi <strong>${escapeHtml(params.recipientName)}</strong>, thank you for participating in <strong>${escapeHtml(params.hackathonTitle)}</strong>! We want to make the next edition even bigger and better for builders.
+    </p>
+
+    <div style="background-color: #0d1322; border: 1px solid #1f2937; border-radius: 12px; padding: 18px; margin: 18px 0; font-size: 13px; line-height: 1.8; color: #cbd5e1;">
+      ⏱️ <strong>Quick & Easy:</strong> Takes only ~${mins} minutes.<br>
+      💡 <strong>Direct Impact:</strong> Your suggestions shape future judging criteria, prize pools, and tracks.<br>
+      ${params.incentive ? `🎁 <strong>Reward:</strong> Complete the survey to receive <em>${escapeHtml(params.incentive)}</em>.<br>` : ""}
+    </div>
+
+    <div style="text-align: center; margin: 28px 0 20px;">
+      <a href="${params.surveyUrl}" style="display: inline-block; background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); color: #ffffff; font-size: 14px; font-weight: 700; padding: 14px 32px; border-radius: 9999px; text-decoration: none; box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4);">
+        Take 3-Minute Survey &rarr;
+      </a>
+    </div>
+  `;
+
+  const html = wrapInEmailLayout(content, {
+    preheader: `Share your thoughts on ${params.hackathonTitle} in ~${mins} minutes.`,
+    badgeText: "Feedback Survey",
+    gradientStart: "#6366f1",
+    gradientEnd: "#8b5cf6",
+  });
+
+  const text = `Hackathon Survey: ${params.hackathonTitle}\n\n` +
+    `Hi ${params.recipientName},\n` +
+    `Please take 3 minutes to share your thoughts:\n` +
+    `${params.surveyUrl}\n\n` +
+    `Thank you,\nThe Hack4Win Team`;
+
+  return { subject, html, text };
+}
+
+/**
+ * 6.7 Account / Community Guidelines Notice & Fair Play Alert
+ */
+export function getAccountWarningEmailTemplate(params: {
+  userName: string;
+  violationType: string;
+  details: string;
+  appealUrl?: string;
+  deadlineHours?: number;
+}): GeneratedEmail {
+  const hours = params.deadlineHours || 48;
+  const subject = `Notice Regarding Your Hack4Win Account: ${params.violationType} ⚠️`;
+
+  const content = `
+    <h1 style="margin: 0 0 14px; font-size: 20px; font-weight: 800; color: #ef4444; letter-spacing: -0.5px;">
+      Community Guidelines & Compliance Notice ⚠️
+    </h1>
+    <p style="margin: 0 0 16px; font-size: 14px; line-height: 1.6; color: #d1d5db;">
+      Hello <strong>${escapeHtml(params.userName)}</strong>, our automated integrity systems or hackathon organizers have flagged an issue regarding your account activity.
+    </p>
+
+    <div style="background-color: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 12px; padding: 18px; margin: 18px 0; font-size: 13px; line-height: 1.7; color: #fca5a5;">
+      🚨 <strong>Concern Identified:</strong> <span style="color: #ffffff; font-weight: bold;">${escapeHtml(params.violationType)}</span><br>
+      📝 <strong>Details:</strong> ${escapeHtml(params.details)}<br>
+      ⏳ <strong>Response Window:</strong> Please review and address within <strong>${hours} hours</strong> to prevent account restriction or submission disqualification.
+    </div>
+
+    ${params.appealUrl ? `
+    <div style="text-align: center; margin: 26px 0 20px;">
+      <a href="${params.appealUrl}" style="display: inline-block; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #ffffff; font-size: 14px; font-weight: 700; padding: 13px 30px; border-radius: 9999px; text-decoration: none;">
+        Review Notice & Submit Clarification &rarr;
+      </a>
+    </div>
+    ` : ""}
+
+    <p style="margin: 16px 0 0; font-size: 12px; color: #9ca3af; text-align: center;">
+      Questions regarding this notice? You can reply directly to <a href="mailto:support@hack4win.online" style="color: #f87171;">support@hack4win.online</a>.
+    </p>
+  `;
+
+  const html = wrapInEmailLayout(content, {
+    preheader: `Important notice regarding your Hack4Win account: ${params.violationType}.`,
+    badgeText: "Integrity Notice",
+    gradientStart: "#b91c1c",
+    gradientEnd: "#ef4444",
+  });
+
+  const text = `Account Notice: ${params.violationType}\n\n` +
+    `Hi ${params.userName},\n` +
+    `Issue: ${params.violationType}\n` +
+    `Details: ${params.details}\n\n` +
+    (params.appealUrl ? `Action link: ${params.appealUrl}\n\n` : "") +
+    `Hack4Win Trust & Safety`;
+
+  return { subject, html, text };
+}
+
+/**
+ * 6.8 Project Approved & Qualified for Judging Template
+ */
+export function getProjectApprovedEmailTemplate(params: {
+  userName: string;
+  projectTitle: string;
+  hackathonTitle: string;
+  projectUrl: string;
+  judgingStartsAt?: string;
+}): GeneratedEmail {
+  const subject = `Project Approved: "${params.projectTitle}" is qualified for judging in ${params.hackathonTitle}! ✅`;
+
+  const content = `
+    <h1 style="margin: 0 0 14px; font-size: 20px; font-weight: 800; color: #10b981; letter-spacing: -0.5px;">
+      Project Passed Eligibility Review! ✅
+    </h1>
+    <p style="margin: 0 0 16px; font-size: 14px; line-height: 1.6; color: #d1d5db;">
+      Hi <strong>${escapeHtml(params.userName)}</strong>, great news! Your project <strong>&ldquo;${escapeHtml(params.projectTitle)}&rdquo;</strong> has passed compliance screening and is officially approved for technical scoring in <strong>${escapeHtml(params.hackathonTitle)}</strong>.
+    </p>
+
+    <div style="background-color: #0d1322; border: 1px solid #1f2937; border-radius: 12px; padding: 18px; margin: 18px 0; font-size: 13px; line-height: 1.8; color: #9ca3af;">
+      🚀 <strong>Status:</strong> <span style="color: #34d399; font-weight: bold;">Verified & Approved</span><br>
+      ⚖️ <strong>Evaluation:</strong> Assigned to industry judging panel.<br>
+      ${params.judgingStartsAt ? `⏰ <strong>Judging Period Starts:</strong> ${escapeHtml(params.judgingStartsAt)}<br>` : ""}
+      ⭐ <strong>Tip:</strong> Keep demo video links public throughout the entire evaluation period.
+    </div>
+
+    <div style="text-align: center; margin: 28px 0 20px;">
+      <a href="${params.projectUrl}" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; font-size: 14px; font-weight: 700; padding: 14px 30px; border-radius: 9999px; text-decoration: none;">
+        View Verified Project Entry &rarr;
+      </a>
+    </div>
+  `;
+
+  const html = wrapInEmailLayout(content, {
+    preheader: `Your project "${params.projectTitle}" is approved and qualified for judging in ${params.hackathonTitle}.`,
+    badgeText: "Project Approved",
+    gradientStart: "#059669",
+    gradientEnd: "#10b981",
+  });
+
+  const text = `Project Approved: ${params.projectTitle}\n\n` +
+    `Hi ${params.userName},\n` +
+    `Your submission for ${params.hackathonTitle} has been approved for judging.\n` +
+    `View entry: ${params.projectUrl}\n\n` +
+    `The Hack4Win Team`;
+
+  return { subject, html, text };
+}
+
 // =========================================================================
 // TEMPLATE REGISTRY CATALOG (For UI & API Dispatching)
 // =========================================================================
@@ -1095,6 +1448,12 @@ export const EMAIL_TEMPLATE_CATALOG = [
   { id: "organizer_provisioned", name: "Organizer Studio Activated", category: "judging", sender: "welcome@hack4win.online" },
   { id: "host_inquiry", name: "Host Partnership Inquiry", category: "support", sender: "support@hack4win.online" },
   { id: "campaign", name: "Platform Broadcast Campaign", category: "marketing", sender: "news@hack4win.online" },
+  { id: "direct_message", name: "Direct Message from Admin / Leadership", category: "support", sender: "support@hack4win.online" },
+  { id: "prize_payout", name: "Prize Bounty Payout & Disbursement", category: "hackathon", sender: "notifications@hack4win.online" },
+  { id: "certificate_award", name: "Certificate of Achievement Credential", category: "hackathon", sender: "welcome@hack4win.online" },
+  { id: "survey_feedback", name: "Post-Event Survey & Builder Feedback", category: "marketing", sender: "news@hack4win.online" },
+  { id: "account_warning", name: "Account Notice & Fair Play Alert", category: "auth", sender: "request@hack4win.online" },
+  { id: "project_approved", name: "Project Approved for Judging Round", category: "submission", sender: "notifications@hack4win.online" },
 ] as const;
 
 function escapeHtml(str: string): string {

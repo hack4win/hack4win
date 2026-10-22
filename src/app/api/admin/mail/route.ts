@@ -78,7 +78,9 @@ export async function POST(req: NextRequest) {
     });
 
     // Dispatch via Brevo Service
-    const sender = type === "transactional" ? HACK4WIN_SENDERS.NOTIFICATIONS : HACK4WIN_SENDERS.NEWS;
+    const sender = (body.sender_key && body.sender_key in HACK4WIN_SENDERS)
+      ? HACK4WIN_SENDERS[body.sender_key as keyof typeof HACK4WIN_SENDERS]
+      : (type === "transactional" ? HACK4WIN_SENDERS.NOTIFICATIONS : HACK4WIN_SENDERS.NEWS);
     const template = getMarketingCampaignEmailTemplate({
       subject: subject.trim(),
       preheader: preheader?.trim(),

@@ -17,6 +17,12 @@ import {
   getOrganizerProvisionedEmailTemplate,
   getHostInquiryEmailTemplate,
   getMarketingCampaignEmailTemplate,
+  getDirectAdminMessageEmailTemplate,
+  getPrizePayoutEmailTemplate,
+  getCertificateAwardEmailTemplate,
+  getSurveyFeedbackEmailTemplate,
+  getAccountWarningEmailTemplate,
+  getProjectApprovedEmailTemplate,
 } from "@/lib/email/templates";
 
 /**
@@ -285,6 +291,94 @@ export async function POST(req: NextRequest) {
           finalHtml = t.html;
           finalText = t.text;
           resolvedSender = resolvedSender || HACK4WIN_SENDERS.NEWS;
+          break;
+        }
+        case "direct_message": {
+          const t = getDirectAdminMessageEmailTemplate({
+            recipientName: templateData?.recipientName || "Builder",
+            senderName: templateData?.senderName || session.user.name || "Hack4Win Team",
+            subject: finalSubject || templateData?.subject || "Direct Message from Hack4Win",
+            messageMarkdownOrHtml: templateData?.message || finalHtml || "",
+            ctaText: templateData?.ctaText,
+            ctaUrl: templateData?.ctaUrl,
+          });
+          finalSubject = t.subject;
+          finalHtml = t.html;
+          finalText = t.text;
+          resolvedSender = resolvedSender || HACK4WIN_SENDERS.SUPPORT;
+          break;
+        }
+        case "prize_payout": {
+          const t = getPrizePayoutEmailTemplate({
+            winnerName: templateData?.winnerName || "Winner",
+            hackathonTitle: templateData?.hackathonTitle || "Hackathon",
+            prizeAmount: templateData?.prizeAmount || "Award Prize",
+            awardTitle: templateData?.awardTitle || "Competition Winner",
+            claimUrl: templateData?.claimUrl || "https://hack4win.online/profile",
+            claimDeadline: templateData?.claimDeadline,
+            paymentMethod: templateData?.paymentMethod,
+          });
+          finalSubject = finalSubject || t.subject;
+          finalHtml = t.html;
+          finalText = t.text;
+          resolvedSender = resolvedSender || HACK4WIN_SENDERS.NOTIFICATIONS;
+          break;
+        }
+        case "certificate_award": {
+          const t = getCertificateAwardEmailTemplate({
+            recipientName: templateData?.recipientName || "Participant",
+            hackathonTitle: templateData?.hackathonTitle || "Hackathon",
+            completionDate: templateData?.completionDate || new Date().toLocaleDateString(),
+            certificateUrl: templateData?.certificateUrl || "https://hack4win.online/profile",
+            verificationId: templateData?.verificationId || `H4W-${Date.now()}`,
+            shareUrl: templateData?.shareUrl,
+          });
+          finalSubject = finalSubject || t.subject;
+          finalHtml = t.html;
+          finalText = t.text;
+          resolvedSender = resolvedSender || HACK4WIN_SENDERS.WELCOME;
+          break;
+        }
+        case "survey_feedback": {
+          const t = getSurveyFeedbackEmailTemplate({
+            recipientName: templateData?.recipientName || "Builder",
+            hackathonTitle: templateData?.hackathonTitle || "Hackathon",
+            surveyUrl: templateData?.surveyUrl || "https://hack4win.online/feedback",
+            estimatedMinutes: templateData?.estimatedMinutes || 3,
+            incentive: templateData?.incentive,
+          });
+          finalSubject = finalSubject || t.subject;
+          finalHtml = t.html;
+          finalText = t.text;
+          resolvedSender = resolvedSender || HACK4WIN_SENDERS.NEWS;
+          break;
+        }
+        case "account_warning": {
+          const t = getAccountWarningEmailTemplate({
+            userName: templateData?.userName || "User",
+            violationType: templateData?.violationType || "Community Guidelines Notice",
+            details: templateData?.details || "Please review platform fair play guidelines.",
+            appealUrl: templateData?.appealUrl,
+            deadlineHours: templateData?.deadlineHours || 48,
+          });
+          finalSubject = finalSubject || t.subject;
+          finalHtml = t.html;
+          finalText = t.text;
+          resolvedSender = resolvedSender || HACK4WIN_SENDERS.REQUESTS;
+          break;
+        }
+        case "project_approved": {
+          const t = getProjectApprovedEmailTemplate({
+            userName: templateData?.userName || "Builder",
+            projectTitle: templateData?.projectTitle || "Submitted Project",
+            hackathonTitle: templateData?.hackathonTitle || "Hackathon",
+            projectUrl: templateData?.projectUrl || "https://hack4win.online/projects",
+            judgingStartsAt: templateData?.judgingStartsAt,
+          });
+          finalSubject = finalSubject || t.subject;
+          finalHtml = t.html;
+          finalText = t.text;
+          resolvedSender = resolvedSender || HACK4WIN_SENDERS.NOTIFICATIONS;
           break;
         }
       }
