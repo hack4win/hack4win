@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ModalAlertProvider } from "@/components/ui/modal-alert";
+import { PerformanceTimingPatch } from "@/components/providers/performance-timing-patch";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -80,7 +81,44 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                if (typeof window !== 'undefined' && window.Performance && !window.__hack4win_perf_patched) {
+                  window.__hack4win_perf_patched = true;
+                  try {
+                    var orig = window.Performance.prototype.measure;
+                    window.Performance.prototype.measure = function(name, startOrOpts, endMark) {
+                      try {
+                        if (startOrOpts && typeof startOrOpts === 'object') {
+                          var opts = Object.assign({}, startOrOpts);
+                          if (typeof opts.start === 'number' && opts.start < 0) opts.start = 0;
+                          if (typeof opts.end === 'number' && opts.end < 0) opts.end = 0;
+                          if (typeof opts.start === 'number' && typeof opts.end === 'number' && opts.end < opts.start) {
+                            opts.end = opts.start;
+                          }
+                          if (typeof opts.duration === 'number' && opts.duration < 0) opts.duration = 0;
+                          return orig.call(this, name, opts, endMark);
+                        }
+                        return orig.call(this, name, startOrOpts, endMark);
+                      } catch(e) {
+                        if (e && (e.name === 'DOMException' || e.name === 'TypeError' || (e.message && (e.message.indexOf('negative') !== -1 || e.message.indexOf('time stamp') !== -1)))) {
+                          return;
+                        }
+                        throw e;
+                      }
+                    };
+                  } catch(e) {}
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col font-sans antialiased">
+        <PerformanceTimingPatch />
         <ModalAlertProvider>{children}</ModalAlertProvider>
       </body>
     </html>

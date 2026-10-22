@@ -7,13 +7,15 @@ import { JudgingClient } from "./judging-client";
 
 import { HackathonSubmission, ProjectEvaluation } from "@/lib/db/types";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Admin Judging & Scoring Portal | Hack4Win Arena",
   description: "Evaluate hackathon project submissions, assign rubric scores, critique, and award winners.",
 };
 
 interface JudgingPageProps {
-  searchParams: Promise<{
+  searchParams?: Promise<{
     hackathonId?: string;
   }>;
 }
@@ -29,13 +31,13 @@ export default async function AdminJudgingPage({ searchParams }: JudgingPageProp
     redirect("/");
   }
 
-  const resolvedParams = await searchParams;
+  const resolvedParams = searchParams ? await searchParams : undefined;
   const canSeeDrafts = session.user.role === "admin";
   const hackathons = await hackathonRepository.listHackathons({ includeDrafts: canSeeDrafts });
 
   // Selected hackathon default to param or first hackathon
   const selectedHackathonId =
-    resolvedParams.hackathonId || (hackathons.length > 0 ? hackathons[0].id : "");
+    resolvedParams?.hackathonId || (hackathons.length > 0 ? hackathons[0].id : "");
 
   let submissions: HackathonSubmission[] = [];
   let evaluations: ProjectEvaluation[] = [];

@@ -9,6 +9,8 @@ import { redirect } from "next/navigation";
  * Admin Infrastructure Settings Page (Server Component)
  */
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Infrastructure Settings | Admin Console",
   description: "Neon PostgreSQL and S3 configuration settings",

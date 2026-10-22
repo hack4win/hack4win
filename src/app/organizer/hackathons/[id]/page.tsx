@@ -5,6 +5,8 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Edit Challenge | Organizer Portal",
   description: "Modify competition details, prizes, timeline, and rules",
