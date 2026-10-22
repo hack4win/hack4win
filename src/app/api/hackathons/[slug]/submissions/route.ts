@@ -3,6 +3,8 @@ import { getServerSession } from "@/lib/auth/session";
 import { hackathonRepository } from "@/lib/db/hackathon-repository";
 import { getHackathonStatus, type SubmissionTeamMember } from "@/lib/db/types";
 import { isValidHttpUrl } from "@/lib/url-validation";
+import { brevoService, HACK4WIN_SENDERS } from "@/lib/email/brevo-service";
+import { getProjectSubmittedEmailTemplate } from "@/lib/email/templates";
 
 export async function GET(
   request: NextRequest,
@@ -241,6 +243,34 @@ export async function POST(
       team_members: finalTeamMembers,
       team_member_ids: finalMemberIds,
     });
+
+    // Send project submission confirmation receipt asynchronously
+    try {
+      if (session.user.email) {
+        const emailTemplate = getProjectSubmittedEmailTemplate({
+          userName: session.user.name || "Builder",
+          projectTitle: title.trim(),
+          hackathonTitle: hackathon.title,
+          projectId: submission.id,
+          demoUrl: demo_url?.trim() || undefined,
+          githubUrl: github_url?.trim() || undefined,
+          teamMembers: finalTeamMembers.map((m) => m.name || m.id),
+        });
+
+        brevoService
+          .sendEmail({
+            to: [{ email: session.user.email, name: session.user.name || "Builder" }],
+            subject: emailTemplate.subject,
+            htmlContent: emailTemplate.html,
+            textContent: emailTemplate.text,
+            sender: HACK4WIN_SENDERS.NOTIFICATIONS,
+            engine: "auto",
+          })
+          .catch((err) => console.warn("[Brevo Submission Email Warning]:", err.message));
+      }
+    } catch (emailErr) {
+      console.warn("[Brevo Submission Email Dispatch Error]:", emailErr);
+    }
 
     return NextResponse.json({
       success: true,

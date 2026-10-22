@@ -3,9 +3,19 @@ import { getServerSession } from "@/lib/auth/session";
 import { brevoService, HACK4WIN_SENDERS, SendEmailOptions } from "@/lib/email/brevo-service";
 import {
   getWelcomeEmailTemplate,
+  getPasswordResetOtpEmailTemplate,
   getTeamInviteEmailTemplate,
+  getTeamInviteAcceptedEmailTemplate,
   getHackathonRegistrationEmailTemplate,
+  getPrivateCampusInviteEmailTemplate,
+  getHackathonUpcomingReminderEmailTemplate,
+  getSubmissionDeadlineWarningEmailTemplate,
+  getProjectSubmittedEmailTemplate,
+  getProjectEvaluatedFeedbackEmailTemplate,
+  getWinnersAnnouncementEmailTemplate,
   getJudgeInviteEmailTemplate,
+  getOrganizerProvisionedEmailTemplate,
+  getHostInquiryEmailTemplate,
   getMarketingCampaignEmailTemplate,
 } from "@/lib/email/templates";
 
@@ -68,13 +78,27 @@ export async function POST(req: NextRequest) {
         case "welcome": {
           const t = getWelcomeEmailTemplate({
             name: templateData?.name || session.user.name || "Builder",
-            email: Array.isArray(to) ? to[0]?.email || to[0] : to,
+            email: Array.isArray(to) ? (typeof to[0] === "string" ? to[0] : to[0]?.email) : to,
             username: templateData?.username || session.user.username || undefined,
+            ctaUrl: templateData?.ctaUrl,
           });
           finalSubject = finalSubject || t.subject;
           finalHtml = t.html;
           finalText = t.text;
           resolvedSender = resolvedSender || HACK4WIN_SENDERS.WELCOME;
+          break;
+        }
+        case "password_reset": {
+          const t = getPasswordResetOtpEmailTemplate({
+            name: templateData?.name || session.user.name || "Builder",
+            otpCode: templateData?.otpCode,
+            resetUrl: templateData?.resetUrl,
+            expiresInMinutes: templateData?.expiresInMinutes,
+          });
+          finalSubject = finalSubject || t.subject;
+          finalHtml = t.html;
+          finalText = t.text;
+          resolvedSender = resolvedSender || HACK4WIN_SENDERS.REQUESTS;
           break;
         }
         case "team_invite": {
@@ -86,6 +110,21 @@ export async function POST(req: NextRequest) {
             role: templateData?.role || "Co-Builder",
             acceptUrl: templateData?.acceptUrl || "https://hack4win.online/hackathons",
             message: templateData?.message,
+          });
+          finalSubject = finalSubject || t.subject;
+          finalHtml = t.html;
+          finalText = t.text;
+          resolvedSender = resolvedSender || HACK4WIN_SENDERS.NOTIFICATIONS;
+          break;
+        }
+        case "team_accepted": {
+          const t = getTeamInviteAcceptedEmailTemplate({
+            leaderName: templateData?.leaderName || session.user.name || "Team Lead",
+            memberEmail: templateData?.memberEmail || (Array.isArray(to) ? (typeof to[0] === "string" ? to[0] : to[0]?.email) : to),
+            memberName: templateData?.memberName,
+            teamName: templateData?.teamName || "Innovation Team",
+            hackathonTitle: templateData?.hackathonTitle || "Hack4Win Hackathon",
+            teamRosterUrl: templateData?.teamRosterUrl || "https://hack4win.online/dashboard",
           });
           finalSubject = finalSubject || t.subject;
           finalHtml = t.html;
@@ -108,6 +147,91 @@ export async function POST(req: NextRequest) {
           resolvedSender = resolvedSender || HACK4WIN_SENDERS.NOTIFICATIONS;
           break;
         }
+        case "campus_invite": {
+          const t = getPrivateCampusInviteEmailTemplate({
+            studentName: templateData?.studentName,
+            hackathonTitle: templateData?.hackathonTitle || "Private Campus Hackathon",
+            organizerName: templateData?.organizerName || session.user.name || "Campus Organizer",
+            accessCode: templateData?.accessCode,
+            inviteLink: templateData?.inviteLink || "https://hack4win.online/hackathons",
+            allowedDomains: templateData?.allowedDomains,
+          });
+          finalSubject = finalSubject || t.subject;
+          finalHtml = t.html;
+          finalText = t.text;
+          resolvedSender = resolvedSender || HACK4WIN_SENDERS.WELCOME;
+          break;
+        }
+        case "upcoming_reminder": {
+          const t = getHackathonUpcomingReminderEmailTemplate({
+            userName: templateData?.userName || session.user.name || "Builder",
+            hackathonTitle: templateData?.hackathonTitle || "Upcoming Hackathon",
+            slug: templateData?.slug || "hackathon",
+            hoursUntilStart: templateData?.hoursUntilStart || 24,
+          });
+          finalSubject = finalSubject || t.subject;
+          finalHtml = t.html;
+          finalText = t.text;
+          resolvedSender = resolvedSender || HACK4WIN_SENDERS.NOTIFICATIONS;
+          break;
+        }
+        case "deadline_warning": {
+          const t = getSubmissionDeadlineWarningEmailTemplate({
+            userName: templateData?.userName || session.user.name || "Builder",
+            hackathonTitle: templateData?.hackathonTitle || "Hackathon",
+            slug: templateData?.slug || "hackathon",
+            hoursRemaining: templateData?.hoursRemaining || 6,
+          });
+          finalSubject = finalSubject || t.subject;
+          finalHtml = t.html;
+          finalText = t.text;
+          resolvedSender = resolvedSender || HACK4WIN_SENDERS.NOTIFICATIONS;
+          break;
+        }
+        case "project_submitted": {
+          const t = getProjectSubmittedEmailTemplate({
+            userName: templateData?.userName || session.user.name || "Builder",
+            projectTitle: templateData?.projectTitle || "Submitted Project",
+            hackathonTitle: templateData?.hackathonTitle || "Hackathon Challenge",
+            projectId: templateData?.projectId || "project",
+            demoUrl: templateData?.demoUrl,
+            githubUrl: templateData?.githubUrl,
+            teamMembers: templateData?.teamMembers,
+          });
+          finalSubject = finalSubject || t.subject;
+          finalHtml = t.html;
+          finalText = t.text;
+          resolvedSender = resolvedSender || HACK4WIN_SENDERS.NOTIFICATIONS;
+          break;
+        }
+        case "project_evaluated": {
+          const t = getProjectEvaluatedFeedbackEmailTemplate({
+            userName: templateData?.userName || session.user.name || "Builder",
+            projectTitle: templateData?.projectTitle || "Evaluated Project",
+            hackathonTitle: templateData?.hackathonTitle || "Hackathon Challenge",
+            projectId: templateData?.projectId || "project",
+            feedbackNotes: templateData?.feedbackNotes,
+            awardBadge: templateData?.awardBadge,
+          });
+          finalSubject = finalSubject || t.subject;
+          finalHtml = t.html;
+          finalText = t.text;
+          resolvedSender = resolvedSender || HACK4WIN_SENDERS.REQUESTS;
+          break;
+        }
+        case "winners_announced": {
+          const t = getWinnersAnnouncementEmailTemplate({
+            hackathonTitle: templateData?.hackathonTitle || "Hackathon",
+            slug: templateData?.slug || "hackathon",
+            winners: templateData?.winners || [],
+            leaderboardUrl: templateData?.leaderboardUrl,
+          });
+          finalSubject = finalSubject || t.subject;
+          finalHtml = t.html;
+          finalText = t.text;
+          resolvedSender = resolvedSender || HACK4WIN_SENDERS.NEWS;
+          break;
+        }
         case "judge_invite": {
           const t = getJudgeInviteEmailTemplate({
             judgeName: templateData?.judgeName || "Judge",
@@ -119,6 +243,33 @@ export async function POST(req: NextRequest) {
           finalHtml = t.html;
           finalText = t.text;
           resolvedSender = resolvedSender || HACK4WIN_SENDERS.REQUESTS;
+          break;
+        }
+        case "organizer_provisioned": {
+          const t = getOrganizerProvisionedEmailTemplate({
+            organizerName: templateData?.organizerName || "Organizer",
+            email: Array.isArray(to) ? (typeof to[0] === "string" ? to[0] : to[0]?.email) : to,
+            portalUrl: templateData?.portalUrl || "https://hack4win.online/organizer",
+          });
+          finalSubject = finalSubject || t.subject;
+          finalHtml = t.html;
+          finalText = t.text;
+          resolvedSender = resolvedSender || HACK4WIN_SENDERS.WELCOME;
+          break;
+        }
+        case "host_inquiry": {
+          const t = getHostInquiryEmailTemplate({
+            organizationName: templateData?.organizationName || "Partner Organization",
+            contactName: templateData?.contactName || session.user.name || "Partner Lead",
+            email: templateData?.email || (Array.isArray(to) ? (typeof to[0] === "string" ? to[0] : to[0]?.email) : to),
+            timeline: templateData?.timeline,
+            estimatedPrizePool: templateData?.estimatedPrizePool,
+            eventGoals: templateData?.eventGoals || "Host a hackathon competition",
+          });
+          finalSubject = finalSubject || t.subject;
+          finalHtml = t.html;
+          finalText = t.text;
+          resolvedSender = resolvedSender || HACK4WIN_SENDERS.SUPPORT;
           break;
         }
         case "campaign": {

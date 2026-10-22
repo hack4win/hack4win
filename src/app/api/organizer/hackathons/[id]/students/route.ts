@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/session";
 import { hackathonRepository } from "@/lib/db/hackathon-repository";
+import { brevoService, HACK4WIN_SENDERS } from "@/lib/email/brevo-service";
+import { getPrivateCampusInviteEmailTemplate } from "@/lib/email/templates";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -101,6 +103,41 @@ export async function POST(req: NextRequest, context: RouteContext) {
       const currentEmails = action === "add_emails" ? hackathon.invited_emails || [] : [];
       const combined = [...currentEmails, ...rawEmails];
       const updatedEmails = await hackathonRepository.updateInvitedEmails(hackathon.id, combined);
+
+      // Optionally dispatch branded VIP campus invitation emails to newly added students
+      if (body.sendInviteEmails !== false && rawEmails.length > 0) {
+        try {
+          const newEmails = rawEmails.filter(
+            (e: string) => !currentEmails.some((ce: string) => ce.toLowerCase() === e.toLowerCase().trim())
+          );
+          if (newEmails.length > 0) {
+            const baseUrl = process.env.NEXTAUTH_URL || "https://hack4win.online";
+            const inviteLink = `${baseUrl}/hackathons/${hackathon.slug}?token=${hackathon.invite_token || ""}`;
+            const template = getPrivateCampusInviteEmailTemplate({
+              hackathonTitle: hackathon.title,
+              organizerName: session.user.name || "Campus Organizer",
+              accessCode: hackathon.access_code || undefined,
+              inviteLink,
+              allowedDomains: hackathon.allowed_email_domains || undefined,
+            });
+
+            for (const email of newEmails) {
+              brevoService
+                .sendEmail({
+                  to: [{ email: email.trim() }],
+                  subject: template.subject,
+                  htmlContent: template.html,
+                  textContent: template.text,
+                  sender: HACK4WIN_SENDERS.WELCOME,
+                  engine: "auto",
+                })
+                .catch((err) => console.warn(`[Brevo Student Invite Warning for ${email}]:`, err.message));
+            }
+          }
+        } catch (studentMailErr) {
+          console.warn("[Brevo Student Invite Dispatch Error]:", studentMailErr);
+        }
+      }
 
       return NextResponse.json({
         success: true,

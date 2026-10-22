@@ -3,6 +3,8 @@ import { getServerSession } from "@/lib/auth/session";
 import { userRepository } from "@/lib/db/user-repository";
 import { hackathonRepository } from "@/lib/db/hackathon-repository";
 import { getHackathonStatus } from "@/lib/db/types";
+import { brevoService, HACK4WIN_SENDERS } from "@/lib/email/brevo-service";
+import { getTeamInviteAcceptedEmailTemplate } from "@/lib/email/templates";
 
 export async function GET(
   req: NextRequest,
@@ -214,6 +216,34 @@ export async function PATCH(
           session.user.id,
           syncOptions
         );
+      }
+
+      // Notify team leader asynchronously that invite was accepted
+      try {
+        const senderUser = await userRepository.findById(invitation.sender_id);
+        if (senderUser?.email) {
+          const emailTemplate = getTeamInviteAcceptedEmailTemplate({
+            leaderName: senderUser.name || "Team Lead",
+            memberEmail: session.user.email || invitation.receiver_email || "Teammate",
+            memberName: session.user.name || undefined,
+            teamName: invitation.team_name || "Innovation Team",
+            hackathonTitle: invitation.hackathon_title || "Hackathon Challenge",
+            teamRosterUrl: `${process.env.NEXTAUTH_URL || "https://hack4win.online"}/hackathons/${invitation.hackathon_slug || ""}`,
+          });
+
+          brevoService
+            .sendEmail({
+              to: [{ email: senderUser.email, name: senderUser.name || "Team Lead" }],
+              subject: emailTemplate.subject,
+              htmlContent: emailTemplate.html,
+              textContent: emailTemplate.text,
+              sender: HACK4WIN_SENDERS.NOTIFICATIONS,
+              engine: "auto",
+            })
+            .catch((err) => console.warn("[Brevo Team Invite Accepted Email Warning]:", err.message));
+        }
+      } catch (leaderEmailErr) {
+        console.warn("[Brevo Team Invite Accepted Email Error]:", leaderEmailErr);
       }
     } else if (status === "declined") {
       await hackathonRepository.updateSubmissionTeamMemberStatus(

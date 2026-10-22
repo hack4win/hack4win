@@ -11,11 +11,21 @@ import {
 } from "../src/lib/email/brevo-service.ts";
 import {
   getWelcomeEmailTemplate,
+  getPasswordResetOtpEmailTemplate,
   getTeamInviteEmailTemplate,
+  getTeamInviteAcceptedEmailTemplate,
   getHackathonRegistrationEmailTemplate,
+  getPrivateCampusInviteEmailTemplate,
+  getHackathonUpcomingReminderEmailTemplate,
+  getSubmissionDeadlineWarningEmailTemplate,
+  getProjectSubmittedEmailTemplate,
+  getProjectEvaluatedFeedbackEmailTemplate,
+  getWinnersAnnouncementEmailTemplate,
   getJudgeInviteEmailTemplate,
-  getMarketingCampaignEmailTemplate,
+  getOrganizerProvisionedEmailTemplate,
   getHostInquiryEmailTemplate,
+  getMarketingCampaignEmailTemplate,
+  EMAIL_TEMPLATE_CATALOG,
   wrapInEmailLayout,
 } from "../src/lib/email/templates.ts";
 import { neon } from "@neondatabase/serverless";
@@ -115,6 +125,19 @@ describe("3. Email Templates Generator", () => {
     assert.ok(t.text.includes("Welcome to Hack4Win"));
   });
 
+  test("Password reset OTP template generates verification code box and expiry warning", () => {
+    const t = getPasswordResetOtpEmailTemplate({
+      name: "Elena",
+      otpCode: "482910",
+      resetUrl: "https://hack4win.online/reset-password?code=482910",
+      expiresInMinutes: 15,
+    });
+    assert.ok(t.subject.includes("482910"));
+    assert.ok(t.html.includes("482910"));
+    assert.ok(t.html.includes("15 minutes"));
+    assert.ok(t.text.includes("482910"));
+  });
+
   test("Team invitation template includes team name, role, message, and accept URL", () => {
     const t = getTeamInviteEmailTemplate({
       senderName: "Sarah",
@@ -132,6 +155,156 @@ describe("3. Email Templates Generator", () => {
     assert.ok(t.html.includes("https://hack4win.online/team-invites/xyz?action=accept"));
   });
 
+  test("Team invite accepted template includes teammate name, team name, and roster link", () => {
+    const t = getTeamInviteAcceptedEmailTemplate({
+      leaderName: "Marcus",
+      memberEmail: "dev@hack4win.online",
+      memberName: "Devon",
+      teamName: "Neural Forge",
+      hackathonTitle: "Global AI Hack 2026",
+      teamRosterUrl: "https://hack4win.online/hackathons/global-ai/team",
+    });
+    assert.ok(t.subject.includes("Neural Forge"));
+    assert.ok(t.html.includes("Neural Forge"));
+    assert.ok(t.html.includes("Devon"));
+    assert.ok(t.html.includes("View Team Workspace"));
+  });
+
+  test("Hackathon registration confirmation template includes slug and start date", () => {
+    const t = getHackathonRegistrationEmailTemplate({
+      userName: "Alice",
+      hackathonTitle: "Web3 World Cup",
+      slug: "web3-cup",
+      startDate: "2026-11-01T00:00:00Z",
+      isPrivate: true,
+      accessCode: "CAMPUS99",
+    });
+    assert.ok(t.subject.includes("Web3 World Cup"));
+    assert.ok(t.html.includes("web3-cup"));
+    assert.ok(t.html.includes("CAMPUS99"));
+  });
+
+  test("Private campus invite template includes passcode, restricted campus badge, and 1-click link", () => {
+    const t = getPrivateCampusInviteEmailTemplate({
+      studentName: "Liam",
+      hackathonTitle: "MIT Collegiate Hack",
+      organizerName: "Prof. Sanders",
+      accessCode: "VIP-MIT-2026",
+      inviteLink: "https://hack4win.online/hackathons/mit-hack?token=vip123",
+      allowedDomains: ["mit.edu", "alumni.mit.edu"],
+    });
+    assert.ok(t.subject.includes("MIT Collegiate Hack"));
+    assert.ok(t.html.includes("VIP-MIT-2026"));
+    assert.ok(t.html.includes("@mit.edu"));
+    assert.ok(t.html.includes("Claim 1-Click Campus Pass"));
+  });
+
+  test("Upcoming reminder template includes countdown hours and checklist", () => {
+    const t = getHackathonUpcomingReminderEmailTemplate({
+      userName: "Sophia",
+      hackathonTitle: "GreenTech Sprint",
+      slug: "greentech",
+      hoursUntilStart: 24,
+    });
+    assert.ok(t.subject.includes("24 Hours"));
+    assert.ok(t.html.includes("Pre-Flight Checklist"));
+    assert.ok(t.html.includes("GreenTech Sprint"));
+  });
+
+  test("Submission deadline warning template includes urgency styling and submit CTA", () => {
+    const t = getSubmissionDeadlineWarningEmailTemplate({
+      userName: "Leo",
+      hackathonTitle: "FinTech Hack",
+      slug: "fintech-hack",
+      hoursRemaining: 6,
+    });
+    assert.ok(t.subject.includes("6 Hours Remaining"));
+    assert.ok(t.html.includes("Submission Deadline Approaching"));
+    assert.ok(t.html.includes("Submit Your Project Now"));
+  });
+
+  test("Project submitted receipt template includes project title, links, and member list", () => {
+    const t = getProjectSubmittedEmailTemplate({
+      userName: "Chloe",
+      projectTitle: "SolarPulse AI",
+      hackathonTitle: "Climate Tech 2026",
+      projectId: "proj_999",
+      demoUrl: "https://solarpulse.app",
+      githubUrl: "https://github.com/solarpulse",
+      teamMembers: ["Chloe", "Zack", "Maya"],
+    });
+    assert.ok(t.subject.includes("SolarPulse AI"));
+    assert.ok(t.html.includes("SolarPulse AI"));
+    assert.ok(t.html.includes("Climate Tech 2026"));
+    assert.ok(t.html.includes("solarpulse.app"));
+    assert.ok(t.html.includes("Zack"));
+  });
+
+  test("Project evaluated feedback template includes judge notes and award badge", () => {
+    const t = getProjectEvaluatedFeedbackEmailTemplate({
+      userName: "Lucas",
+      projectTitle: "OmniSearch",
+      hackathonTitle: "Search Hack 2026",
+      projectId: "proj_omni",
+      feedbackNotes: "Exceptional architecture and clean UI execution.",
+      awardBadge: "Best Technical Implementation",
+    });
+    assert.ok(t.subject.includes("OmniSearch"));
+    assert.ok(t.html.includes("Best Technical Implementation"));
+    assert.ok(t.html.includes("Exceptional architecture and clean UI"));
+  });
+
+  test("Winners announcement template includes ranked winners podium and prize amounts", () => {
+    const t = getWinnersAnnouncementEmailTemplate({
+      hackathonTitle: "Global Health Challenge",
+      slug: "health-challenge",
+      winners: [
+        { rank: 1, title: "CardioScan", team: "HeartTech", prize: "$10,000" },
+        { rank: 2, title: "NeuroTrack", team: "BrainWorks", prize: "$5,000" },
+      ],
+    });
+    assert.ok(t.subject.includes("Global Health Challenge"));
+    assert.ok(t.html.includes("CardioScan"));
+    assert.ok(t.html.includes("HeartTech"));
+    assert.ok(t.html.includes("$10,000"));
+  });
+
+  test("Judge appointment template includes portal access link", () => {
+    const t = getJudgeInviteEmailTemplate({
+      judgeName: "Dr. Evelyn",
+      hackathonTitle: "Autonomous Agent Challenge",
+      organizerName: "AI Institute",
+    });
+    assert.ok(t.subject.includes("Autonomous Agent Challenge"));
+    assert.ok(t.html.includes("Open Judges Evaluation Portal"));
+  });
+
+  test("Organizer provisioned template includes workspace onboarding and portal link", () => {
+    const t = getOrganizerProvisionedEmailTemplate({
+      organizerName: "Stanford ACM",
+      email: "acm@stanford.edu",
+      portalUrl: "https://hack4win.online/organizer",
+    });
+    assert.ok(t.subject.includes("Organizer Workspace Activated"));
+    assert.ok(t.html.includes("Stanford ACM"));
+    assert.ok(t.html.includes("Launch Host Studio Workspace"));
+  });
+
+  test("Host inquiry template renders partner details and prize pool goals", () => {
+    const t = getHostInquiryEmailTemplate({
+      organizationName: "Venture Labs",
+      contactName: "Sarah Connor",
+      email: "sarah@venturelabs.io",
+      timeline: "Q4 2026",
+      estimatedPrizePool: "$50,000",
+      eventGoals: "Recruit top AI researchers and build open source tooling.",
+    });
+    assert.ok(t.subject.includes("Venture Labs"));
+    assert.ok(t.html.includes("Sarah Connor"));
+    assert.ok(t.html.includes("$50,000"));
+    assert.ok(t.html.includes("Recruit top AI researchers"));
+  });
+
   test("Marketing campaign template includes compliant CAN-SPAM unsubscribe footer", () => {
     const t = getMarketingCampaignEmailTemplate({
       subject: "Hack4Win Fall 2026 Hackathons are Live!",
@@ -144,14 +317,24 @@ describe("3. Email Templates Generator", () => {
     assert.ok(t.html.includes("Browse Challenges"));
   });
 
-  test("Judge appointment template includes portal access link", () => {
-    const t = getJudgeInviteEmailTemplate({
-      judgeName: "Dr. Evelyn",
-      hackathonTitle: "Autonomous Agent Challenge",
-      organizerName: "AI Institute",
-    });
-    assert.ok(t.subject.includes("Autonomous Agent Challenge"));
-    assert.ok(t.html.includes("Open Judges Evaluation Portal"));
+  test("EMAIL_TEMPLATE_CATALOG contains 15 registered templates with verified senders", () => {
+    assert.equal(EMAIL_TEMPLATE_CATALOG.length, 15);
+    const ids = EMAIL_TEMPLATE_CATALOG.map((c) => c.id);
+    assert.ok(ids.includes("welcome"));
+    assert.ok(ids.includes("password_reset"));
+    assert.ok(ids.includes("team_invite"));
+    assert.ok(ids.includes("team_accepted"));
+    assert.ok(ids.includes("registration"));
+    assert.ok(ids.includes("campus_invite"));
+    assert.ok(ids.includes("upcoming_reminder"));
+    assert.ok(ids.includes("deadline_warning"));
+    assert.ok(ids.includes("project_submitted"));
+    assert.ok(ids.includes("project_evaluated"));
+    assert.ok(ids.includes("winners_announced"));
+    assert.ok(ids.includes("judge_invite"));
+    assert.ok(ids.includes("organizer_provisioned"));
+    assert.ok(ids.includes("host_inquiry"));
+    assert.ok(ids.includes("campaign"));
   });
 });
 
@@ -225,6 +408,78 @@ describe("5. Brevo API Endpoints (/api/email/send & /api/email/verify)", () => {
     const data = await res.json();
     assert.equal(data.success, true);
     assert.ok(data.messageId);
+  });
+
+  test("POST /api/email/send dispatches campus_invite template", async () => {
+    const res = await fetch(`${BASE_URL}/api/email/send`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `neon-auth.session_token=${USER_TOKEN}`,
+      },
+      body: JSON.stringify({
+        to: "student@harvard.edu",
+        template: "campus_invite",
+        templateData: {
+          studentName: "Harvard Hacker",
+          hackathonTitle: "Ivy League Hackathon",
+          accessCode: "IVY2026",
+          inviteLink: "https://hack4win.online/hackathons/ivy-hack?token=abc",
+        },
+      }),
+    });
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.success, true);
+    assert.ok(data.messageId);
+  });
+
+  test("POST /api/email/send dispatches project_submitted template", async () => {
+    const res = await fetch(`${BASE_URL}/api/email/send`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `neon-auth.session_token=${USER_TOKEN}`,
+      },
+      body: JSON.stringify({
+        to: "creator@hack4win.online",
+        template: "project_submitted",
+        templateData: {
+          userName: "Creator",
+          projectTitle: "NeuroGrid",
+          hackathonTitle: "Neural Challenge",
+          projectId: "ng_123",
+          demoUrl: "https://neurogrid.io",
+        },
+      }),
+    });
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.success, true);
+    assert.ok(data.messageId);
+  });
+
+  test("POST /api/email/send allows admin to dispatch winners_announced template", async () => {
+    const res = await fetch(`${BASE_URL}/api/email/send`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `neon-auth.session_token=${ADMIN_TOKEN}`,
+      },
+      body: JSON.stringify({
+        to: ["participant1@hack4win.online", "participant2@hack4win.online"],
+        template: "winners_announced",
+        templateData: {
+          hackathonTitle: "Grand Prix 2026",
+          slug: "grand-prix-2026",
+          winners: [{ rank: 1, title: "SpeedAI", team: "FastTrack", prize: "$20,000" }],
+        },
+      }),
+    });
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.success, true);
+    assert.equal(data.recipientCount, 2);
   });
 
   test("GET /api/email/verify rejects unauthenticated requests with 401", async () => {
