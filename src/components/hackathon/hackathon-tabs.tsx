@@ -78,9 +78,11 @@ export function HackathonTabs({
   // Status checks for disabling/enabling actions
   const dynamicStatus = getHackathonStatus(hackathon);
   const isEnded = dynamicStatus === "ended" || hackathon.status === "ended";
-  const isDeadlinePassed = Boolean(
-    hackathon.submission_deadline &&
-      new Date(hackathon.submission_deadline).getTime() < Date.now()
+  const [isDeadlinePassed] = useState(() =>
+    Boolean(
+      hackathon.submission_deadline &&
+        new Date(hackathon.submission_deadline).getTime() < Date.now()
+    )
   );
   const isSubmissionsClosed = isEnded || isDeadlinePassed;
 

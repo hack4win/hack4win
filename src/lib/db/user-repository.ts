@@ -191,7 +191,7 @@ export class UserRepository implements IUserRepository {
       throw new Error(`User with email "${email}" already exists`);
     }
 
-    let username = input.username?.toLowerCase().trim() || null;
+    const username = input.username?.toLowerCase().trim() || null;
     if (username) {
       if (RESERVED_USERNAMES.has(username)) {
         throw new Error(`Username @${username} is reserved by the platform`);

@@ -173,16 +173,16 @@ export default async function AdminOverviewPage() {
 
       {/* Top 4 Metrics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <Card className="border shadow-xs rounded-2xl">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <Card className="border shadow-xs rounded-2xl bg-card">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 pt-6 px-6">
             <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Total Hackathons
             </CardTitle>
-            <div className="size-9 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+            <div className="size-9 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
               <Trophy className="size-4.5" />
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-6 pb-6 pt-0">
             <div className="text-3xl font-black">{statusCounts.total}</div>
             <p className="text-xs text-muted-foreground mt-1">
               <span className="text-emerald-600 font-semibold">{statusCounts.ongoing} live now</span> &middot; {statusCounts.upcoming} upcoming
@@ -190,16 +190,16 @@ export default async function AdminOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card className="border shadow-xs rounded-2xl">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <Card className="border shadow-xs rounded-2xl bg-card">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 pt-6 px-6">
             <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Total Participants
             </CardTitle>
-            <div className="size-9 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+            <div className="size-9 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
               <Users className="size-4.5" />
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-6 pb-6 pt-0">
             <div className="text-3xl font-black">{stats.totalUsers}</div>
             <p className="text-xs text-muted-foreground mt-1">
               Registered platform participants
@@ -207,16 +207,16 @@ export default async function AdminOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card className="border shadow-xs rounded-2xl">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <Card className="border shadow-xs rounded-2xl bg-card">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 pt-6 px-6">
             <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Total Prize Capital
             </CardTitle>
-            <div className="size-9 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <div className="size-9 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
               <Sparkles className="size-4.5" />
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-6 pb-6 pt-0">
             <div className="text-3xl font-black text-primary">{totalPrizeValue}</div>
             <p className="text-xs text-muted-foreground mt-1">
               Combined cash & hardware pool
@@ -224,16 +224,16 @@ export default async function AdminOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card className="border shadow-xs rounded-2xl">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <Card className="border shadow-xs rounded-2xl bg-card">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 pt-6 px-6">
             <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Email Broadcasts
             </CardTitle>
-            <div className="size-9 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+            <div className="size-9 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
               <Mail className="size-4.5" />
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-6 pb-6 pt-0">
             <div className="text-3xl font-black">{mailStats.totalSent}</div>
             <p className="text-xs text-muted-foreground mt-1">
               Across {mailStats.totalCampaigns} campaigns sent

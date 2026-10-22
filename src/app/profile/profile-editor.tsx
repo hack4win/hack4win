@@ -111,24 +111,25 @@ export function ProfileEditor({ initialUser, availableSkills = [] }: ProfileEdit
   // Debounce check username uniqueness against API
   React.useEffect(() => {
     const clean = username.trim().toLowerCase();
-    if (!clean) {
-      setUsernameAvailable(null);
-      setUsernameError("Username cannot be empty");
-      return;
-    }
-    if (clean === (initialUser.username || "").toLowerCase()) {
-      setUsernameAvailable(true);
-      setUsernameError(null);
-      return;
-    }
-    if (!/^[a-zA-Z0-9_]{3,30}$/.test(clean)) {
-      setUsernameAvailable(false);
-      setUsernameError("Must be 3-30 characters (letters, numbers, underscores)");
-      return;
-    }
 
-    setUsernameChecking(true);
     const timeout = setTimeout(async () => {
+      if (!clean) {
+        setUsernameAvailable(null);
+        setUsernameError("Username cannot be empty");
+        return;
+      }
+      if (clean === (initialUser.username || "").toLowerCase()) {
+        setUsernameAvailable(true);
+        setUsernameError(null);
+        return;
+      }
+      if (!/^[a-zA-Z0-9_]{3,30}$/.test(clean)) {
+        setUsernameAvailable(false);
+        setUsernameError("Must be 3-30 characters (letters, numbers, underscores)");
+        return;
+      }
+
+      setUsernameChecking(true);
       try {
         const res = await fetch(`/api/user/username?username=${encodeURIComponent(clean)}`);
         const data = await res.json();

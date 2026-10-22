@@ -1065,7 +1065,7 @@ export function MailClient({
 
               <select
                 value={senderKey}
-                onChange={(e) => setSenderKey(e.target.value as any)}
+                onChange={(e) => setSenderKey(e.target.value as "NEWS" | "NOTIFICATIONS" | "WELCOME" | "REQUESTS" | "SUPPORT")}
                 className="w-full h-9 rounded-full border border-input bg-background px-3 text-xs font-semibold outline-none cursor-pointer"
               >
                 <option value="NEWS">Hack4Win News (news@hack4win.online) &mdash; Best for Marketing & Newsletters</option>

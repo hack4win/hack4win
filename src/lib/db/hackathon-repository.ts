@@ -125,7 +125,7 @@ export interface IHackathonRepository {
   regenerateInviteToken(hackathonId: string): Promise<string>;
 }
 
-function mapHackathonRow(row: any): Hackathon {
+function mapHackathonRow(row: Record<string, unknown>): Hackathon {
   return {
     ...row,
     tags: Array.isArray(row.tags) ? row.tags : [],
@@ -1534,17 +1534,17 @@ export class HackathonRepository implements IHackathonRepository {
         WHERE (${isSuperAdmin}::boolean = true OR h.organizer_id = ${organizerId})
         ORDER BY hj.created_at DESC;
       `;
-      return rows.map((r: any) => ({
-        id: r.id,
-        judge_id: r.judge_id,
-        name: r.name || "Judge",
-        email: r.email,
-        username: r.username,
-        image: r.image,
-        hackathon_id: r.hackathon_id,
-        hackathon_title: r.hackathon_title,
-        hackathon_slug: r.hackathon_slug,
-        assigned_at: r.assigned_at,
+      return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
+        id: String(r.id),
+        judge_id: String(r.judge_id),
+        name: (r.name as string) || "Judge",
+        email: String(r.email),
+        username: (r.username as string) || null,
+        image: (r.image as string) || null,
+        hackathon_id: String(r.hackathon_id || ""),
+        hackathon_title: String(r.hackathon_title || ""),
+        hackathon_slug: String(r.hackathon_slug || ""),
+        assigned_at: String(r.assigned_at || ""),
         evaluation_count: Number(r.evaluation_count) || 0,
       }));
     } catch (err) {
@@ -1690,14 +1690,14 @@ export class HackathonRepository implements IHackathonRepository {
         WHERE r.hackathon_id = ${hackathonId}::uuid
         ORDER BY r.created_at DESC;
       `;
-      return rows.map((r: any) => ({
-        user_id: r.user_id,
-        name: r.name || "Student Participant",
-        email: r.email,
-        username: r.username,
-        image: r.image,
-        registered_at: r.registered_at ? new Date(r.registered_at).toISOString() : new Date().toISOString(),
-        participation_type: r.participation_type || "solo",
+      return (rows as unknown as Array<Record<string, unknown>>).map((r) => ({
+        user_id: String(r.user_id),
+        name: (r.name as string) || "Student Participant",
+        email: String(r.email),
+        username: (r.username as string) || null,
+        image: (r.image as string) || null,
+        registered_at: r.registered_at ? new Date(String(r.registered_at)).toISOString() : new Date().toISOString(),
+        participation_type: (r.participation_type as string) || "solo",
       }));
     } catch (err) {
       console.error("[getRegisteredStudents Error]:", err);

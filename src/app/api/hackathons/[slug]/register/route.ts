@@ -68,9 +68,9 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    let body: any = null;
+    let body: Record<string, unknown> | null = null;
     try {
-      body = await req.json();
+      body = (await req.json()) as Record<string, unknown>;
     } catch {
       // Body may be empty
     }
@@ -81,8 +81,8 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       const accessCheck = await hackathonRepository.verifyPrivateAccess(hackathon, {
         userId: session.user.id,
         userEmail: session.user.email,
-        accessCode: body?.access_code,
-        inviteToken: body?.invite_token || inviteTokenFromQuery,
+        accessCode: typeof body?.access_code === "string" ? body.access_code : undefined,
+        inviteToken: (typeof body?.invite_token === "string" ? body.invite_token : undefined) || inviteTokenFromQuery,
         userRole: session.user.role,
       });
 
@@ -128,7 +128,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     ]);
     let participationType = "looking_for_team";
     if (body?.participation_type !== undefined) {
-      const mapped = VALID_PARTICIPATION_TYPES.get(body.participation_type);
+      const mapped = VALID_PARTICIPATION_TYPES.get(String(body.participation_type));
       if (!mapped) {
         return NextResponse.json(
           { error: "Invalid participation type. Allowed types: solo, looking_for_team, has_team" },

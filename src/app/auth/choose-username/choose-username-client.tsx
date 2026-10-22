@@ -60,7 +60,8 @@ export function ChooseUsernameClient({ user, callbackUrl }: ChooseUsernameClient
       base,
       `${base}_dev`,
       `${base}_builder`,
-      `${base}_${Math.floor(10 + Math.random() * 90)}`,
+      `${base}_hq`,
+      `${base}_pro`,
     ].filter((val, idx, self) => self.indexOf(val) === idx && val !== username);
   }, [defaultCandidate, username]);
 
@@ -68,36 +69,36 @@ export function ChooseUsernameClient({ user, callbackUrl }: ChooseUsernameClient
   useEffect(() => {
     const clean = username.trim().toLowerCase();
 
-    if (!clean) {
-      setAvailability({ checked: true, available: false, reason: "Username cannot be empty" });
-      setIsChecking(false);
-      return;
-    }
-
-    if (clean.length < 3) {
-      setAvailability({ checked: true, available: false, reason: "Minimum 3 characters required" });
-      setIsChecking(false);
-      return;
-    }
-
-    if (clean.length > 30) {
-      setAvailability({ checked: true, available: false, reason: "Maximum 30 characters allowed" });
-      setIsChecking(false);
-      return;
-    }
-
-    if (!/^[a-zA-Z0-9_]+$/.test(clean)) {
-      setAvailability({
-        checked: true,
-        available: false,
-        reason: "Only letters, numbers, and underscores allowed",
-      });
-      setIsChecking(false);
-      return;
-    }
-
-    setIsChecking(true);
     const timeout = setTimeout(async () => {
+      if (!clean) {
+        setAvailability({ checked: true, available: false, reason: "Username cannot be empty" });
+        setIsChecking(false);
+        return;
+      }
+
+      if (clean.length < 3) {
+        setAvailability({ checked: true, available: false, reason: "Minimum 3 characters required" });
+        setIsChecking(false);
+        return;
+      }
+
+      if (clean.length > 30) {
+        setAvailability({ checked: true, available: false, reason: "Maximum 30 characters allowed" });
+        setIsChecking(false);
+        return;
+      }
+
+      if (!/^[a-zA-Z0-9_]+$/.test(clean)) {
+        setAvailability({
+          checked: true,
+          available: false,
+          reason: "Only letters, numbers, and underscores allowed",
+        });
+        setIsChecking(false);
+        return;
+      }
+
+      setIsChecking(true);
       try {
         const res = await fetch(`/api/user/username?username=${encodeURIComponent(clean)}`);
         const data = await res.json();

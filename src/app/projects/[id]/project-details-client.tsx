@@ -219,13 +219,15 @@ export function ProjectDetailsClient({
       submission.team_member_ids?.includes(currentUser?.id || "") ||
       currentUser?.role === "admin");
 
-  const isSubmissionsClosed = Boolean(
-    hackathon &&
-      (hackathon.status === "ended" ||
-        (hackathon.submission_deadline &&
-          new Date(hackathon.submission_deadline).getTime() < Date.now()) ||
-        new Date(hackathon.end_date).getTime() < Date.now())
-  );
+  const [isSubmissionsClosed] = useState(() => {
+    if (!hackathon) return false;
+    if (hackathon.status === "ended") return true;
+    const now = Date.now();
+    if (hackathon.submission_deadline && new Date(hackathon.submission_deadline).getTime() < now) {
+      return true;
+    }
+    return new Date(hackathon.end_date).getTime() < now;
+  });
 
   const handleCopyShareLink = () => {
     if (typeof window !== "undefined") {

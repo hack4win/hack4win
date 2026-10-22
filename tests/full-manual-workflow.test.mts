@@ -1795,11 +1795,11 @@ describe("Suite R: Team Collaboration & State Fixes (3.1, 3.2, 3.3)", () => {
 
 describe("Suite S: Robustness & Edge-Cases (2.2, 2.3, 4.1, 4.2)", () => {
   let robustHackathonIdA = "";
-  let robustHackathonSlugA = `robust-a-${Date.now()}`;
+  const robustHackathonSlugA = `robust-a-${Date.now()}`;
   let robustHackathonIdB = "";
-  let robustHackathonSlugB = `robust-b-${Date.now()}`;
+  const robustHackathonSlugB = `robust-b-${Date.now()}`;
   let ghostHackathonId = "";
-  let ghostHackathonSlug = `ghost-hack-${Date.now()}`;
+  const ghostHackathonSlug = `ghost-hack-${Date.now()}`;
 
   before(async () => {
     // Create Hackathon A
@@ -3173,7 +3173,7 @@ describe("Suite AH: Drag-and-Drop File Upload in Project Submission (Improve 3)"
 });
 
 describe("Suite AI: Countdown Timer Urgency Animation & Exact Boundary Tooltip (Improve 4)", () => {
-  let imminentHackathonSlug = `imminent-hack-${Date.now()}`;
+  const imminentHackathonSlug = `imminent-hack-${Date.now()}`;
   let imminentHackathonId = "";
 
   before(async () => {
@@ -3277,7 +3277,7 @@ describe("Suite AI: Countdown Timer Urgency Animation & Exact Boundary Tooltip (
 });
 
 describe("Suite AJ: Vanity Profile URL by Username (/u/[username])", () => {
-  let vanityUsername = `vanity_${Date.now()}`;
+  const vanityUsername = `vanity_${Date.now()}`;
   let vanityUserId = "";
 
   before(async () => {
@@ -3506,8 +3506,8 @@ describe("Suite AL: Admin Users Page Real User Visibility & Demo Role Accounts",
 });
 
 describe("Suite AM: Multi-Tenant Dedicated Portals & Account Provisioning Hierarchy", () => {
-  let createdOrganizerEmail = `new_organizer_${Date.now()}@testorg.com`;
-  let createdJudgeEmail = `new_judge_${Date.now()}@testjudge.io`;
+  const createdOrganizerEmail = `new_organizer_${Date.now()}@testorg.com`;
+  const createdJudgeEmail = `new_judge_${Date.now()}@testjudge.io`;
   let testHackathonId = "";
 
   before(async () => {

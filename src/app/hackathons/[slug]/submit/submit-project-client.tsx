@@ -129,9 +129,11 @@ export function SubmitProjectClient({
   // Status checks for disabling/enabling actions
   const dynamicStatus = getHackathonStatus(hackathon);
   const isEnded = dynamicStatus === "ended" || hackathon.status === "ended";
-  const isDeadlinePassed = Boolean(
-    hackathon.submission_deadline &&
-      new Date(hackathon.submission_deadline).getTime() < Date.now()
+  const [isDeadlinePassed] = useState(() =>
+    Boolean(
+      hackathon.submission_deadline &&
+        new Date(hackathon.submission_deadline).getTime() < Date.now()
+    )
   );
   const isSubmissionsClosed = isEnded || isDeadlinePassed;
 
@@ -484,35 +486,38 @@ export function SubmitProjectClient({
 
   // Restore draft from localStorage / sessionStorage on mount (Improve 2)
   React.useEffect(() => {
-    try {
-      const raw = typeof window !== "undefined"
-        ? (localStorage.getItem(DRAFT_STORAGE_KEY) || sessionStorage.getItem(DRAFT_STORAGE_KEY))
-        : null;
-      if (raw) {
-        const draft = JSON.parse(raw);
-        if (draft) {
-          if (!existingSubmission || draft.isDraftOverride) {
-            if (typeof draft.title === "string" && draft.title) setTitle(draft.title);
-            if (typeof draft.tagline === "string" && draft.tagline) setTagline(draft.tagline);
-            if (typeof draft.description === "string" && draft.description) setDescription(draft.description);
-            if (typeof draft.coverImage === "string" && draft.coverImage) setCoverImage(draft.coverImage);
-            if (Array.isArray(draft.screenshots) && draft.screenshots.length > 0) setScreenshots(draft.screenshots);
-            if (typeof draft.githubUrl === "string" && draft.githubUrl) setGithubUrl(draft.githubUrl);
-            if (typeof draft.demoUrl === "string" && draft.demoUrl) setDemoUrl(draft.demoUrl);
-            if (typeof draft.videoUrl === "string" && draft.videoUrl) setVideoUrl(draft.videoUrl);
-            if (Array.isArray(draft.techStack) && draft.techStack.length > 0) setTechStack(draft.techStack);
-            setIsDraftRestored(true);
-            if (draft.updatedAt) {
-              setLastSavedTime(new Date(draft.updatedAt));
+    const timer = setTimeout(() => {
+      try {
+        const raw = typeof window !== "undefined"
+          ? (localStorage.getItem(DRAFT_STORAGE_KEY) || sessionStorage.getItem(DRAFT_STORAGE_KEY))
+          : null;
+        if (raw) {
+          const draft = JSON.parse(raw);
+          if (draft) {
+            if (!existingSubmission || draft.isDraftOverride) {
+              if (typeof draft.title === "string" && draft.title) setTitle(draft.title);
+              if (typeof draft.tagline === "string" && draft.tagline) setTagline(draft.tagline);
+              if (typeof draft.description === "string" && draft.description) setDescription(draft.description);
+              if (typeof draft.coverImage === "string" && draft.coverImage) setCoverImage(draft.coverImage);
+              if (Array.isArray(draft.screenshots) && draft.screenshots.length > 0) setScreenshots(draft.screenshots);
+              if (typeof draft.githubUrl === "string" && draft.githubUrl) setGithubUrl(draft.githubUrl);
+              if (typeof draft.demoUrl === "string" && draft.demoUrl) setDemoUrl(draft.demoUrl);
+              if (typeof draft.videoUrl === "string" && draft.videoUrl) setVideoUrl(draft.videoUrl);
+              if (Array.isArray(draft.techStack) && draft.techStack.length > 0) setTechStack(draft.techStack);
+              setIsDraftRestored(true);
+              if (draft.updatedAt) {
+                setLastSavedTime(new Date(draft.updatedAt));
+              }
             }
           }
         }
+      } catch (e) {
+        console.warn("Could not read draft from storage", e);
+      } finally {
+        hasLoadedDraftRef.current = true;
       }
-    } catch (e) {
-      console.warn("Could not read draft from storage", e);
-    } finally {
-      hasLoadedDraftRef.current = true;
-    }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [DRAFT_STORAGE_KEY, existingSubmission]);
 
   // Auto-save form draft on change to localStorage / sessionStorage (Improve 2)
@@ -537,33 +542,37 @@ export function SubmitProjectClient({
         localStorage.removeItem(DRAFT_STORAGE_KEY);
         sessionStorage.removeItem(DRAFT_STORAGE_KEY);
       } catch {}
-      setLastSavedTime(null);
-      return;
+      const timer = setTimeout(() => setLastSavedTime(null), 0);
+      return () => clearTimeout(timer);
     }
 
-    const now = new Date();
-    const draftData = {
-      title,
-      tagline,
-      description,
-      coverImage,
-      screenshots,
-      githubUrl,
-      demoUrl,
-      videoUrl,
-      techStack,
-      isDraftOverride: true,
-      updatedAt: now.toISOString(),
-    };
+    const timer = setTimeout(() => {
+      const now = new Date();
+      const draftData = {
+        title,
+        tagline,
+        description,
+        coverImage,
+        screenshots,
+        githubUrl,
+        demoUrl,
+        videoUrl,
+        techStack,
+        isDraftOverride: true,
+        updatedAt: now.toISOString(),
+      };
 
-    try {
-      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
-    } catch {
       try {
-        sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
-      } catch {}
-    }
-    setLastSavedTime(now);
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
+      } catch {
+        try {
+          sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
+        } catch {}
+      }
+      setLastSavedTime(now);
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, [
     title,
     tagline,

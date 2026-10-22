@@ -82,21 +82,21 @@ export default async function OrganizerDashboardPage() {
 
       {/* Metric Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border shadow-2xs bg-card/60">
-          <CardHeader className="pb-2">
+        <Card className="border shadow-2xs bg-card/60 rounded-2xl">
+          <CardHeader className="pt-6 px-6 pb-2">
             <CardDescription className="text-xs font-semibold flex items-center justify-between">
               <span>My Competitions</span>
               <Trophy className="size-4 text-blue-500" />
             </CardDescription>
             <CardTitle className="text-3xl font-black">{myHackathons.length}</CardTitle>
           </CardHeader>
-          <CardContent className="pt-0 text-[0.75rem] text-muted-foreground">
+          <CardContent className="px-6 pb-6 pt-0 text-[0.75rem] text-muted-foreground">
             {activeHackathons.length} live active, {draftHackathons.length} drafts
           </CardContent>
         </Card>
 
-        <Card className="border shadow-2xs bg-card/60">
-          <CardHeader className="pb-2">
+        <Card className="border shadow-2xs bg-card/60 rounded-2xl">
+          <CardHeader className="pt-6 px-6 pb-2">
             <CardDescription className="text-xs font-semibold flex items-center justify-between">
               <span>Total Builders</span>
               <Users className="size-4 text-emerald-500" />
@@ -105,13 +105,13 @@ export default async function OrganizerDashboardPage() {
               {totalParticipants}
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0 text-[0.75rem] text-muted-foreground">
+          <CardContent className="px-6 pb-6 pt-0 text-[0.75rem] text-muted-foreground">
             Registered participants across your challenges
           </CardContent>
         </Card>
 
-        <Card className="border shadow-2xs bg-card/60">
-          <CardHeader className="pb-2">
+        <Card className="border shadow-2xs bg-card/60 rounded-2xl">
+          <CardHeader className="pt-6 px-6 pb-2">
             <CardDescription className="text-xs font-semibold flex items-center justify-between">
               <span>Judges Appointed</span>
               <Gavel className="size-4 text-purple-500" />
@@ -120,13 +120,13 @@ export default async function OrganizerDashboardPage() {
               {judges.length}
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0 text-[0.75rem] text-muted-foreground">
+          <CardContent className="px-6 pb-6 pt-0 text-[0.75rem] text-muted-foreground">
             Assigned to review & score submissions
           </CardContent>
         </Card>
 
-        <Card className="border shadow-2xs bg-card/60">
-          <CardHeader className="pb-2">
+        <Card className="border shadow-2xs bg-card/60 rounded-2xl">
+          <CardHeader className="pt-6 px-6 pb-2">
             <CardDescription className="text-xs font-semibold flex items-center justify-between">
               <span>Submissions Evaluated</span>
               <CheckCircle2 className="size-4 text-amber-500" />
@@ -135,7 +135,7 @@ export default async function OrganizerDashboardPage() {
               {judges.reduce((sum, j) => sum + (j.evaluation_count || 0), 0)}
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0 text-[0.75rem] text-muted-foreground">
+          <CardContent className="px-6 pb-6 pt-0 text-[0.75rem] text-muted-foreground">
             Completed project scorecards
           </CardContent>
         </Card>

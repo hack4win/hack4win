@@ -44,7 +44,11 @@ function SignInForm() {
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState<"email" | "otp">("email");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() =>
+    searchParams.get("error") === "oauth_failed"
+      ? "Google authentication could not be completed. Please try again or use email code."
+      : null
+  );
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [activeAction, setActiveAction] = useState<"google" | "send-otp" | "verify-otp" | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -75,14 +79,6 @@ function SignInForm() {
       setDemoLoadingRole(null);
     }
   };
-
-  // Display error from OAuth redirect if present
-  useEffect(() => {
-    const urlError = searchParams.get("error");
-    if (urlError === "oauth_failed") {
-      setError("Google authentication could not be completed. Please try again or use email code.");
-    }
-  }, [searchParams]);
 
   // Countdown timer for OTP resend
   useEffect(() => {

@@ -145,8 +145,8 @@ export function EditHackathonClient({ hackathon }: EditHackathonClientProps) {
   const [invitedEmailsStr, setInvitedEmailsStr] = useState(
     (hackathon.invited_emails || []).join("\n")
   );
-  const [inviteToken, setInviteToken] = useState(
-    hackathon.invite_token || Math.random().toString(36).substring(2, 12)
+  const [inviteToken, setInviteToken] = useState<string>(
+    () => hackathon.invite_token || Math.random().toString(36).substring(2, 12)
   );
   const [copiedInvite, setCopiedInvite] = useState(false);
 

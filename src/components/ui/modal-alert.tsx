@@ -53,7 +53,7 @@ export function ModalAlertProvider({ children }: { children: React.ReactNode }) 
   const [cancelText, setCancelText] = useState("Cancel");
   const [isDestructive, setIsDestructive] = useState(false);
 
-  const resolveRef = useRef<((val: any) => void) | null>(null);
+  const resolveRef = useRef<((val?: boolean) => void) | null>(null);
 
   const showAlert = useCallback((opts: AlertOptions | string) => {
     return new Promise<void>((resolve) => {
@@ -72,7 +72,7 @@ export function ModalAlertProvider({ children }: { children: React.ReactNode }) 
 
   const showConfirm = useCallback((opts: ConfirmOptions | string) => {
     return new Promise<boolean>((resolve) => {
-      resolveRef.current = (confirmed: boolean) => resolve(confirmed);
+      resolveRef.current = (confirmed?: boolean) => resolve(Boolean(confirmed));
       const options: ConfirmOptions = typeof opts === "string" ? { message: opts } : opts;
 
       setIsConfirm(true);

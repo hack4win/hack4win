@@ -164,13 +164,13 @@ export function SiteFooter() {
                 </Link>
               </li>
               <li>
-                <Link href="/admin/judging" className="hover:text-primary transition-colors">
-                  Judge & Scoring Portal
+                <Link href="/organizer" className="hover:text-primary transition-colors">
+                  Organizer Dashboard
                 </Link>
               </li>
               <li>
-                <Link href="/admin/projects" className="hover:text-primary transition-colors">
-                  Submissions Management
+                <Link href="/judges" className="hover:text-primary transition-colors">
+                  Judge & Scoring Portal
                 </Link>
               </li>
               <li>

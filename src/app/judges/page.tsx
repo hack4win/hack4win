@@ -61,8 +61,8 @@ export default async function JudgesDashboardPage() {
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border shadow-2xs bg-card/60">
-          <CardHeader className="pb-2">
+        <Card className="border shadow-2xs bg-card/60 rounded-2xl">
+          <CardHeader className="pt-6 px-6 pb-2">
             <CardDescription className="text-xs font-semibold flex items-center justify-between">
               <span>Assigned Hackathons</span>
               <Trophy className="size-4 text-purple-500" />
@@ -71,26 +71,26 @@ export default async function JudgesDashboardPage() {
               {assignedHackathons.length}
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0 text-[0.75rem] text-muted-foreground">
+          <CardContent className="px-6 pb-6 pt-0 text-[0.75rem] text-muted-foreground">
             Competitions under your technical evaluation purview
           </CardContent>
         </Card>
 
-        <Card className="border shadow-2xs bg-card/60">
-          <CardHeader className="pb-2">
+        <Card className="border shadow-2xs bg-card/60 rounded-2xl">
+          <CardHeader className="pt-6 px-6 pb-2">
             <CardDescription className="text-xs font-semibold flex items-center justify-between">
               <span>Rubric Dimensions</span>
               <Sparkles className="size-4 text-amber-500" />
             </CardDescription>
             <CardTitle className="text-3xl font-black">4 Standards</CardTitle>
           </CardHeader>
-          <CardContent className="pt-0 text-[0.75rem] text-muted-foreground">
+          <CardContent className="px-6 pb-6 pt-0 text-[0.75rem] text-muted-foreground">
             Innovation, Technical Craft, Design/UX, and Utility
           </CardContent>
         </Card>
 
-        <Card className="border shadow-2xs bg-card/60">
-          <CardHeader className="pb-2">
+        <Card className="border shadow-2xs bg-card/60 rounded-2xl">
+          <CardHeader className="pt-6 px-6 pb-2">
             <CardDescription className="text-xs font-semibold flex items-center justify-between">
               <span>Scoring Status</span>
               <CheckCircle2 className="size-4 text-emerald-500" />
@@ -99,7 +99,7 @@ export default async function JudgesDashboardPage() {
               Active Queue
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0 text-[0.75rem] text-muted-foreground">
+          <CardContent className="px-6 pb-6 pt-0 text-[0.75rem] text-muted-foreground">
             Ready for your scores and builder feedback
           </CardContent>
         </Card>

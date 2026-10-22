@@ -113,9 +113,9 @@ export default async function HackathonDetailPage({ params, searchParams }: Page
   }
 
   const currentStatus = getHackathonStatus(hackathon);
+  const now = new Date();
   const isDeadlinePassed = Boolean(
-    hackathon.submission_deadline &&
-      new Date(hackathon.submission_deadline).getTime() < Date.now()
+    hackathon.submission_deadline && new Date(hackathon.submission_deadline) < now
   );
   const isSubmissionsClosed =
     currentStatus === "ended" ||
