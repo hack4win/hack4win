@@ -35,7 +35,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
   }
 
   // Verify ownership (unless Super Admin)
-  if (session.user.role !== "admin" && hackathon.organizer_id && hackathon.organizer_id !== session.user.id) {
+  if (session.user.role !== "admin" && (!hackathon.organizer_id || hackathon.organizer_id !== session.user.id)) {
     return NextResponse.json({ error: "Forbidden: You do not own this competition" }, { status: 403 });
   }
 
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
   }
 
   // Verify ownership (unless Super Admin)
-  if (session.user.role !== "admin" && hackathon.organizer_id && hackathon.organizer_id !== session.user.id) {
+  if (session.user.role !== "admin" && (!hackathon.organizer_id || hackathon.organizer_id !== session.user.id)) {
     return NextResponse.json({ error: "Forbidden: You do not own this competition" }, { status: 403 });
   }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/session";
 import { brevoService, HACK4WIN_SENDERS, SendEmailOptions } from "@/lib/email/brevo-service";
+import { rateLimit } from "@/lib/rate-limit";
 import {
   getWelcomeEmailTemplate,
   getPasswordResetOtpEmailTemplate,
@@ -56,8 +57,21 @@ export async function POST(req: NextRequest) {
       isCampaign = false,
     } = body;
 
+    const isAdmin = session.user.role === "admin";
+    const isOrganizer = session.user.role === "organizer";
+
+    // Rate limit email dispatch (sliding window: 5 mins)
+    const limitCount = isAdmin ? 60 : isOrganizer ? 25 : 10;
+    const limiter = rateLimit(`email_send:${session.user.id}`, limitCount, 5 * 60 * 1000);
+    if (!limiter.success) {
+      return NextResponse.json(
+        { error: "Email rate limit exceeded. Please wait a few minutes before sending more emails." },
+        { status: 429 }
+      );
+    }
+
     // RBAC: Marketing/Campaign emails require Admin privileges
-    if (isCampaign && session.user.role !== "admin") {
+    if (isCampaign && !isAdmin) {
       return NextResponse.json(
         { error: "Forbidden: Platform administrator privileges required to dispatch marketing campaigns" },
         { status: 403 }
@@ -66,6 +80,49 @@ export async function POST(req: NextRequest) {
 
     if (!to || (Array.isArray(to) && to.length === 0)) {
       return NextResponse.json({ error: "Recipient ('to') is required" }, { status: 400 });
+    }
+
+    const recipientArray = Array.isArray(to) ? to : [to];
+    if (!isAdmin) {
+      const maxAllowed = isOrganizer ? 50 : 1;
+      if (recipientArray.length > maxAllowed) {
+        return NextResponse.json(
+          { error: `Forbidden: As a ${session.user.role}, you can send to at most ${maxAllowed} recipient(s) per request.` },
+          { status: 403 }
+        );
+      }
+    }
+
+    // RBAC: Non-admins cannot send raw arbitrary HTML (prevents phishing/abuse)
+    if (!template && !isAdmin) {
+      return NextResponse.json(
+        { error: "Forbidden: Only platform administrators can send custom HTML emails. Use a recognized template." },
+        { status: 403 }
+      );
+    }
+
+    // RBAC: Non-admins cannot trigger administrative or high-privilege templates
+    const ADMIN_ONLY_TEMPLATES = [
+      "campaign",
+      "direct_message",
+      "prize_payout",
+      "account_warning",
+      "organizer_provisioned",
+      "winners_announced",
+    ];
+    if (template && ADMIN_ONLY_TEMPLATES.includes(template) && !isAdmin) {
+      return NextResponse.json(
+        { error: `Forbidden: Administrator privileges required to use template '${template}'` },
+        { status: 403 }
+      );
+    }
+
+    // Anti-spoofing: Non-admins cannot supply arbitrary sender objects
+    if (!isAdmin && sender) {
+      return NextResponse.json(
+        { error: "Forbidden: Non-admin users cannot override sender headers" },
+        { status: 403 }
+      );
     }
 
     // Resolve sender identity

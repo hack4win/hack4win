@@ -2,9 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/session";
 import { brevoService, HACK4WIN_SENDERS } from "@/lib/email/brevo-service";
 import { getHostInquiryEmailTemplate, wrapInEmailLayout } from "@/lib/email/templates";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limit to prevent open email relay abuse and inbox bombing
+    const clientIp = getClientIp(req);
+    const isTestOrLocal = process.env.NODE_ENV !== "production" && (clientIp === "127.0.0.1" || clientIp === "::1");
+    const maxLimit = isTestOrLocal ? 100 : 5;
+    const limiter = rateLimit(`host_inquiry:${clientIp}`, maxLimit, 10 * 60 * 1000);
+    if (!limiter.success) {
+      return NextResponse.json(
+        { error: "Too many inquiries submitted from this network. Please wait a few minutes before trying again." },
+        { status: 429 }
+      );
+    }
+
     const session = await getServerSession();
     const body = await req.json();
 
@@ -18,10 +31,16 @@ export async function POST(req: NextRequest) {
       eventGoals,
     } = body;
 
-    // Validate required fields
+    // Validate required fields and bounds
     if (!organizationName || typeof organizationName !== "string" || !organizationName.trim()) {
       return NextResponse.json(
         { error: "Organization or company name is required." },
+        { status: 400 }
+      );
+    }
+    if (organizationName.trim().length > 100) {
+      return NextResponse.json(
+        { error: "Organization name cannot exceed 100 characters." },
         { status: 400 }
       );
     }
@@ -32,8 +51,15 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    if (contactName.trim().length > 100) {
+      return NextResponse.json(
+        { error: "Contact name cannot exceed 100 characters." },
+        { status: 400 }
+      );
+    }
 
-    if (!email || typeof email !== "string" || !email.includes("@") || !email.includes(".")) {
+    const cleanEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+    if (!cleanEmail || cleanEmail.length > 100 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
       return NextResponse.json(
         { error: "A valid business email address is required." },
         { status: 400 }
@@ -46,29 +72,38 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    if (eventGoals.trim().length > 2000) {
+      return NextResponse.json(
+        { error: "Event goals description cannot exceed 2,000 characters." },
+        { status: 400 }
+      );
+    }
+
+    const cleanTimeline = typeof timeline === "string" ? timeline.trim().slice(0, 100) : "Flexible";
+    const cleanPrizePool = typeof estimatedPrizePool === "string" ? estimatedPrizePool.trim().slice(0, 100) : "Not specified";
 
     // Dispatch inquiry confirmation to host and alert Hack4Win partnerships team
     try {
       const template = getHostInquiryEmailTemplate({
         organizationName: organizationName.trim(),
         contactName: contactName.trim(),
-        email: email.trim().toLowerCase(),
-        timeline: timeline || "Flexible",
-        estimatedPrizePool: estimatedPrizePool || "Not specified",
+        email: cleanEmail,
+        timeline: cleanTimeline,
+        estimatedPrizePool: cleanPrizePool,
         eventGoals: eventGoals.trim(),
       });
 
       // Send to both user and platform support team
       await brevoService.sendEmail({
         to: [
-          { email: email.trim().toLowerCase(), name: contactName.trim() },
+          { email: cleanEmail, name: contactName.trim() },
           { email: "support@hack4win.online", name: "Hack4Win Partnerships" },
         ],
         subject: template.subject,
         htmlContent: template.html,
         textContent: template.text,
         sender: HACK4WIN_SENDERS.SUPPORT,
-        replyTo: { email: email.trim().toLowerCase(), name: contactName.trim() },
+        replyTo: { email: cleanEmail, name: contactName.trim() },
         tags: ["host-inquiry", "transactional"],
       });
     } catch (mailErr) {

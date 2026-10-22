@@ -130,8 +130,8 @@ export async function POST(req: NextRequest) {
       score_design: Math.min(10, Math.max(1, Number(score_design) || 1)),
       score_impact: Math.min(10, Math.max(1, Number(score_impact) || 1)),
       score_presentation: Math.min(10, Math.max(1, Number(score_presentation) || 1)),
-      feedback: feedback ? String(feedback).trim() : null,
-      award: award ? String(award).trim() : null,
+      feedback: feedback ? String(feedback).trim().slice(0, 3000) : null,
+      award: award ? String(award).trim().slice(0, 100) : null,
     };
 
     const evaluation = await hackathonRepository.saveEvaluation(input);

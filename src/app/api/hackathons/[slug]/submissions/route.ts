@@ -125,15 +125,33 @@ export async function POST(
       return NextResponse.json({ error: "Title and description are required" }, { status: 400 });
     }
 
+    if (title.trim().length > 150) {
+      return NextResponse.json({ error: "Title cannot exceed 150 characters" }, { status: 400 });
+    }
+
+    if (tagline && typeof tagline === "string" && tagline.trim().length > 250) {
+      return NextResponse.json({ error: "Tagline cannot exceed 250 characters" }, { status: 400 });
+    }
+
+    if (description.trim().length > 20000) {
+      return NextResponse.json({ error: "Description exceeds maximum allowed length (20,000 characters)" }, { status: 400 });
+    }
+
     if (!isValidHttpUrl(demo_url) || !isValidHttpUrl(github_url) || !isValidHttpUrl(video_url) || !isValidHttpUrl(cover_image)) {
       return NextResponse.json({ error: "URLs must start with http:// or https://" }, { status: 400 });
     }
 
     const screenshots: string[] = [];
     if (Array.isArray(rawScreenshots)) {
+      if (rawScreenshots.length > 10) {
+        return NextResponse.json({ error: "Maximum of 10 screenshots allowed per project" }, { status: 400 });
+      }
       for (const shot of rawScreenshots) {
         if (typeof shot === "string" && shot.trim()) {
           const trimmedShot = shot.trim();
+          if (trimmedShot.length > 500) {
+            return NextResponse.json({ error: "Screenshot URL is too long" }, { status: 400 });
+          }
           if (!isValidHttpUrl(trimmedShot)) {
             return NextResponse.json({ error: "Screenshot URLs must start with http:// or https://" }, { status: 400 });
           }
@@ -142,9 +160,32 @@ export async function POST(
       }
     }
 
-    // Auto-register user if not already registered (checking participant capacity)
+    // Auto-register user if not already registered (checking participant capacity and private campus eligibility)
     const isAlreadyRegistered = await hackathonRepository.isUserRegistered(hackathon.id, session.user.id);
     if (!isAlreadyRegistered) {
+      // SECURITY GATE: If the hackathon is private, verify private access before allowing auto-registration
+      if (hackathon.is_private && session.user.role !== "admin" && hackathon.organizer_id !== session.user.id) {
+        const accessCheck = await hackathonRepository.verifyPrivateAccess(hackathon, {
+          userId: session.user.id,
+          userEmail: session.user.email,
+          accessCode: body.access_code,
+          inviteToken: body.invite_token,
+          userRole: session.user.role,
+        });
+
+        if (!accessCheck.allowed) {
+          return NextResponse.json(
+            {
+              error: "Forbidden: This is a private hackathon. Access credentials required.",
+              reason: accessCheck.reason,
+              is_private: true,
+              requires_code: Boolean(hackathon.access_code),
+            },
+            { status: 403 }
+          );
+        }
+      }
+
       if (hackathon.max_participants && hackathon.max_participants > 0) {
         const currentCount = await hackathonRepository.getParticipantCount(hackathon.id);
         if (currentCount >= hackathon.max_participants) {

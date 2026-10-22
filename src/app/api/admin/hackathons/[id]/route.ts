@@ -21,8 +21,16 @@ export async function GET(req: NextRequest, context: RouteContext) {
   const { id } = await context.params;
   const hackathon = await hackathonRepository.findById(id);
 
-  if (!hackathon || (hackathon.status === "draft" && session.user.role !== "admin")) {
+  if (!hackathon) {
     return NextResponse.json({ error: "Hackathon not found" }, { status: 404 });
+  }
+
+  // IDOR protection: organizers can only view admin details for hackathons they organize
+  if (session.user.role !== "admin" && hackathon.organizer_id !== session.user.id) {
+    return NextResponse.json(
+      { error: "Forbidden: You can only view details for hackathons you organize" },
+      { status: 403 }
+    );
   }
 
   return NextResponse.json({ hackathon });
@@ -40,6 +48,20 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
   try {
     const { id } = await context.params;
+    const existing = await hackathonRepository.findById(id);
+
+    if (!existing) {
+      return NextResponse.json({ error: "Hackathon not found" }, { status: 404 });
+    }
+
+    // IDOR protection: non-admins can only modify hackathons they organize
+    if (session.user.role !== "admin" && existing.organizer_id !== session.user.id) {
+      return NextResponse.json(
+        { error: "Forbidden: You can only edit hackathons you organize" },
+        { status: 403 }
+      );
+    }
+
     const body = (await req.json()) as UpdateHackathonInput;
 
     if (!isValidHttpUrl(body.website_url) || !isValidHttpUrl(body.banner_url) || !isValidHttpUrl(body.thumbnail_url)) {
@@ -47,24 +69,21 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     }
 
     if (body.start_date || body.end_date || body.submission_deadline) {
-      const existing = await hackathonRepository.findById(id);
-      if (existing) {
-        const start = new Date(body.start_date || existing.start_date).getTime();
-        const end = new Date(body.end_date || existing.end_date).getTime();
-        const deadlineStr = body.submission_deadline !== undefined ? body.submission_deadline : existing.submission_deadline;
+      const start = new Date(body.start_date || existing.start_date).getTime();
+      const end = new Date(body.end_date || existing.end_date).getTime();
+      const deadlineStr = body.submission_deadline !== undefined ? body.submission_deadline : existing.submission_deadline;
 
-        if (end <= start) {
-          return NextResponse.json({ error: "The hackathon end date must be after the start date." }, { status: 400 });
+      if (end <= start) {
+        return NextResponse.json({ error: "The hackathon end date must be after the start date." }, { status: 400 });
+      }
+
+      if (deadlineStr) {
+        const deadline = new Date(deadlineStr).getTime();
+        if (!isNaN(deadline) && deadline < start) {
+          return NextResponse.json({ error: "Deadline cannot be earlier than the start date" }, { status: 400 });
         }
-
-        if (deadlineStr) {
-          const deadline = new Date(deadlineStr).getTime();
-          if (!isNaN(deadline) && deadline < start) {
-            return NextResponse.json({ error: "Deadline cannot be earlier than the start date" }, { status: 400 });
-          }
-          if (!isNaN(deadline) && deadline > end) {
-            return NextResponse.json({ error: "The project submission deadline cannot be later than the hackathon end date." }, { status: 400 });
-          }
+        if (!isNaN(deadline) && deadline > end) {
+          return NextResponse.json({ error: "The project submission deadline cannot be later than the hackathon end date." }, { status: 400 });
         }
       }
     }
@@ -92,6 +111,20 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
 
   try {
     const { id } = await context.params;
+    const existing = await hackathonRepository.findById(id);
+
+    if (!existing) {
+      return NextResponse.json({ error: "Hackathon not found" }, { status: 404 });
+    }
+
+    // IDOR protection: non-admins can only delete hackathons they organize
+    if (session.user.role !== "admin" && existing.organizer_id !== session.user.id) {
+      return NextResponse.json(
+        { error: "Forbidden: You can only delete hackathons you organize" },
+        { status: 403 }
+      );
+    }
+
     await hackathonRepository.deleteHackathon(id);
     return NextResponse.json({ success: true, message: "Hackathon deleted successfully" });
   } catch (error) {

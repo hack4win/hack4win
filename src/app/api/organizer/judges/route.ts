@@ -56,11 +56,21 @@ export async function POST(req: NextRequest) {
     const { email, name, hackathonId, bio, title } = body;
 
     const cleanEmail = (email || "").trim().toLowerCase();
-    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+    if (!cleanEmail || cleanEmail.length > 100 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
       return NextResponse.json(
         { error: "A valid judge email address is required" },
         { status: 400 }
       );
+    }
+
+    if (name && typeof name === "string" && name.trim().length > 100) {
+      return NextResponse.json({ error: "Judge name cannot exceed 100 characters" }, { status: 400 });
+    }
+    if (bio && typeof bio === "string" && bio.trim().length > 2000) {
+      return NextResponse.json({ error: "Judge bio cannot exceed 2,000 characters" }, { status: 400 });
+    }
+    if (title && typeof title === "string" && title.trim().length > 100) {
+      return NextResponse.json({ error: "Judge title cannot exceed 100 characters" }, { status: 400 });
     }
 
     // Verify hackathon ownership if hackathonId is supplied

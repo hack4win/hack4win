@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { UserRole } from "@/lib/db/types";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 /**
  * Demo / Test Roles Authentication Service
@@ -70,6 +71,17 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const clientIp = getClientIp(req);
+    const isTestOrLocal = process.env.NODE_ENV !== "production" && (clientIp === "127.0.0.1" || clientIp === "::1");
+    const limit = isTestOrLocal ? 200 : 15;
+    const limiter = rateLimit(`demo_login:${clientIp}`, limit, 60 * 1000);
+    if (!limiter.success) {
+      return NextResponse.json(
+        { error: "Too many login attempts. Please wait a moment before trying again." },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json().catch(() => ({}));
     const role = (body.role || "").toLowerCase().trim() as UserRole;
     const email = (body.email || "").toLowerCase().trim();
@@ -177,7 +189,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("[Demo Login Error]:", error);
     return NextResponse.json(
-      { error: "Failed to establish demo session", details: String(error) },
+      { error: "Failed to establish demo session" },
       { status: 500 }
     );
   }
