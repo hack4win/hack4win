@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/session";
+import { brevoService, HACK4WIN_SENDERS } from "@/lib/email/brevo-service";
+import { getHostInquiryEmailTemplate, wrapInEmailLayout } from "@/lib/email/templates";
 
 export async function POST(req: NextRequest) {
   try {
@@ -45,18 +47,33 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // In a production environment, this dispatches a notification email or persists to an inquiries table.
-    console.log("[Host Hackathon Inquiry Received]:", {
-      organizationName: organizationName.trim(),
-      contactName: contactName.trim(),
-      email: email.trim().toLowerCase(),
-      timeline: timeline || "Flexible",
-      estimatedPrizePool: estimatedPrizePool || "Not specified",
-      tracks: Array.isArray(tracks) ? tracks : [],
-      eventGoals: eventGoals.trim(),
-      submittedByUserId: session?.user?.id || null,
-      submittedAt: new Date().toISOString(),
-    });
+    // Dispatch inquiry confirmation to host and alert Hack4Win partnerships team
+    try {
+      const template = getHostInquiryEmailTemplate({
+        organizationName: organizationName.trim(),
+        contactName: contactName.trim(),
+        email: email.trim().toLowerCase(),
+        timeline: timeline || "Flexible",
+        estimatedPrizePool: estimatedPrizePool || "Not specified",
+        eventGoals: eventGoals.trim(),
+      });
+
+      // Send to both user and platform support team
+      await brevoService.sendEmail({
+        to: [
+          { email: email.trim().toLowerCase(), name: contactName.trim() },
+          { email: "support@hack4win.online", name: "Hack4Win Partnerships" },
+        ],
+        subject: template.subject,
+        htmlContent: template.html,
+        textContent: template.text,
+        sender: HACK4WIN_SENDERS.SUPPORT,
+        replyTo: { email: email.trim().toLowerCase(), name: contactName.trim() },
+        tags: ["host-inquiry", "transactional"],
+      });
+    } catch (mailErr) {
+      console.warn("[Host Inquiry Mail Dispatch Notice]:", mailErr);
+    }
 
     return NextResponse.json({
       success: true,

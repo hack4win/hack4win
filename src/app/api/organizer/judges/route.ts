@@ -3,6 +3,8 @@ import { getServerSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { hackathonRepository } from "@/lib/db/hackathon-repository";
 import { userRepository } from "@/lib/db/user-repository";
+import { brevoService, HACK4WIN_SENDERS } from "@/lib/email/brevo-service";
+import { getJudgeInviteEmailTemplate } from "@/lib/email/templates";
 
 /**
  * Organizer Judges Management API
@@ -96,8 +98,38 @@ export async function POST(req: NextRequest) {
     }
 
     // If hackathonId was passed, assign the judge
+    let hackathonTitle = "Hack4Win Hackathon";
     if (hackathonId) {
+      const hackathon = await hackathonRepository.findById(hackathonId);
+      if (hackathon) {
+        hackathonTitle = hackathon.title;
+      }
       await hackathonRepository.assignJudge(hackathonId, judgeUser.id, session.user.id);
+    }
+
+    // Send official Judge Invitation email via Brevo
+    try {
+      const host = req.headers.get("host") || "hack4win.online";
+      const protocol = req.headers.get("x-forwarded-proto") || "https";
+      const portalUrl = `${protocol}://${host}/judges`;
+
+      const judgeEmail = getJudgeInviteEmailTemplate({
+        judgeName: judgeUser.name || "Technical Judge",
+        hackathonTitle,
+        organizerName: session.user.name || "Platform Host",
+        portalUrl,
+      });
+
+      await brevoService.sendEmail({
+        to: [{ email: judgeUser.email, name: judgeUser.name || undefined }],
+        subject: judgeEmail.subject,
+        htmlContent: judgeEmail.html,
+        textContent: judgeEmail.text,
+        sender: HACK4WIN_SENDERS.REQUESTS,
+        tags: ["judge-appointment", "transactional"],
+      });
+    } catch (mailErr) {
+      console.warn("[Judge Appointment Email Notice]:", mailErr);
     }
 
     return NextResponse.json(

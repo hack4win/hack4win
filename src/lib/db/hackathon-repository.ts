@@ -218,8 +218,13 @@ export class HackathonRepository implements IHackathonRepository {
     const prize_pool = input.prize_pool || "$0";
     const currency = input.currency || "$";
     const prizes = JSON.stringify(input.prizes || []);
-    const tags = input.tags || [];
-    const rules = input.rules || [];
+    const tags = Array.isArray(input.tags) ? input.tags : [];
+    const rules =
+      typeof input.rules === "string"
+        ? input.rules.split("\n").map((r) => r.trim()).filter(Boolean)
+        : Array.isArray(input.rules)
+        ? input.rules
+        : [];
     const start_date = new Date(input.start_date).toISOString();
     const end_date = new Date(input.end_date).toISOString();
     const submission_deadline = input.submission_deadline
@@ -297,8 +302,15 @@ export class HackathonRepository implements IHackathonRepository {
     const prize_pool = input.prize_pool !== undefined ? input.prize_pool : existing.prize_pool;
     const currency = input.currency !== undefined ? input.currency : existing.currency || "$";
     const prizes = input.prizes !== undefined ? JSON.stringify(input.prizes) : JSON.stringify(existing.prizes || []);
-    const tags = input.tags !== undefined ? input.tags : existing.tags;
-    const rules = input.rules !== undefined ? input.rules : (existing.rules || []);
+    const tags = input.tags !== undefined ? (Array.isArray(input.tags) ? input.tags : []) : existing.tags;
+    const rules =
+      input.rules !== undefined
+        ? typeof input.rules === "string"
+          ? input.rules.split("\n").map((r) => r.trim()).filter(Boolean)
+          : Array.isArray(input.rules)
+          ? input.rules
+          : []
+        : existing.rules || [];
     const start_date = input.start_date !== undefined ? new Date(input.start_date).toISOString() : existing.start_date;
     const end_date = input.end_date !== undefined ? new Date(input.end_date).toISOString() : existing.end_date;
     const submission_deadline = input.submission_deadline !== undefined

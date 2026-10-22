@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/session";
 import { mailRepository } from "@/lib/db/mail-repository";
+import { brevoService, HACK4WIN_SENDERS } from "@/lib/email/brevo-service";
+import { getMarketingCampaignEmailTemplate, wrapInEmailLayout } from "@/lib/email/templates";
 
 export async function GET() {
   const session = await getServerSession();
@@ -75,10 +77,34 @@ export async function POST(req: NextRequest) {
       sent_by: session.user.email,
     });
 
+    // Dispatch via Brevo Service
+    const sender = type === "transactional" ? HACK4WIN_SENDERS.NOTIFICATIONS : HACK4WIN_SENDERS.NEWS;
+    const template = getMarketingCampaignEmailTemplate({
+      subject: subject.trim(),
+      preheader: preheader?.trim(),
+      contentMarkdownOrHtml: content.trim(),
+      ctaText: body.cta_text || "Explore Hack4Win",
+      ctaUrl: body.cta_url || "https://hack4win.online/hackathons",
+    });
+
+    const dispatchResult = await brevoService.sendEmail({
+      to: recipientEmails.map((email) => ({ email })),
+      subject: subject.trim(),
+      htmlContent: template.html,
+      textContent: template.text,
+      sender,
+      isCampaign: type === "marketing",
+      tags: ["admin-campaign", type],
+    });
+
     return NextResponse.json({
       success: true,
       campaign,
       deliveredCount: recipientEmails.length,
+      engineUsed: dispatchResult.engineUsed,
+      warning: dispatchResult.warning,
+      isIpRestricted: dispatchResult.isIpRestricted,
+      guidanceUrl: dispatchResult.guidanceUrl,
       message: `Successfully dispatched "${subject}" to ${recipientEmails.length} recipients.`,
     });
   } catch (error) {

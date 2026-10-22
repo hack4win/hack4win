@@ -27,6 +27,9 @@ import {
   Radio,
   History,
   RotateCcw,
+  Server,
+  ShieldCheck,
+  ExternalLink,
 } from "lucide-react";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { MarkdownPreview } from "@/components/ui/markdown-preview";
@@ -68,11 +71,43 @@ export function MailClient({
 
   // Email form state
   const [mailType, setMailType] = useState<EmailType>("marketing");
+  const [senderKey, setSenderKey] = useState<"NEWS" | "WELCOME" | "NOTIFICATIONS" | "REQUESTS" | "SUPPORT">("NEWS");
   const [subject, setSubject] = useState("");
   const [preheader, setPreheader] = useState("");
   const [content, setContent] = useState("");
   const [ctaText, setCtaText] = useState("View Hackathon Challenge");
   const [ctaUrl, setCtaUrl] = useState("https://hack4win.online/hackathons");
+
+  // Brevo health check state
+  const [brevoHealth, setBrevoHealth] = useState<{
+    status: string;
+    smtp?: { ok: boolean; message: string };
+    api?: { ok: boolean; message: string };
+    isIpRestricted?: boolean;
+    detectedIp?: string;
+    guidanceUrl?: string;
+    guidanceMessage?: string | null;
+  } | null>(null);
+  const [isCheckingBrevo, setIsCheckingBrevo] = useState(false);
+  const [isBrevoModalOpen, setIsBrevoModalOpen] = useState(false);
+
+  const handleCheckBrevoHealth = async () => {
+    setIsCheckingBrevo(true);
+    try {
+      const res = await fetch("/api/email/verify");
+      const data = await res.json();
+      setBrevoHealth(data);
+      setIsBrevoModalOpen(true);
+    } catch (err) {
+      await showAlert({
+        title: "Connection Test Failed",
+        message: err instanceof Error ? err.message : "Unable to reach verification endpoint",
+        type: "error",
+      });
+    } finally {
+      setIsCheckingBrevo(false);
+    }
+  };
 
   // Audience resolution state
   const [audienceCount, setAudienceCount] = useState<number>(totalUsersCount);
@@ -255,9 +290,12 @@ export function MailClient({
           subject: subject.trim(),
           preheader: preheader.trim() || undefined,
           type: mailType,
+          sender_key: senderKey,
           target_filter: getComputedFilter(),
           target_label: getTargetLabel(),
           content: content.trim(),
+          cta_text: ctaText.trim() || undefined,
+          cta_url: ctaUrl.trim() || undefined,
         }),
       });
 
@@ -268,7 +306,9 @@ export function MailClient({
 
       setNotification({
         type: "success",
-        message: data.message || `Email campaign dispatched to ${data.deliveredCount} recipients!`,
+        message: data.warning
+          ? `${data.message} — Notice: ${data.warning}`
+          : data.message || `Email campaign dispatched to ${data.deliveredCount} recipients!`,
       });
 
       if (data.campaign) {
@@ -299,6 +339,41 @@ export function MailClient({
 
   return (
     <div className="space-y-8">
+      {/* Brevo Email Service Integration Banner */}
+      <div className="p-4 sm:p-5 rounded-2xl border bg-card/60 backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-start sm:items-center gap-3 min-w-0">
+          <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <Server className="size-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-sm text-foreground">Brevo Email Service</span>
+              <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[10px] font-bold">
+                Domain: hack4win.online
+              </Badge>
+              <Badge variant="outline" className="text-[10px] text-muted-foreground font-mono">
+                Port 587 STARTTLS & REST API v3
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              DKIM & DMARC verified sender identities active. Automatic REST API & SMTP Relay failover.
+            </p>
+          </div>
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleCheckBrevoHealth}
+          disabled={isCheckingBrevo}
+          className="rounded-full text-xs font-semibold gap-1.5 cursor-pointer shrink-0"
+        >
+          {isCheckingBrevo ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldCheck className="size-3.5 text-primary" />}
+          Test Brevo Connection
+        </Button>
+      </div>
+
       {/* Metrics Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card className="border rounded-2xl shadow-2xs">
@@ -551,7 +626,10 @@ export function MailClient({
                 <div className="grid grid-cols-2 gap-3 pt-1">
                   <button
                     type="button"
-                    onClick={() => setMailType("marketing")}
+                    onClick={() => {
+                      setMailType("marketing");
+                      setSenderKey("NEWS");
+                    }}
                     className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                       mailType === "marketing"
                         ? "border-primary bg-primary/5 ring-2 ring-primary/20"
@@ -568,7 +646,10 @@ export function MailClient({
 
                   <button
                     type="button"
-                    onClick={() => setMailType("transactional")}
+                    onClick={() => {
+                      setMailType("transactional");
+                      setSenderKey("NOTIFICATIONS");
+                    }}
                     className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                       mailType === "transactional"
                         ? "border-amber-500 bg-amber-500/5 ring-2 ring-amber-500/20"
@@ -584,6 +665,30 @@ export function MailClient({
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* Verified Sender Identity Bar */}
+            <div className="p-4 rounded-xl border bg-muted/10 space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Mail className="size-3.5 text-primary" /> Verified Brevo Sender Identity
+                </Label>
+                <Badge variant="outline" className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 border-emerald-500/30 bg-emerald-500/10">
+                  hack4win.online &bull; DKIM & DMARC Active
+                </Badge>
+              </div>
+
+              <select
+                value={senderKey}
+                onChange={(e) => setSenderKey(e.target.value as any)}
+                className="w-full h-9 rounded-full border border-input bg-background px-3 text-xs font-semibold outline-none cursor-pointer"
+              >
+                <option value="NEWS">Hack4Win News (news@hack4win.online) &mdash; Best for Marketing & Newsletters</option>
+                <option value="NOTIFICATIONS">Hack4Win Notifications (notifications@hack4win.online) &mdash; Best for System Alerts</option>
+                <option value="WELCOME">Hack4Win Welcome (welcome@hack4win.online) &mdash; Best for Onboarding & Welcomes</option>
+                <option value="REQUESTS">Hack4Win Requests (request@hack4win.online) &mdash; Best for Transactional & Password Resets</option>
+                <option value="SUPPORT">Hack4Win Support (support@hack4win.online) &mdash; Best for Inquiries & Helpdesk</option>
+              </select>
             </div>
 
             {/* Compose or Preview Panel */}
@@ -914,6 +1019,120 @@ export function MailClient({
                 {previewCampaign?.content && <MarkdownPreview content={previewCampaign.content} />}
               </div>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Brevo Service Connection & Diagnostics Modal */}
+      <Dialog open={isBrevoModalOpen} onOpenChange={setIsBrevoModalOpen}>
+        <DialogContent className="sm:max-w-lg rounded-2xl p-6">
+          <DialogHeader className="pb-3 border-b">
+            <div className="flex items-center gap-2">
+              <Badge
+                className={`text-[10px] font-bold rounded-full ${
+                  brevoHealth?.status === "connected"
+                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                    : brevoHealth?.isIpRestricted
+                    ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30"
+                    : "bg-destructive/15 text-destructive border-destructive/30"
+                }`}
+              >
+                {brevoHealth?.status === "connected"
+                  ? "Connected & Live"
+                  : brevoHealth?.isIpRestricted
+                  ? "IP Restricted (Requires Action)"
+                  : "Handshake Failed"}
+              </Badge>
+              <span className="text-xs text-muted-foreground font-mono">
+                smtp-relay.brevo.com:587
+              </span>
+            </div>
+            <DialogTitle className="text-lg font-black text-foreground pt-1">
+              Brevo Email Service Diagnostics
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Health check report for Brevo REST API v3 and SMTP Relay on hack4win.online
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4 space-y-4">
+            {/* IP Security Notice Banner if restricted */}
+            {brevoHealth?.isIpRestricted && (
+              <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs space-y-2.5">
+                <div className="flex items-center gap-2 font-bold text-amber-700 dark:text-amber-300">
+                  <AlertCircle className="size-4 shrink-0" />
+                  <span>Brevo Authorized IP Security Rule Detected</span>
+                </div>
+                <p className="leading-relaxed">
+                  Your Brevo account has the &ldquo;Authorized IP addresses&rdquo; security restriction enabled. The current server IP {brevoHealth?.detectedIp ? <code className="font-mono bg-background px-1.5 py-0.5 rounded font-bold">{brevoHealth.detectedIp}</code> : "of this environment"} has not been added to your authorized IP list.
+                </p>
+                <div className="pt-1">
+                  <a
+                    href="https://app.brevo.com/security/authorised_ips"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 text-white font-bold hover:bg-amber-700 transition-colors"
+                  >
+                    Manage Brevo Authorized IPs <ExternalLink className="size-3.5" />
+                  </a>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Tip: In your Brevo dashboard, you can disable the IP restriction toggle or add your server IP to allow live dispatches.
+                </p>
+              </div>
+            )}
+
+            {/* Handshake Details */}
+            <div className="space-y-3">
+              <div className="p-3.5 rounded-xl border bg-muted/20 space-y-1">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span>1. SMTP Relay (Port 587 STARTTLS)</span>
+                  <Badge variant={brevoHealth?.smtp?.ok ? "outline" : "secondary"} className="text-[10px]">
+                    {brevoHealth?.smtp?.ok ? "Ready" : "Blocked / 525"}
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-muted-foreground font-mono break-words">
+                  {brevoHealth?.smtp?.message}
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl border bg-muted/20 space-y-1">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span>2. Direct REST API v3 (HTTPS)</span>
+                  <Badge variant={brevoHealth?.api?.ok ? "outline" : "secondary"} className="text-[10px]">
+                    {brevoHealth?.api?.ok ? "Ready" : "Blocked / 401"}
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-muted-foreground font-mono break-words">
+                  {brevoHealth?.api?.message}
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl border bg-muted/20 space-y-1">
+                <div className="text-xs font-bold text-foreground">
+                  3. Verified Sender Addresses
+                </div>
+                <div className="text-[11px] text-muted-foreground space-y-0.5 pt-1">
+                  <div>&bull; <strong>News:</strong> news@hack4win.online</div>
+                  <div>&bull; <strong>Welcome:</strong> welcome@hack4win.online</div>
+                  <div>&bull; <strong>Notifications:</strong> notifications@hack4win.online</div>
+                  <div>&bull; <strong>Requests:</strong> request@hack4win.online</div>
+                  <div>&bull; <strong>Support:</strong> support@hack4win.online</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-3 border-t flex justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsBrevoModalOpen(false)}
+              className="rounded-full text-xs"
+            >
+              Close
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

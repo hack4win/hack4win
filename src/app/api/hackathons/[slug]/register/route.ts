@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/session";
 import { hackathonRepository } from "@/lib/db/hackathon-repository";
 import { getHackathonStatus } from "@/lib/db/types";
+import { brevoService, HACK4WIN_SENDERS } from "@/lib/email/brevo-service";
+import { getHackathonRegistrationEmailTemplate } from "@/lib/email/templates";
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -139,6 +141,31 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   try {
     await hackathonRepository.registerUser(hackathon.id, session.user.id, participationType);
     const count = await hackathonRepository.getParticipantCount(hackathon.id);
+
+    // Send confirmation email via Brevo
+    if (session.user.email) {
+      try {
+        const regTemplate = getHackathonRegistrationEmailTemplate({
+          userName: session.user.name || "Builder",
+          hackathonTitle: hackathon.title,
+          slug: hackathon.slug,
+          startDate: hackathon.start_date,
+          isPrivate: hackathon.is_private,
+          accessCode: hackathon.access_code || undefined,
+        });
+
+        await brevoService.sendEmail({
+          to: [{ email: session.user.email, name: session.user.name || undefined }],
+          subject: regTemplate.subject,
+          htmlContent: regTemplate.html,
+          textContent: regTemplate.text,
+          sender: HACK4WIN_SENDERS.NOTIFICATIONS,
+          tags: ["hackathon-registration", "transactional"],
+        });
+      } catch (mailErr) {
+        console.warn("[Registration Confirmation Mail Notice]:", mailErr);
+      }
+    }
 
     return NextResponse.json({
       success: true,

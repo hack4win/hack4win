@@ -3,6 +3,8 @@ import { getServerSession } from "@/lib/auth/session";
 import { userRepository } from "@/lib/db/user-repository";
 import { hackathonRepository } from "@/lib/db/hackathon-repository";
 import { getHackathonStatus } from "@/lib/db/types";
+import { brevoService, HACK4WIN_SENDERS } from "@/lib/email/brevo-service";
+import { getTeamInviteEmailTemplate } from "@/lib/email/templates";
 
 interface InviteRateLimit {
   count: number;
@@ -63,7 +65,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { hackathon_id, receiver_id, receiver_email, team_name, role, message, contact_info } = body;
+    const hackathon_id = body.hackathon_id || body.hackathon_slug;
+    const { receiver_id, receiver_email, team_name, role, message, contact_info } = body;
 
     if (!hackathon_id || (!receiver_id && !receiver_email)) {
       return NextResponse.json(
@@ -194,6 +197,33 @@ export async function POST(req: NextRequest) {
     const protocol = req.headers.get("x-forwarded-proto") || "http";
     const acceptUrl = `${protocol}://${host}/team-invites/${invitation.id}?action=accept`;
 
+    // Dispatch email via Brevo Service
+    let brevoResult: unknown = null;
+    if (targetReceiverEmail) {
+      try {
+        const inviteEmail = getTeamInviteEmailTemplate({
+          senderName: session.user.name || "A Participant",
+          receiverName: targetReceiverName || undefined,
+          hackathonTitle: hackathon.title,
+          teamName: teamTitle,
+          role: assignedRole,
+          acceptUrl,
+          message: message?.trim() || undefined,
+        });
+
+        brevoResult = await brevoService.sendEmail({
+          to: [{ email: targetReceiverEmail, name: targetReceiverName || undefined }],
+          subject: inviteEmail.subject,
+          htmlContent: inviteEmail.html,
+          textContent: inviteEmail.text,
+          sender: HACK4WIN_SENDERS.NOTIFICATIONS,
+          tags: ["team-invite", "transactional"],
+        });
+      } catch (mailErr) {
+        console.warn("[Team Invite Mailer Notice]:", mailErr);
+      }
+    }
+
     // Official invitation notification record
     const dispatchedEmail = {
       to: targetReceiverEmail || "",
@@ -205,7 +235,8 @@ export async function POST(req: NextRequest) {
       accept_url: acceptUrl,
       timestamp: new Date().toISOString(),
       dispatched: true,
-      service: "Hack4Win Mail Dispatcher (SMTP / Resend / SendGrid)",
+      service: "Hack4Win Brevo Dispatcher (REST API / SMTP Relay)",
+      brevoResult,
     };
 
     console.log("📨 [INVITATION DISPATCHED]:", JSON.stringify(dispatchedEmail, null, 2));

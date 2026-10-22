@@ -6,6 +6,54 @@ interface RouteParams {
   params: Promise<{ slug: string }>;
 }
 
+export async function GET(req: NextRequest, { params }: RouteParams) {
+  const session = await getServerSession();
+  const { slug } = await params;
+
+  if (!slug) {
+    return NextResponse.json({ error: "Hackathon identifier required" }, { status: 400 });
+  }
+
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
+  const hackathon = isUuid
+    ? await hackathonRepository.findById(slug)
+    : await hackathonRepository.findBySlug(slug);
+
+  if (!hackathon) {
+    return NextResponse.json({ error: "Hackathon not found" }, { status: 404 });
+  }
+
+  if (!hackathon.is_private) {
+    return NextResponse.json({
+      allowed: true,
+      valid: true,
+      is_private: false,
+      reason: "public",
+      message: "This is a public competition. Open to all builders.",
+    });
+  }
+
+  const accessCode = req.nextUrl.searchParams.get("code")?.trim() || undefined;
+  const inviteToken = req.nextUrl.searchParams.get("invite")?.trim() || undefined;
+
+  const check = await hackathonRepository.verifyPrivateAccess(hackathon, {
+    userId: session?.user.id,
+    userEmail: session?.user.email,
+    accessCode,
+    inviteToken,
+    userRole: session?.user.role,
+  });
+
+  return NextResponse.json({
+    allowed: check.allowed,
+    valid: check.allowed,
+    is_private: true,
+    reason: check.reason,
+    requires_code: Boolean(hackathon.access_code),
+    allowed_domains: hackathon.allowed_email_domains || [],
+  });
+}
+
 export async function POST(req: NextRequest, { params }: RouteParams) {
   const session = await getServerSession();
   const { slug } = await params;
@@ -46,6 +94,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
   if (check.allowed) {
     return NextResponse.json({
+      allowed: true,
       valid: true,
       is_private: true,
       reason: check.reason,
