@@ -87,6 +87,10 @@ export function HackathonActionCard({
     "looking_for_team"
   );
   const [accessCodeInput, setAccessCodeInput] = useState("");
+  const [studentIdInput, setStudentIdInput] = useState("");
+  const [collegeNameInput, setCollegeNameInput] = useState("");
+  const [academicYearInput, setAcademicYearInput] = useState("");
+  const [branchInput, setBranchInput] = useState("");
 
   const handleOpenJoinFlow = () => {
     if (!isLoggedIn) {
@@ -103,7 +107,8 @@ export function HackathonActionCard({
 
     try {
       const queryToken = typeof window !== "undefined"
-        ? new URLSearchParams(window.location.search).get("invite")
+        ? new URLSearchParams(window.location.search).get("invite") ||
+          new URLSearchParams(window.location.search).get("token")
         : undefined;
 
       const res = await fetch(`/api/hackathons/${slug}/register`, {
@@ -113,6 +118,10 @@ export function HackathonActionCard({
           participation_type: selectedJoinType,
           access_code: accessCodeInput.trim() || undefined,
           invite_token: queryToken || undefined,
+          student_id: studentIdInput.trim() || undefined,
+          college_name: collegeNameInput.trim() || undefined,
+          academic_year: academicYearInput.trim() || undefined,
+          branch: branchInput.trim() || undefined,
         }),
       });
 
@@ -517,6 +526,72 @@ export function HackathonActionCard({
                   <p className="text-[10px] text-muted-foreground">
                     Leave empty if you registered with an allowed college email or accessed via an authorized invite link.
                   </p>
+                </div>
+
+                {/* Campus Student Credentials */}
+                <div className="pt-2.5 border-t border-purple-500/20 space-y-2">
+                  <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
+                    <School className="size-3.5" /> Student & College Information (for Organizer Roster)
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label htmlFor="student-id" className="text-[10px] font-bold text-muted-foreground">
+                        Roll No. / Student ID
+                      </Label>
+                      <Input
+                        id="student-id"
+                        placeholder="e.g. 2024CS101"
+                        value={studentIdInput}
+                        onChange={(e) => setStudentIdInput(e.target.value)}
+                        className="text-xs h-8 bg-background font-mono"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="academic-year" className="text-[10px] font-bold text-muted-foreground">
+                        Academic Year
+                      </Label>
+                      <select
+                        id="academic-year"
+                        value={academicYearInput}
+                        onChange={(e) => setAcademicYearInput(e.target.value)}
+                        className="w-full text-xs h-8 rounded-md border border-input bg-background px-2 font-medium cursor-pointer"
+                      >
+                        <option value="">Select Year / Degree</option>
+                        <option value="1st Year">1st Year / Freshman</option>
+                        <option value="2nd Year">2nd Year / Sophomore</option>
+                        <option value="3rd Year">3rd Year / Junior</option>
+                        <option value="Final Year">Final Year / Senior</option>
+                        <option value="Postgraduate / Masters">Postgraduate / Masters</option>
+                        <option value="PhD / Researcher">PhD / Researcher</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label htmlFor="branch" className="text-[10px] font-bold text-muted-foreground">
+                        Major / Branch
+                      </Label>
+                      <Input
+                        id="branch"
+                        placeholder="e.g. Computer Science"
+                        value={branchInput}
+                        onChange={(e) => setBranchInput(e.target.value)}
+                        className="text-xs h-8 bg-background"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="college-name" className="text-[10px] font-bold text-muted-foreground">
+                        College / University
+                      </Label>
+                      <Input
+                        id="college-name"
+                        placeholder="e.g. Stanford University"
+                        value={collegeNameInput}
+                        onChange={(e) => setCollegeNameInput(e.target.value)}
+                        className="text-xs h-8 bg-background"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

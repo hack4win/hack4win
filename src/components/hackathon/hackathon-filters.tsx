@@ -17,6 +17,8 @@ import {
   Sparkles,
   RotateCcw,
   SlidersHorizontal,
+  School,
+  Lock,
 } from "lucide-react";
 
 interface HackathonFiltersProps {
@@ -34,6 +36,7 @@ export function HackathonFilters({ availableTags = [], totalResults }: Hackathon
   // Read current query parameters
   const currentStatus = searchParams.get("status") || "all";
   const currentFormat = searchParams.get("format") || "all";
+  const currentAccess = searchParams.get("access") || "all";
   const currentTag = searchParams.get("tag") || searchParams.get("track") || "";
   const currentSearch = searchParams.get("search") || "";
 
@@ -41,7 +44,11 @@ export function HackathonFilters({ availableTags = [], totalResults }: Hackathon
 
   // Check if any filter is active
   const hasActiveFilters =
-    currentStatus !== "all" || currentFormat !== "all" || !!currentTag || !!currentSearch;
+    currentStatus !== "all" ||
+    currentFormat !== "all" ||
+    currentAccess !== "all" ||
+    !!currentTag ||
+    !!currentSearch;
 
   const updateFilters = (updates: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -105,6 +112,12 @@ export function HackathonFilters({ availableTags = [], totalResults }: Hackathon
     { id: "online", label: "Online (Remote)" },
     { id: "in-person", label: "In-Person" },
     { id: "hybrid", label: "Hybrid" },
+  ];
+
+  const accessOptions = [
+    { id: "all", label: "All Access Models", icon: <Globe className="size-3.5 text-primary" /> },
+    { id: "public", label: "Open Public", icon: <Sparkles className="size-3.5 text-blue-500" /> },
+    { id: "campus", label: "Campus Exclusive", icon: <School className="size-3.5 text-purple-600" /> },
   ];
 
   return (
@@ -217,6 +230,37 @@ export function HackathonFilters({ availableTags = [], totalResults }: Hackathon
                   }`}
                 >
                   <span>{opt.label}</span>
+                  {isSelected && <span className="text-[10px] uppercase tracking-wider">Active</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Access Model Filter (Public vs Campus Exclusive) */}
+        <div className="p-5 rounded-2xl border bg-card shadow-xs space-y-3">
+          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <School className="size-3.5 text-purple-600" /> Access & Campus
+          </label>
+
+          <div className="space-y-1.5">
+            {accessOptions.map((opt) => {
+              const isSelected = currentAccess === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => updateFilters({ access: opt.id })}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    isSelected
+                      ? "bg-purple-600 text-white shadow-2xs font-bold"
+                      : "text-foreground hover:bg-muted/60"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    {opt.icon}
+                    <span>{opt.label}</span>
+                  </span>
                   {isSelected && <span className="text-[10px] uppercase tracking-wider">Active</span>}
                 </button>
               );

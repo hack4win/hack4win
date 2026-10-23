@@ -93,6 +93,49 @@ export async function POST(req: NextRequest, context: RouteContext) {
       });
     }
 
+    if (action === "remove_email") {
+      const emailToRemove = typeof body.email === "string" ? body.email.trim() : "";
+      if (!emailToRemove) {
+        return NextResponse.json({ error: "Email to remove is required" }, { status: 400 });
+      }
+      const updated = await hackathonRepository.removeInvitedEmail(hackathon.id, emailToRemove);
+      return NextResponse.json({
+        success: true,
+        message: `Removed ${emailToRemove} from student whitelist`,
+        invited_emails: updated,
+      });
+    }
+
+    if (action === "send_invite") {
+      const targetEmail = typeof body.email === "string" ? body.email.trim() : "";
+      if (!targetEmail) {
+        return NextResponse.json({ error: "Recipient email is required" }, { status: 400 });
+      }
+      const baseUrl = process.env.NEXTAUTH_URL || "https://hack4win.online";
+      const inviteLink = `${baseUrl}/hackathons/${hackathon.slug}?invite=${hackathon.invite_token || ""}`;
+      const template = getPrivateCampusInviteEmailTemplate({
+        hackathonTitle: hackathon.title,
+        organizerName: session.user.name || "Campus Organizer",
+        accessCode: hackathon.access_code || undefined,
+        inviteLink,
+        allowedDomains: hackathon.allowed_email_domains || undefined,
+      });
+
+      await brevoService.sendEmail({
+        to: [{ email: targetEmail }],
+        subject: template.subject,
+        htmlContent: template.html,
+        textContent: template.text,
+        sender: HACK4WIN_SENDERS.WELCOME,
+        engine: "auto",
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `Invitation email dispatched to ${targetEmail}`,
+      });
+    }
+
     if (action === "add_emails" || action === "update_emails") {
       const rawEmails = Array.isArray(body.emails)
         ? body.emails
@@ -112,7 +155,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
           );
           if (newEmails.length > 0) {
             const baseUrl = process.env.NEXTAUTH_URL || "https://hack4win.online";
-            const inviteLink = `${baseUrl}/hackathons/${hackathon.slug}?token=${hackathon.invite_token || ""}`;
+            const inviteLink = `${baseUrl}/hackathons/${hackathon.slug}?invite=${hackathon.invite_token || ""}`;
             const template = getPrivateCampusInviteEmailTemplate({
               hackathonTitle: hackathon.title,
               organizerName: session.user.name || "Campus Organizer",

@@ -396,3 +396,21 @@ export interface TeamInvitation {
   created_at: string;
   updated_at: string;
 }
+
+export interface RegisteredStudent {
+  user_id: string;
+  name: string;
+  email: string;
+  username: string | null;
+  image: string | null;
+  registered_at: string;
+  participation_type: string;
+  student_id?: string | null;
+  college_name?: string | null;
+  academic_year?: string | null;
+  branch?: string | null;
+  submission_id?: string | null;
+  submission_title?: string | null;
+  has_submitted: boolean;
+  submitted_at?: string | null;
+}

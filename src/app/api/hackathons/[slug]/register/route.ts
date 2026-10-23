@@ -77,7 +77,10 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
     // 1. Private hackathon eligibility check
     if (hackathon.is_private) {
-      const inviteTokenFromQuery = req.nextUrl?.searchParams?.get("invite") || undefined;
+      const inviteTokenFromQuery =
+        req.nextUrl?.searchParams?.get("invite") ||
+        req.nextUrl?.searchParams?.get("token") ||
+        undefined;
       const accessCheck = await hackathonRepository.verifyPrivateAccess(hackathon, {
         userId: session.user.id,
         userEmail: session.user.email,
@@ -138,8 +141,15 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       participationType = mapped;
     }
 
-  try {
-    await hackathonRepository.registerUser(hackathon.id, session.user.id, participationType);
+    const studentData = {
+      student_id: typeof body?.student_id === "string" ? body.student_id.trim().slice(0, 100) : null,
+      college_name: typeof body?.college_name === "string" ? body.college_name.trim().slice(0, 200) : null,
+      academic_year: typeof body?.academic_year === "string" ? body.academic_year.trim().slice(0, 100) : null,
+      branch: typeof body?.branch === "string" ? body.branch.trim().slice(0, 150) : null,
+    };
+
+    try {
+      await hackathonRepository.registerUser(hackathon.id, session.user.id, participationType, studentData);
     const count = await hackathonRepository.getParticipantCount(hackathon.id);
 
     // Send confirmation email via Brevo

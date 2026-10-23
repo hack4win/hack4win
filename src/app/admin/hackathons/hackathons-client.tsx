@@ -331,13 +331,20 @@ export function HackathonsClient({
                               )}
                             </div>
                             <div className="min-w-0 max-w-xs">
-                              <Link
-                                href={`/admin/hackathons/${h.id}/edit`}
-                                className="font-semibold text-foreground hover:text-primary transition-colors truncate block"
-                                title="Edit this hackathon"
-                              >
-                                {h.title}
-                              </Link>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <Link
+                                  href={`/admin/hackathons/${h.id}/edit`}
+                                  className="font-semibold text-foreground hover:text-primary transition-colors truncate block"
+                                  title="Edit this hackathon"
+                                >
+                                  {h.title}
+                                </Link>
+                                {h.is_private && (
+                                  <Badge className="text-[9px] px-1.5 py-0 rounded-full font-bold bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30">
+                                    🎓 Campus Private
+                                  </Badge>
+                                )}
+                              </div>
                               <div className="text-xs text-muted-foreground truncate">
                                 {h.tagline}
                               </div>
@@ -414,6 +421,23 @@ export function HackathonsClient({
                             >
                               <Link href={`/admin/hackathons/${h.id}/edit`}>
                                 <Pencil className="size-3.5" />
+                              </Link>
+                            </Button>
+
+                            {/* Student Roster & Invites */}
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              asChild
+                              title={h.is_private ? "Campus Student Roster & Invites (Private)" : "Student Roster & Invites"}
+                              className={`rounded-full transition-colors ${
+                                h.is_private
+                                  ? "text-purple-600 hover:text-purple-700 hover:bg-purple-500/10"
+                                  : "text-foreground/75 hover:text-purple-600 hover:bg-purple-500/10"
+                              }`}
+                            >
+                              <Link href={`/organizer/hackathons/${h.id}/students`}>
+                                <Users className="size-3.5" />
                               </Link>
                             </Button>
 

@@ -11,6 +11,7 @@ import {
   SubmissionTeamMember,
   ProjectEvaluation,
   SaveEvaluationInput,
+  RegisteredStudent,
 } from "./types";
 import { generateSlug } from "../utils/slug";
 
@@ -528,18 +529,37 @@ export class HackathonRepository implements IHackathonRepository {
   }
 
   /**
-   * Register a user for a hackathon with participation type (solo vs looking_for_team)
+   * Register a user for a hackathon with participation type (solo vs looking_for_team) and student details
    */
   async registerUser(
     hackathonId: string,
     userId: string,
-    participationType: string = "looking_for_team"
+    participationType: string = "looking_for_team",
+    studentData?: {
+      student_id?: string | null;
+      college_name?: string | null;
+      academic_year?: string | null;
+      branch?: string | null;
+    }
   ): Promise<boolean> {
+    const studentId = studentData?.student_id || null;
+    const collegeName = studentData?.college_name || null;
+    const academicYear = studentData?.academic_year || null;
+    const branch = studentData?.branch || null;
+
     await db`
-      INSERT INTO public.hackathon_registrations (hackathon_id, user_id, participation_type, created_at)
-      VALUES (${hackathonId}::uuid, ${userId}, ${participationType}, NOW())
+      INSERT INTO public.hackathon_registrations (
+        hackathon_id, user_id, participation_type, student_id, college_name, academic_year, branch, created_at
+      )
+      VALUES (
+        ${hackathonId}::uuid, ${userId}, ${participationType}, ${studentId}, ${collegeName}, ${academicYear}, ${branch}, NOW()
+      )
       ON CONFLICT (hackathon_id, user_id) DO UPDATE SET 
-        participation_type = EXCLUDED.participation_type;
+        participation_type = EXCLUDED.participation_type,
+        student_id = COALESCE(EXCLUDED.student_id, hackathon_registrations.student_id),
+        college_name = COALESCE(EXCLUDED.college_name, hackathon_registrations.college_name),
+        academic_year = COALESCE(EXCLUDED.academic_year, hackathon_registrations.academic_year),
+        branch = COALESCE(EXCLUDED.branch, hackathon_registrations.branch);
     `;
     return true;
   }
@@ -1666,15 +1686,7 @@ export class HackathonRepository implements IHackathonRepository {
   /**
    * Get registered students/participants for an organizer's private hackathon
    */
-  async getRegisteredStudents(hackathonId: string): Promise<Array<{
-    user_id: string;
-    name: string;
-    email: string;
-    username: string | null;
-    image: string | null;
-    registered_at: string;
-    participation_type: string;
-  }>> {
+  async getRegisteredStudents(hackathonId: string): Promise<RegisteredStudent[]> {
     try {
       const rows = await db`
         SELECT 
@@ -1684,9 +1696,17 @@ export class HackathonRepository implements IHackathonRepository {
           u.username,
           u.image,
           r.created_at as registered_at,
-          r.participation_type
+          r.participation_type,
+          r.student_id,
+          r.college_name,
+          r.academic_year,
+          r.branch,
+          sub.id as submission_id,
+          sub.title as submission_title,
+          sub.created_at as submitted_at
         FROM public.hackathon_registrations r
         JOIN public.users u ON u.id = r.user_id
+        LEFT JOIN public.hackathon_submissions sub ON sub.hackathon_id = r.hackathon_id AND sub.user_id = r.user_id
         WHERE r.hackathon_id = ${hackathonId}::uuid
         ORDER BY r.created_at DESC;
       `;
@@ -1698,11 +1718,30 @@ export class HackathonRepository implements IHackathonRepository {
         image: (r.image as string) || null,
         registered_at: r.registered_at ? new Date(String(r.registered_at)).toISOString() : new Date().toISOString(),
         participation_type: (r.participation_type as string) || "solo",
+        student_id: (r.student_id as string) || null,
+        college_name: (r.college_name as string) || null,
+        academic_year: (r.academic_year as string) || null,
+        branch: (r.branch as string) || null,
+        submission_id: (r.submission_id as string) || null,
+        submission_title: (r.submission_title as string) || null,
+        has_submitted: Boolean(r.submission_id),
+        submitted_at: r.submitted_at ? new Date(String(r.submitted_at)).toISOString() : null,
       }));
     } catch (err) {
       console.error("[getRegisteredStudents Error]:", err);
       return [];
     }
+  }
+
+  /**
+   * Remove an email from the invited student emails whitelist
+   */
+  async removeInvitedEmail(hackathonId: string, emailToRemove: string): Promise<string[]> {
+    const cleanEmail = emailToRemove.trim().toLowerCase();
+    const existing = await this.findById(hackathonId);
+    if (!existing || !existing.invited_emails) return [];
+    const updated = existing.invited_emails.filter((e) => e.trim().toLowerCase() !== cleanEmail);
+    return this.updateInvitedEmails(hackathonId, updated);
   }
 
   /**

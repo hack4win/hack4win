@@ -34,7 +34,10 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   }
 
   const accessCode = req.nextUrl.searchParams.get("code")?.trim() || undefined;
-  const inviteToken = req.nextUrl.searchParams.get("invite")?.trim() || undefined;
+  const inviteToken =
+    req.nextUrl.searchParams.get("invite")?.trim() ||
+    req.nextUrl.searchParams.get("token")?.trim() ||
+    undefined;
 
   const check = await hackathonRepository.verifyPrivateAccess(hackathon, {
     userId: session?.user.id,

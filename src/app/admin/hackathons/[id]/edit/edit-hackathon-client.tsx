@@ -766,6 +766,24 @@ export function EditHackathonClient({ hackathon }: EditHackathonClientProps) {
                         Distribute this link in college groups or emails. Visiting with this link automatically unlocks registration for the student.
                       </p>
                     </div>
+
+                    {/* 5. Live Student Roster Link */}
+                    <div className="pt-3 border-t border-purple-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="text-xs text-muted-foreground">
+                        Track enrolled students, inspect project submission rates, and export the official campus CSV roster.
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="rounded-xl text-xs font-bold gap-1.5 border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 cursor-pointer shrink-0"
+                      >
+                        <Link href={`/organizer/hackathons/${hackathon.id}/students`}>
+                          <Users className="size-3.5" />
+                          <span>Open Student Roster &rarr;</span>
+                        </Link>
+                      </Button>
+                    </div>
                   </div>
                 )}
               </CardContent>

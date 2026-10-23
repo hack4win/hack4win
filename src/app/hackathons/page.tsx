@@ -27,6 +27,7 @@ interface BrowsePageProps {
     track?: string;
     search?: string;
     sort?: string;
+    access?: string;
   }>;
 }
 
@@ -61,7 +62,7 @@ export const metadata: Metadata = {
 };
 
 export default async function HackathonsBrowsePage({ searchParams }: BrowsePageProps) {
-  const { status, format, tag, track, search, sort } = await searchParams;
+  const { status, format, tag, track, search, sort, access } = await searchParams;
   const activeTag = tag || track;
 
   const session = await getServerSession();
@@ -130,7 +131,15 @@ export default async function HackathonsBrowsePage({ searchParams }: BrowsePageP
       }
     }
 
-    // 5. Keyword Search filter
+    // 5. Access Type filter (public vs campus private)
+    if (access === "public" && h.is_private) {
+      return false;
+    }
+    if ((access === "campus" || access === "private") && !h.is_private) {
+      return false;
+    }
+
+    // 6. Keyword Search filter
     if (search && search.trim()) {
       const q = search.toLowerCase().trim();
       const matchTitle = h.title.toLowerCase().includes(q);
