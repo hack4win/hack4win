@@ -62,7 +62,7 @@ async function getOrCreateTestUser(role: string, name: string, email: string) {
     await sql`
       SELECT u.id FROM public.users u
       INNER JOIN neon_auth.user nu ON nu.id::text = u.id
-      WHERE u.role = ${role}
+      WHERE u.email = ${email}
       LIMIT 1
     `
   )[0];
@@ -93,33 +93,7 @@ before(async () => {
 
   adminUserId = await getOrCreateTestUser("admin", "Test Admin", "admin.e2e@do4win.com");
   regularUserId = await getOrCreateTestUser("user", "Test User", "user1.e2e@do4win.com");
-  
-  // Teammate user must have a different ID from regularUserId
-  const existingTeammate = (
-    await sql`
-      SELECT u.id FROM public.users u
-      INNER JOIN neon_auth.user nu ON nu.id::text = u.id
-      WHERE u.role = 'user' AND u.id != ${regularUserId}
-      LIMIT 1
-    `
-  )[0];
-  if (existingTeammate) {
-    teammateUserId = existingTeammate.id;
-  } else {
-    teammateUserId = crypto.randomUUID();
-    await sql`
-      INSERT INTO neon_auth.user (id, name, email, "emailVerified", role, "createdAt", "updatedAt")
-      VALUES (${teammateUserId}::uuid, 'Test Teammate', 'teammate.e2e@do4win.com', true, 'user', NOW(), NOW())
-      ON CONFLICT (email) DO UPDATE SET role = 'user';
-    `;
-    await sql`
-      INSERT INTO public.users (id, name, email, email_verified, role, created_at, updated_at)
-      VALUES (${teammateUserId}, 'Test Teammate', 'teammate.e2e@do4win.com', true, 'user', NOW(), NOW())
-      ON CONFLICT (email) DO UPDATE SET role = 'user';
-    `;
-  }
-
-  // Judge user
+  teammateUserId = await getOrCreateTestUser("user", "Test Teammate", "teammate.e2e@do4win.com");
   judgeUserId = await getOrCreateTestUser("judge", "Test Judge", "judge.e2e@do4win.com");
 
   // Insert active test sessions into neon_auth.session

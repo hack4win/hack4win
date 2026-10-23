@@ -34,11 +34,13 @@ async function api(
     method?: "GET" | "POST" | "PATCH" | "DELETE";
     token?: string | null;
     body?: Record<string, unknown>;
+    headers?: Record<string, string>;
   } = {}
 ) {
-  const { method = "GET", token = null, body } = options;
+  const { method = "GET", token = null, body, headers: customHeaders = {} } = options;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    ...customHeaders,
   };
   if (token) {
     headers["Cookie"] = `neon-auth.session_token=${token}`;
@@ -2570,6 +2572,7 @@ describe("Suite Z: Host a Hackathon Onboarding & Inquiry Flow", () => {
   test("Z.4. POST /api/host/inquiry validates required fields (400)", async () => {
     const res = await api("/api/host/inquiry", {
       method: "POST",
+      headers: { "x-forwarded-for": `198.51.100.${Math.floor(Math.random() * 200) + 1}` },
       body: {
         organizationName: "",
         contactName: "",
@@ -2585,6 +2588,7 @@ describe("Suite Z: Host a Hackathon Onboarding & Inquiry Flow", () => {
   test("Z.5. POST /api/host/inquiry accepts valid inquiry with HTTP 200", async () => {
     const res = await api("/api/host/inquiry", {
       method: "POST",
+      headers: { "x-forwarded-for": `198.51.100.${Math.floor(Math.random() * 200) + 1}` },
       body: {
         organizationName: "Global AI DevRel",
         contactName: "Alex Rivera",
