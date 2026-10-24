@@ -242,8 +242,8 @@ export default async function HackathonDetailPage({ params, searchParams }: Page
       {/* Main Hackathon Detail Container */}
       <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 md:p-8 space-y-8">
         {/* Hero Banner Card */}
-        <div className="rounded-3xl border bg-card shadow-xs relative lg:min-h-[580px] xl:min-h-[620px] overflow-visible">
-          <div className="h-64 sm:h-80 w-full bg-muted relative rounded-t-3xl overflow-hidden">
+        <div className="rounded-3xl border bg-card shadow-xs relative overflow-hidden">
+          <div className="h-44 sm:h-48 md:h-52 w-full bg-muted relative rounded-t-3xl overflow-hidden">
             {hackathon.banner_url ? (
               <img
                 src={hackathon.banner_url}
@@ -255,96 +255,99 @@ export default async function HackathonDetailPage({ params, searchParams }: Page
                 <Trophy className="size-20" />
               </div>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-card via-card/75 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-card via-card/65 to-transparent" />
           </div>
 
-          {/* Left Content Area (Pills, Title, Tagline, Host) */}
-          <div className="p-6 sm:p-8 -mt-16 sm:-mt-24 relative space-y-4 lg:max-w-[calc(100%-350px)]">
-            {/* Status & Format Pills */}
-            <div className="flex flex-wrap items-center gap-2">
-              {currentStatus === "ongoing" ? (
-                <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-xs font-semibold gap-1.5 rounded-full px-3 py-1">
-                  <Radio className="size-3.5 animate-pulse" /> Live Competition
-                </Badge>
-              ) : currentStatus === "upcoming" ? (
-                <Badge className="bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30 text-xs font-semibold gap-1.5 rounded-full px-3 py-1">
-                  <Clock className="size-3.5" /> Upcoming
-                </Badge>
-              ) : currentStatus === "ended" ? (
-                <Badge variant="outline" className="text-muted-foreground text-xs font-medium rounded-full px-3 py-1">
-                  Ended
-                </Badge>
-              ) : (
-                <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/20 text-xs font-medium rounded-full px-3 py-1">
-                  Draft
-                </Badge>
-              )}
-
-              {hackathon.is_private && (
-                <Badge className="bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30 text-xs font-semibold gap-1.5 rounded-full px-3 py-1">
-                  <Lock className="size-3.5" /> Private Campus Event
-                </Badge>
-              )}
-
-              <Badge variant="outline" className="capitalize text-xs rounded-full px-3 py-1">
-                {hackathon.format}
-              </Badge>
-
-              <Badge variant="outline" className="text-xs rounded-full px-3 py-1">
-                {hackathon.location}
-              </Badge>
-            </div>
-
-            {/* Title & Host Info */}
-            <div className="space-y-2.5 min-w-0 pt-1">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-foreground break-words">
-                {hackathon.title}
-              </h1>
-              <p className="text-sm sm:text-base text-muted-foreground leading-relaxed break-words">
-                {hackathon.tagline}
-              </p>
-              <div className="text-xs text-muted-foreground flex items-center gap-2 pt-1 flex-wrap">
-                <span className="flex items-center gap-1.5">
-                  <Building className="size-3.5 text-primary shrink-0" />
-                  <span>Hosted by <strong className="text-foreground">{hackathon.organizer_name}</strong></span>
-                </span>
-                {getSafeExternalUrl(hackathon.website_url) && (
-                  <>
-                    <span>&middot;</span>
-                    <a
-                      href={getSafeExternalUrl(hackathon.website_url)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline inline-flex items-center gap-1 truncate max-w-xs"
-                    >
-                      Official Website <ExternalLink className="size-3 shrink-0" />
-                    </a>
-                  </>
+          {/* 2-Column Responsive Layout: Left Details & Right Action Card */}
+          <div className="px-6 pb-6 sm:px-8 sm:pb-8 -mt-16 sm:-mt-24 relative z-10 flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 lg:gap-8">
+            {/* Left Content Area (Pills, Title, Tagline, Host) */}
+            <div className="flex-1 space-y-3.5 min-w-0 pt-2 sm:pt-4">
+              {/* Status & Format Pills */}
+              <div className="flex flex-wrap items-center gap-2">
+                {currentStatus === "ongoing" ? (
+                  <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-xs font-semibold gap-1.5 rounded-full px-3 py-1">
+                    <Radio className="size-3.5 animate-pulse" /> Live Competition
+                  </Badge>
+                ) : currentStatus === "upcoming" ? (
+                  <Badge className="bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30 text-xs font-semibold gap-1.5 rounded-full px-3 py-1">
+                    <Clock className="size-3.5" /> Upcoming
+                  </Badge>
+                ) : currentStatus === "ended" ? (
+                  <Badge variant="outline" className="text-muted-foreground text-xs font-medium rounded-full px-3 py-1">
+                    Ended
+                  </Badge>
+                ) : (
+                  <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/20 text-xs font-medium rounded-full px-3 py-1">
+                    Draft
+                  </Badge>
                 )}
+
+                {hackathon.is_private && (
+                  <Badge className="bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30 text-xs font-semibold gap-1.5 rounded-full px-3 py-1">
+                    <Lock className="size-3.5" /> Private Campus Event
+                  </Badge>
+                )}
+
+                <Badge variant="outline" className="capitalize text-xs rounded-full px-3 py-1">
+                  {hackathon.format}
+                </Badge>
+
+                <Badge variant="outline" className="text-xs rounded-full px-3 py-1">
+                  {hackathon.location}
+                </Badge>
+              </div>
+
+              {/* Title & Host Info */}
+              <div className="space-y-2 min-w-0 pt-1">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-foreground break-words">
+                  {hackathon.title}
+                </h1>
+                <p className="text-sm sm:text-base text-muted-foreground leading-relaxed break-words">
+                  {hackathon.tagline}
+                </p>
+                <div className="text-xs text-muted-foreground flex items-center gap-2 pt-1 flex-wrap">
+                  <span className="flex items-center gap-1.5">
+                    <Building className="size-3.5 text-primary shrink-0" />
+                    <span>Hosted by <strong className="text-foreground">{hackathon.organizer_name}</strong></span>
+                  </span>
+                  {getSafeExternalUrl(hackathon.website_url) && (
+                    <>
+                      <span>&middot;</span>
+                      <a
+                        href={getSafeExternalUrl(hackathon.website_url)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline inline-flex items-center gap-1 truncate max-w-xs"
+                      >
+                        Official Website <ExternalLink className="size-3 shrink-0" />
+                      </a>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Interactive Registration & Share Action Card - Anchored top-right of hero container on desktop */}
-          <div className="px-6 pb-6 sm:px-8 sm:pb-8 lg:p-0 lg:absolute lg:top-6 lg:right-6 lg:z-20 w-full lg:w-auto">
-            <HackathonActionCard
-              hackathonId={hackathon.id}
-              slug={hackathon.slug}
-              title={hackathon.title}
-              prizePool={cleanPrizePool}
-              maxTeamSize={hackathon.max_team_size}
-              initialIsRegistered={isRegistered}
-              initialParticipationType={participationType}
-              initialParticipantCount={participantCount}
-              isLoggedIn={!!session}
-              status={currentStatus}
-              isSubmissionsClosed={isSubmissionsClosed}
-              maxParticipants={hackathon.max_participants}
-              isPrivate={Boolean(hackathon.is_private)}
-              allowedEmailDomains={hackathon.allowed_email_domains || []}
-              hasAccessCode={Boolean(hackathon.access_code)}
-              initialRegistrationStatus={registrationStatus}
-            />
+            {/* Interactive Registration & Share Action Card */}
+            <div className="w-full lg:w-[340px] shrink-0">
+              <HackathonActionCard
+                hackathonId={hackathon.id}
+                slug={hackathon.slug}
+                title={hackathon.title}
+                prizePool={cleanPrizePool}
+                maxTeamSize={hackathon.max_team_size}
+                initialIsRegistered={isRegistered}
+                initialParticipationType={participationType}
+                initialParticipantCount={participantCount}
+                isLoggedIn={!!session}
+                status={currentStatus}
+                isSubmissionsClosed={isSubmissionsClosed}
+                maxParticipants={hackathon.max_participants}
+                isPrivate={Boolean(hackathon.is_private)}
+                allowedEmailDomains={hackathon.allowed_email_domains || []}
+                hasAccessCode={Boolean(hackathon.access_code)}
+                initialRegistrationStatus={registrationStatus}
+              />
+            </div>
           </div>
         </div>
 
