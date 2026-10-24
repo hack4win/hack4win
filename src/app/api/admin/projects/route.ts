@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
         limit,
         offset,
         includeDraftHackathons: canSeeDrafts,
+        includePrivateHackathons: true,
       }),
       hackathonRepository.getSubmissionStats(),
     ]);

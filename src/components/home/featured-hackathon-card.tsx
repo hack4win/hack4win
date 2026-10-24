@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   ArrowRight,
   MapPin,
+  Lock,
 } from "lucide-react";
 import type { Hackathon } from "@/lib/db/types";
 import { getHackathonStatus } from "@/lib/db/types";
@@ -212,10 +213,15 @@ export function FeaturedHackathonCard({ hackathon }: FeaturedHackathonCardProps)
         )}
 
         {/* Format Badge (Top Left) */}
-        <div className="absolute top-3 left-3 z-10">
+        <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5">
           <Badge className="bg-background/90 backdrop-blur-md border text-[11px] font-bold capitalize text-foreground shadow-xs">
             {hackathon.format || "Online"}
           </Badge>
+          {hackathon.is_private && (
+            <Badge className="bg-purple-950/80 backdrop-blur-md text-purple-200 border border-purple-400/30 text-[11px] font-bold rounded-full px-2 py-0.5 flex items-center gap-1 shadow-xs">
+              <Lock className="size-2.5" /> Campus
+            </Badge>
+          )}
         </div>
 
         {/* Live / Status Pill (Top Right) */}

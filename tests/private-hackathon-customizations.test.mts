@@ -439,4 +439,56 @@ describe("Suite AO: Private Hackathons Customizations & Student Roster Managemen
     const subData = await subRes.json();
     assert.equal(subData.registration_status, "rejected");
   });
+
+  it("AO.15. Private hackathon visibility rules on homepage (/) and browse page (/hackathons)", async () => {
+    // 1. Unauthenticated visitor browsing /hackathons and / must NOT see private hackathon
+    const anonBrowseRes = await fetch(`${BASE_URL}/hackathons`);
+    const anonBrowseText = await anonBrowseRes.text();
+    assert.equal(anonBrowseRes.status, 200);
+    assert.ok(
+      !anonBrowseText.includes(hackathonSlug),
+      "Anonymous visitor must not see private hackathon on /hackathons"
+    );
+
+    const anonHomeRes = await fetch(`${BASE_URL}/`);
+    const anonHomeText = await anonHomeRes.text();
+    assert.equal(anonHomeRes.status, 200);
+    assert.ok(
+      !anonHomeText.includes(hackathonSlug),
+      "Anonymous visitor must not see private hackathon on homepage"
+    );
+
+    // 2. Rejected user browsing /hackathons must NOT see private hackathon
+    const rejectedBrowseRes = await fetch(`${BASE_URL}/hackathons`, {
+      headers: { Cookie: `neon-auth.session_token=${INVITE_STUDENT_TOKEN}` },
+    });
+    const rejectedBrowseText = await rejectedBrowseRes.text();
+    assert.equal(rejectedBrowseRes.status, 200);
+    assert.ok(
+      !rejectedBrowseText.includes(hackathonSlug),
+      "Rejected participant must not see private hackathon on /hackathons"
+    );
+
+    // 3. Approved registered student browsing /hackathons MUST see private hackathon
+    const studentBrowseRes = await fetch(`${BASE_URL}/hackathons`, {
+      headers: { Cookie: `neon-auth.session_token=${STUDENT_TOKEN}` },
+    });
+    const studentBrowseText = await studentBrowseRes.text();
+    assert.equal(studentBrowseRes.status, 200);
+    assert.ok(
+      studentBrowseText.includes(hackathonSlug),
+      "Registered student must see their private hackathon on /hackathons"
+    );
+
+    // 4. Hackathon Organizer browsing /hackathons MUST see private hackathon
+    const orgBrowseRes = await fetch(`${BASE_URL}/hackathons`, {
+      headers: { Cookie: `neon-auth.session_token=${ORGANIZER_TOKEN}` },
+    });
+    const orgBrowseText = await orgBrowseRes.text();
+    assert.equal(orgBrowseRes.status, 200);
+    assert.ok(
+      orgBrowseText.includes(hackathonSlug),
+      "Organizer must see their private hackathon on /hackathons"
+    );
+  });
 });

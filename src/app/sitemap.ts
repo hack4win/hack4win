@@ -42,10 +42,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    // 2. Dynamic Published Hackathons
+    // 2. Dynamic Published Hackathons (excluding private campus hackathons from public index)
     const hackathons = await hackathonRepository.listHackathons({ limit: 200, includeDrafts: false });
     const hackathonRoutes: MetadataRoute.Sitemap = hackathons
-      .filter((h) => h.status !== "draft")
+      .filter((h) => h.status !== "draft" && !h.is_private)
       .map((h) => ({
         url: `${baseUrl}/hackathons/${h.slug}`,
         lastModified: new Date(h.updated_at || h.created_at),
@@ -58,6 +58,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       limit: 500,
       status: "approved",
       includeDraftHackathons: false,
+      includePrivateHackathons: false,
     });
     const projectRoutes: MetadataRoute.Sitemap = publicSubmissions.map((sub) => ({
       url: `${baseUrl}/projects/${sub.id}`,

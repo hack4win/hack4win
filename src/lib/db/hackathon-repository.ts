@@ -41,6 +41,7 @@ export interface IHackathonRepository {
     ongoing: number;
     ended: number;
   }>;
+  getUserRegisteredHackathonIds(userId: string): Promise<Set<string>>;
   isUserRegistered(hackathonId: string, userId: string): Promise<boolean>;
   getUserRegistration(
     hackathonId: string,
@@ -75,6 +76,7 @@ export interface IHackathonRepository {
     limit?: number;
     offset?: number;
     includeDraftHackathons?: boolean;
+    includePrivateHackathons?: boolean;
   }): Promise<HackathonSubmission[]>;
   getFeaturedSubmissions(limit?: number): Promise<HackathonSubmission[]>;
   getSubmissionById(id: string): Promise<HackathonSubmission | null>;
@@ -532,6 +534,24 @@ export class HackathonRepository implements IHackathonRepository {
   }
 
   /**
+   * Get set of hackathon IDs that a user is registered for (excluding rejected)
+   */
+  async getUserRegisteredHackathonIds(userId: string): Promise<Set<string>> {
+    if (!userId) return new Set<string>();
+    try {
+      const rows = await db`
+        SELECT hackathon_id FROM public.hackathon_registrations
+        WHERE user_id = ${userId}
+          AND (status IS NULL OR status != 'rejected');
+      `;
+      return new Set(rows.map((r) => String(r.hackathon_id)));
+    } catch (error) {
+      console.error("Error fetching user registered hackathon ids:", error);
+      return new Set<string>();
+    }
+  }
+
+  /**
    * Check if user is registered for a hackathon
    */
   async isUserRegistered(hackathonId: string, userId: string): Promise<boolean> {
@@ -729,6 +749,7 @@ export class HackathonRepository implements IHackathonRepository {
     limit?: number;
     offset?: number;
     includeDraftHackathons?: boolean;
+    includePrivateHackathons?: boolean;
   }): Promise<HackathonSubmission[]> {
     try {
       const limit = params?.limit ?? 100;
@@ -738,6 +759,7 @@ export class HackathonRepository implements IHackathonRepository {
       const isFeatured = typeof params?.isFeatured === "boolean" ? params.isFeatured : null;
       const status = params?.status && params.status !== "all" ? params.status : null;
       const includeDraftHackathons = Boolean(params?.includeDraftHackathons);
+      const includePrivateHackathons = params?.includePrivateHackathons ?? Boolean(hackathonId);
 
       const rows = await db`
         SELECT 
@@ -776,6 +798,7 @@ export class HackathonRepository implements IHackathonRepository {
           AND (${isFeatured}::boolean IS NULL OR COALESCE(s.is_featured, false) = ${isFeatured}::boolean)
           AND (${status}::text IS NULL OR COALESCE(s.status, 'approved') = ${status}::text)
           AND (${includeDraftHackathons}::boolean = true OR (h.status IS NULL OR h.status != 'draft'))
+          AND (${includePrivateHackathons}::boolean = true OR (h.is_private IS NULL OR h.is_private = false))
           AND (${search}::text IS NULL OR (
             LOWER(s.title) LIKE ${search}::text OR 
             LOWER(COALESCE(s.tagline, '')) LIKE ${search}::text OR 
@@ -841,7 +864,7 @@ export class HackathonRepository implements IHackathonRepository {
    */
   async getFeaturedSubmissions(limit: number = 6): Promise<HackathonSubmission[]> {
     try {
-      let featured = await this.getAllSubmissions({ isFeatured: true, limit, includeDraftHackathons: false });
+      let featured = await this.getAllSubmissions({ isFeatured: true, limit, includeDraftHackathons: false, includePrivateHackathons: false });
       if (featured.length < limit) {
         const remaining = limit - featured.length;
         const additional = await this.getAllSubmissions({
@@ -849,6 +872,7 @@ export class HackathonRepository implements IHackathonRepository {
           status: "approved",
           limit: remaining,
           includeDraftHackathons: false,
+          includePrivateHackathons: false,
         });
         featured = [...featured, ...additional];
       }

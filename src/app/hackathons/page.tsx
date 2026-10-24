@@ -67,16 +67,29 @@ export default async function HackathonsBrowsePage({ searchParams }: BrowsePageP
 
   const session = await getServerSession();
   const isAdmin = session?.user.role === "admin";
+  const userId = session?.user.id;
 
-  const [allHackathons, tagsList] = await Promise.all([
+  const [allHackathons, tagsList, registeredIds] = await Promise.all([
     hackathonRepository.listHackathons({ limit: 100, includeDrafts: isAdmin }),
     tagRepository.listTags(),
+    userId ? hackathonRepository.getUserRegisteredHackathonIds(userId) : Promise.resolve(new Set<string>()),
   ]);
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://hack4win.online";
 
-  // Filter hackathons visible to current viewer
-  const visibleHackathons = allHackathons.filter((h) => h.status !== "draft" || isAdmin);
+  // Filter hackathons visible to current viewer:
+  // 1. Unpublished drafts are strictly admin-only.
+  // 2. Private hackathons are hidden from public/unregistered users;
+  //    only registered participants, hackathon organizers, and platform admins can see them.
+  const visibleHackathons = allHackathons.filter((h) => {
+    if (h.status === "draft" && !isAdmin) return false;
+    if (h.is_private) {
+      if (isAdmin) return true;
+      if (userId && (h.organizer_id === userId || registeredIds.has(h.id))) return true;
+      return false;
+    }
+    return true;
+  });
 
   // Extract all tag names (only from visible hackathons)
   const availableTagNames = Array.from(

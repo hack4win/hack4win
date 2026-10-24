@@ -3981,7 +3981,8 @@ describe("Suite AN: Private Hackathons & Campus Student Roster RBAC", () => {
     assert.notEqual(regenRes.data.invite_token, privateInviteToken, "New token must differ from old token");
   });
 
-  test("AN.12. Hackathon detail page (/hackathons/[slug]) and listing render Private Campus indicators", async () => {
+  test("AN.12. Hackathon detail page (/hackathons/[slug]) and listing privacy rules", async () => {
+    // 1. Detail page remains accessible so eligible students can enter passcode/invite
     const detailRes = await fetchHtml(`/hackathons/${privateHackathonSlug}`, OUTSIDER_TOKEN);
     assert.equal(detailRes.status, 200);
     assert.ok(
@@ -3989,11 +3990,39 @@ describe("Suite AN: Private Hackathons & Campus Student Roster RBAC", () => {
       "Detail page must render Private Campus indicators"
     );
 
-    const browseRes = await fetchHtml("/hackathons", OUTSIDER_TOKEN);
-    assert.equal(browseRes.status, 200);
+    // 2. Outsider / public visitor must NOT see private hackathon in /hackathons directory or homepage
+    const outsiderBrowseRes = await fetchHtml("/hackathons", OUTSIDER_TOKEN);
+    assert.equal(outsiderBrowseRes.status, 200);
     assert.ok(
-      browseRes.text.includes("Private") || browseRes.text.includes("Campus"),
-      "Public hackathons browse list must show Private/Campus tag"
+      !outsiderBrowseRes.text.includes(privateHackathonSlug),
+      "Unregistered outsider must NOT see private hackathon in browse list"
+    );
+
+    const outsiderHomeRes = await fetchHtml("/", OUTSIDER_TOKEN);
+    assert.equal(outsiderHomeRes.status, 200);
+    assert.ok(
+      !outsiderHomeRes.text.includes(privateHackathonSlug),
+      "Unregistered outsider must NOT see private hackathon on homepage"
+    );
+
+    // 3. Registered student DOES see private hackathon in browse list with Private/Campus indicator
+    const studentBrowseRes = await fetchHtml("/hackathons", MIT_STUDENT_TOKEN);
+    assert.equal(studentBrowseRes.status, 200);
+    assert.ok(
+      studentBrowseRes.text.includes(privateHackathonSlug),
+      "Registered student MUST see their private hackathon in browse list"
+    );
+    assert.ok(
+      studentBrowseRes.text.includes("Private") || studentBrowseRes.text.includes("Campus"),
+      "Registered student must see Private/Campus tag"
+    );
+
+    // 4. Admin / Organizer also sees private hackathon
+    const adminBrowseRes = await fetchHtml("/hackathons", ADMIN_TOKEN);
+    assert.equal(adminBrowseRes.status, 200);
+    assert.ok(
+      adminBrowseRes.text.includes(privateHackathonSlug),
+      "Admin MUST see private hackathon in browse list"
     );
   });
 });

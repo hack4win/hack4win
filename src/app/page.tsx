@@ -37,16 +37,30 @@ import { SiteFooter } from "@/components/navigation/site-footer";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [session, liveHackathons, featuredProjects, platformStats, submissionStats] =
+  const session = await getServerSession();
+  const isAdmin = session?.user.role === "admin";
+  const userId = session?.user.id;
+
+  const [liveHackathons, featuredProjects, platformStats, submissionStats, registeredIds] =
     await Promise.all([
-      getServerSession(),
-      hackathonRepository.listHackathons({ limit: 6, includeDrafts: false }),
+      hackathonRepository.listHackathons({ limit: 20, includeDrafts: isAdmin }),
       hackathonRepository.getFeaturedSubmissions(6),
       hackathonRepository.getStats({ includeDrafts: false }),
       hackathonRepository.getSubmissionStats(),
+      userId ? hackathonRepository.getUserRegisteredHackathonIds(userId) : Promise.resolve(new Set<string>()),
     ]);
 
-  const publishedHackathons = liveHackathons.filter((h) => h.status !== "draft");
+  const publishedHackathons = liveHackathons
+    .filter((h) => {
+      if (h.status === "draft" && !isAdmin) return false;
+      if (h.is_private) {
+        if (isAdmin) return true;
+        if (userId && (h.organizer_id === userId || registeredIds.has(h.id))) return true;
+        return false;
+      }
+      return true;
+    })
+    .slice(0, 6);
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://hack4win.online";
   const jsonLd = {

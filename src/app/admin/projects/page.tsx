@@ -22,7 +22,7 @@ export default async function AdminProjectsPage() {
 
   const canSeeDrafts = session.user.role === "admin";
   const [projects, hackathons, stats] = await Promise.all([
-    hackathonRepository.getAllSubmissions({ limit: 200, includeDraftHackathons: canSeeDrafts }),
+    hackathonRepository.getAllSubmissions({ limit: 200, includeDraftHackathons: canSeeDrafts, includePrivateHackathons: true }),
     hackathonRepository.listHackathons({ limit: 100, includeDrafts: canSeeDrafts }),
     hackathonRepository.getSubmissionStats(),
   ]);

@@ -55,9 +55,10 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
   const session = await getServerSession();
   const isAdmin = session?.user?.role === "admin";
 
-  // Fetch all submissions with strict draft isolation (only admins can view draft hackathon submissions)
+  // Fetch all submissions with strict draft and private isolation (only admins can view draft or private hackathon submissions)
   const submissions = await hackathonRepository.getAllSubmissions({
     includeDraftHackathons: isAdmin,
+    includePrivateHackathons: isAdmin,
     limit: 200,
   });
 
