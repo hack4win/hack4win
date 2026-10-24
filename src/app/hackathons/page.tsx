@@ -17,6 +17,7 @@ import {
 import { getHackathonStatus } from "@/lib/db/types";
 import { HackathonFilters } from "@/components/hackathon/hackathon-filters";
 import { HorizontalHackathonCard } from "@/components/hackathon/horizontal-hackathon-card";
+import { HackathonSortSelect } from "@/components/hackathon/hackathon-sort-select";
 
 import type { Metadata } from "next";
 
@@ -171,7 +172,7 @@ export default async function HackathonsBrowsePage({ searchParams }: BrowsePageP
     return true;
   });
 
-  // Apply sorting if requested
+  // Apply sorting
   if (sort === "deadline") {
     filteredHackathons.sort((a, b) => {
       const aDate = new Date(a.submission_deadline || a.end_date).getTime();
@@ -186,6 +187,50 @@ export default async function HackathonsBrowsePage({ searchParams }: BrowsePageP
     });
   } else if (sort === "newest") {
     filteredHackathons.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  } else {
+    // Default sorting order: First all Live ("ongoing"), then Upcoming ("upcoming"), then Ended ("ended")
+    const STATUS_ORDER: Record<string, number> = {
+      ongoing: 1,
+      upcoming: 2,
+      ended: 3,
+      draft: 4,
+    };
+
+    filteredHackathons.sort((a, b) => {
+      const statusA = getHackathonStatus(a);
+      const statusB = getHackathonStatus(b);
+
+      const orderA = STATUS_ORDER[statusA] ?? 99;
+      const orderB = STATUS_ORDER[statusB] ?? 99;
+
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+
+      // Secondary tie-breakers within the same status tier:
+      if (statusA === "ongoing") {
+        // Live now: imminent deadline first
+        const aDeadline = new Date(a.submission_deadline || a.end_date).getTime();
+        const bDeadline = new Date(b.submission_deadline || b.end_date).getTime();
+        return aDeadline - bDeadline;
+      }
+
+      if (statusA === "upcoming") {
+        // Upcoming: starting soonest first
+        const aStart = new Date(a.start_date).getTime();
+        const bStart = new Date(b.start_date).getTime();
+        return aStart - bStart;
+      }
+
+      if (statusA === "ended") {
+        // Ended: most recently ended first
+        const aEnd = new Date(a.end_date).getTime();
+        const bEnd = new Date(b.end_date).getTime();
+        return bEnd - aEnd;
+      }
+
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
   }
 
   const clearHref = sort ? `/hackathons?sort=${encodeURIComponent(sort)}` : "/hackathons";
@@ -319,13 +364,17 @@ export default async function HackathonsBrowsePage({ searchParams }: BrowsePageP
                 )}
               </div>
 
-              {activeFiltersCount > 0 && (
-                <Button variant="ghost" size="sm" asChild className="h-7 text-xs rounded-full text-muted-foreground hover:text-foreground">
-                  <Link href={clearHref} className="gap-1.5">
-                    <RotateCcw className="size-3" /> Clear Filters
-                  </Link>
-                </Button>
-              )}
+              <div className="flex items-center gap-3">
+                <HackathonSortSelect />
+
+                {activeFiltersCount > 0 && (
+                  <Button variant="ghost" size="sm" asChild className="h-7 text-xs rounded-full text-muted-foreground hover:text-foreground">
+                    <Link href={clearHref} className="gap-1.5">
+                      <RotateCcw className="size-3" /> Clear Filters
+                    </Link>
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Horizontal Cards List */}

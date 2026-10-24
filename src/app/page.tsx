@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 
 import { hackathonRepository } from "@/lib/db/hackathon-repository";
+import { getHackathonStatus } from "@/lib/db/types";
 import { safeJsonLdReplacer } from "@/lib/json-ld";
 import { BRAND_LOGO } from "@/lib/constants/branding";
 import { BrandLogo } from "@/components/navigation/brand-logo";
@@ -52,6 +53,13 @@ export default async function Home() {
       userId ? hackathonRepository.getUserRegisteredHackathonIds(userId) : Promise.resolve(new Set<string>()),
     ]);
 
+  const STATUS_ORDER: Record<string, number> = {
+    ongoing: 1,
+    upcoming: 2,
+    ended: 3,
+    draft: 4,
+  };
+
   const publishedHackathons = liveHackathons
     .filter((h) => {
       if (h.status === "draft" && !isAdmin) return false;
@@ -61,6 +69,22 @@ export default async function Home() {
         return false;
       }
       return true;
+    })
+    .sort((a, b) => {
+      const statusA = getHackathonStatus(a);
+      const statusB = getHackathonStatus(b);
+      const orderA = STATUS_ORDER[statusA] ?? 99;
+      const orderB = STATUS_ORDER[statusB] ?? 99;
+      if (orderA !== orderB) return orderA - orderB;
+
+      // Secondary tie breaker
+      if (statusA === "ongoing") {
+        return new Date(a.submission_deadline || a.end_date).getTime() - new Date(b.submission_deadline || b.end_date).getTime();
+      }
+      if (statusA === "upcoming") {
+        return new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
+      }
+      return new Date(b.end_date).getTime() - new Date(a.end_date).getTime();
     })
     .slice(0, 6);
 
