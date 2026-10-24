@@ -262,7 +262,7 @@ export function HackathonActionCard({
 
   return (
     <>
-      <div className="p-5 sm:p-6 rounded-2xl border border-border/80 bg-card/95 backdrop-blur-md shadow-xl flex flex-col gap-4 w-full lg:w-[330px] lg:shrink-0 max-w-full">
+      <div className="p-5 sm:p-6 rounded-2xl border border-border/80 bg-card/95 backdrop-blur-md shadow-xl flex flex-col gap-4 w-full lg:w-[340px] lg:shrink-0 max-w-full max-h-[85vh] lg:max-h-[580px] overflow-y-auto overscroll-contain scrollbar-thin [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/25 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/45 [&::-webkit-scrollbar-thumb]:rounded-full">
         {/* Prize Header */}
         <div className="flex items-center justify-between gap-3 pb-3 border-b border-border/60">
           <span className="text-xs text-muted-foreground font-medium shrink-0">Total Prize Pool</span>

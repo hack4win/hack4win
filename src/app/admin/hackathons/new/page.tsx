@@ -1078,7 +1078,7 @@ Welcome to this premier hackathon hosted on **Hack4Win**! Build cutting-edge sol
                 value={bannerUrl}
                 onChange={setBannerUrl}
                 presets={PRESET_BANNERS}
-                folder="hackathons/banners"
+                folder="banners"
                 aspectRatio="banner"
               />
 
@@ -1089,7 +1089,7 @@ Welcome to this premier hackathon hosted on **Hack4Win**! Build cutting-edge sol
                   value={thumbnailUrl}
                   onChange={setThumbnailUrl}
                   presets={PRESET_COVERS}
-                  folder="hackathons/covers"
+                  folder="covers"
                   aspectRatio="square"
                 />
               </div>

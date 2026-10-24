@@ -64,14 +64,33 @@ export async function POST(req: NextRequest) {
     const rawFolder = (formData.get("folder") as string) || "hackathons";
 
     // Strict folder allowlist to prevent path traversal / prefix injection
-    const ALLOWED_FOLDERS = ["hackathons", "projects", "submissions", "profiles", "banners", "avatars"];
-    if (!ALLOWED_FOLDERS.includes(rawFolder)) {
+    const ALLOWED_ROOTS = new Set([
+      "hackathons",
+      "projects",
+      "submissions",
+      "profiles",
+      "banners",
+      "avatars",
+      "covers",
+    ]);
+
+    const normalizedFolder = rawFolder.replace(/^\/+|\/+$/g, "");
+    const parts = normalizedFolder.split("/");
+    const isSafe =
+      parts.every((p) => /^[a-zA-Z0-9_-]+$/.test(p)) &&
+      parts.length <= 2 &&
+      ALLOWED_ROOTS.has(parts[0]);
+
+    if (!isSafe) {
       return NextResponse.json(
-        { error: "Invalid target folder. Must be one of: hackathons, projects, submissions, profiles, banners, avatars" },
+        {
+          error:
+            "Invalid target folder. Must be one of: hackathons, projects, submissions, profiles, banners, avatars, covers",
+        },
         { status: 400 }
       );
     }
-    const folder = rawFolder;
+    const folder = normalizedFolder;
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });

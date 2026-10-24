@@ -47,7 +47,7 @@ export function ImageUploader({
 
   const handleFileUpload = async (file: File) => {
     if (!file.type.startsWith("image/")) {
-      setUploadError("Only image files (PNG, JPG, WEBP, GIF, SVG) are allowed.");
+      setUploadError("Only image files (PNG, JPG, WEBP, GIF) are allowed.");
       return;
     }
 

@@ -1072,6 +1072,7 @@ export function EditHackathonClient({ hackathon }: EditHackathonClientProps) {
                     label="Banner Image"
                     value={bannerUrl}
                     onChange={setBannerUrl}
+                    folder="banners"
                     aspectRatio="banner"
                   />
                   <div className="pt-1">
@@ -1097,6 +1098,7 @@ export function EditHackathonClient({ hackathon }: EditHackathonClientProps) {
                     label="Thumbnail Image"
                     value={thumbnailUrl}
                     onChange={setThumbnailUrl}
+                    folder="covers"
                     aspectRatio="square"
                   />
                 </div>

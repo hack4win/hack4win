@@ -246,8 +246,8 @@ export default async function HackathonDetailPage({ params, searchParams }: Page
       {/* Main Hackathon Detail Container */}
       <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 md:p-8 space-y-8">
         {/* Hero Banner Card */}
-        <div className="rounded-3xl border overflow-hidden bg-card shadow-xs relative lg:min-h-[440px]">
-          <div className="h-64 sm:h-80 w-full bg-muted relative">
+        <div className="rounded-3xl border bg-card shadow-xs relative lg:min-h-[580px] xl:min-h-[620px] overflow-visible">
+          <div className="h-64 sm:h-80 w-full bg-muted relative rounded-t-3xl overflow-hidden">
             {hackathon.banner_url ? (
               <img
                 src={hackathon.banner_url}

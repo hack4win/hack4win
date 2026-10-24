@@ -922,6 +922,31 @@ describe("K. S3 Upload Hardening, SVG XSS Prevention & Folder Allowlist", () => 
     const data = (await res.json()) as { error: string };
     assert.match(data.error, /Only JPEG, PNG, WEBP, and GIF images are allowed/i);
   });
+
+  test("POST /api/upload accepts valid folder parameters (covers, hackathons/covers, banners)", async () => {
+    const pngBytes = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "base64"
+    );
+
+    const formData = new FormData();
+    formData.append("file", new Blob([pngBytes], { type: "image/png" }), "pixel.png");
+    formData.append("folder", "hackathons/covers");
+
+    const res = await fetch(`${BASE_URL}/api/upload`, {
+      method: "POST",
+      headers: {
+        Cookie: `neon-auth.session_token=${BUILDER_TOKEN}`,
+      },
+      body: formData,
+    });
+
+    assert.equal(res.status, 200, "Valid folder hackathons/covers must be accepted");
+    const data = (await res.json()) as { success: boolean; url: string; key: string };
+    assert.equal(data.success, true);
+    assert.ok(data.url.includes("do4win"));
+    assert.ok(data.key.startsWith("hackathons/covers/"));
+  });
 });
 
 describe("L. Team Invitations Mass Account Creation Abuse Prevention & Email Linking", () => {
