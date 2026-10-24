@@ -184,6 +184,18 @@ export async function POST(
             { status: 403 }
           );
         }
+
+        // If access was granted via shared passcode or invite link, registration requires organizer approval first!
+        if (accessCheck.reason === "access_code" || accessCheck.reason === "invite_token") {
+          await hackathonRepository.registerUser(hackathon.id, session.user.id, "solo", { status: "pending" });
+          return NextResponse.json(
+            {
+              error: "Your registration has been submitted and is pending campus verification by the organizer. You will be able to submit your project once approved.",
+              registration_status: "pending",
+            },
+            { status: 403 }
+          );
+        }
       }
 
       if (hackathon.max_participants && hackathon.max_participants > 0) {
@@ -196,6 +208,29 @@ export async function POST(
         }
       }
       await hackathonRepository.registerUser(hackathon.id, session.user.id);
+    } else {
+      // User is already registered: verify registration status is approved
+      const userReg = await hackathonRepository.getUserRegistration(hackathon.id, session.user.id);
+      if (userReg && session.user.role !== "admin" && hackathon.organizer_id !== session.user.id) {
+        if (userReg.status === "pending") {
+          return NextResponse.json(
+            {
+              error: "Your registration is currently pending organizer verification. You will be able to submit projects once approved.",
+              registration_status: "pending",
+            },
+            { status: 403 }
+          );
+        }
+        if (userReg.status === "rejected") {
+          return NextResponse.json(
+            {
+              error: "Your registration request was not approved by the event organizer.",
+              registration_status: "rejected",
+            },
+            { status: 403 }
+          );
+        }
+      }
     }
 
     // Check if an existing project submission exists for this hackathon

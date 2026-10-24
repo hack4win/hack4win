@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/session";
 import { hackathonRepository } from "@/lib/db/hackathon-repository";
 import { brevoService, HACK4WIN_SENDERS } from "@/lib/email/brevo-service";
-import { getPrivateCampusInviteEmailTemplate } from "@/lib/email/templates";
+import {
+  getPrivateCampusInviteEmailTemplate,
+  getCampusRegistrationApprovedEmailTemplate,
+} from "@/lib/email/templates";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -83,6 +86,73 @@ export async function POST(req: NextRequest, context: RouteContext) {
   try {
     const body = await req.json();
     const action = body.action || "add_emails";
+
+    if (action === "approve_student") {
+      const studentUserId =
+        typeof body.student_user_id === "string"
+          ? body.student_user_id
+          : typeof body.user_id === "string"
+          ? body.user_id
+          : "";
+      if (!studentUserId) {
+        return NextResponse.json({ error: "student_user_id is required" }, { status: 400 });
+      }
+
+      await hackathonRepository.updateRegistrationStatus(hackathon.id, studentUserId, "approved");
+
+      // Notify the student via Brevo email that their campus registration has been verified and approved
+      const students = await hackathonRepository.getRegisteredStudents(hackathon.id);
+      const student = students.find((s) => s.user_id === studentUserId);
+      if (student?.email) {
+        try {
+          const appTemplate = getCampusRegistrationApprovedEmailTemplate({
+            userName: student.name || "Builder",
+            hackathonTitle: hackathon.title,
+            slug: hackathon.slug,
+            organizerName: session.user.name || "Campus Organizer",
+          });
+
+          await brevoService.sendEmail({
+            to: [{ email: student.email, name: student.name || undefined }],
+            subject: appTemplate.subject,
+            htmlContent: appTemplate.html,
+            textContent: appTemplate.text,
+            sender: HACK4WIN_SENDERS.WELCOME,
+            tags: ["campus-registration-approved", "transactional"],
+          });
+        } catch (mailErr) {
+          console.warn("[Campus Approval Email Notice]:", mailErr);
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Approved registration for ${student?.name || student?.email || "student"}`,
+        student_user_id: studentUserId,
+        status: "approved",
+      });
+    }
+
+    if (action === "reject_student") {
+      const studentUserId =
+        typeof body.student_user_id === "string"
+          ? body.student_user_id
+          : typeof body.user_id === "string"
+          ? body.user_id
+          : "";
+      if (!studentUserId) {
+        return NextResponse.json({ error: "student_user_id is required" }, { status: 400 });
+      }
+
+      await hackathonRepository.updateRegistrationStatus(hackathon.id, studentUserId, "rejected");
+
+      return NextResponse.json({
+        success: true,
+        message: "Registration status set to rejected",
+        student_user_id: studentUserId,
+        status: "rejected",
+      });
+    }
 
     if (action === "regenerate_token") {
       const newToken = await hackathonRepository.regenerateInviteToken(hackathon.id);

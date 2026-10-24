@@ -50,12 +50,15 @@ export function OrganizerStudentsClient({
 }: OrganizerStudentsClientProps) {
   const { showAlert, showConfirm } = useModalAlert();
 
-  const [students] = useState<RegisteredStudent[]>(initialStudents);
+  const [students, setStudents] = useState<RegisteredStudent[]>(initialStudents);
+  const [updatingStudentId, setUpdatingStudentId] = useState<string | null>(null);
   const [invitedEmails, setInvitedEmails] = useState<string[]>(hackathon.invited_emails || []);
   const [inviteToken, setInviteToken] = useState<string | null>(hackathon.invite_token || null);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "submitted" | "pending" | "solo" | "team">("all");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "submitted" | "pending_submission" | "pending_verification" | "approved" | "rejected" | "solo" | "team"
+  >("all");
   const [activeTab, setActiveTab] = useState<"registered" | "whitelist" | "access">("registered");
 
   // Modal State for adding emails
@@ -77,6 +80,9 @@ export function OrganizerStudentsClient({
   const submissionRate = totalRegistered > 0 ? Math.round((totalSubmitted / totalRegistered) * 100) : 0;
   const soloCount = students.filter((s) => s.participation_type === "solo").length;
   const teamCount = students.filter((s) => s.participation_type !== "solo").length;
+  const pendingReviewCount = students.filter((s) => s.status === "pending").length;
+  const approvedCount = students.filter((s) => s.status !== "pending" && s.status !== "rejected").length;
+  const rejectedCount = students.filter((s) => s.status === "rejected").length;
 
   // Registered email set for fast lookup
   const registeredEmailSet = useMemo(() => {
@@ -108,7 +114,10 @@ export function OrganizerStudentsClient({
 
       // 2. Status filter
       if (statusFilter === "submitted") return s.has_submitted;
-      if (statusFilter === "pending") return !s.has_submitted;
+      if (statusFilter === "pending_submission") return !s.has_submitted;
+      if (statusFilter === "pending_verification") return s.status === "pending";
+      if (statusFilter === "approved") return s.status === "approved" || !s.status;
+      if (statusFilter === "rejected") return s.status === "rejected";
       if (statusFilter === "solo") return s.participation_type === "solo";
       if (statusFilter === "team") return s.participation_type !== "solo";
 
@@ -277,6 +286,85 @@ export function OrganizerStudentsClient({
     }
   };
 
+  // Helper to approve student registration
+  const handleApproveStudent = async (studentUserId: string, studentName: string) => {
+    setUpdatingStudentId(studentUserId);
+    try {
+      const res = await fetch(`/api/organizer/hackathons/${hackathon.id}/students`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "approve_student",
+          student_user_id: studentUserId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to approve student");
+
+      setStudents((prev) =>
+        prev.map((s) => (s.user_id === studentUserId ? { ...s, status: "approved" } : s))
+      );
+
+      showAlert({
+        title: "Registration Approved",
+        message: `${studentName || "Student"}'s campus registration is now approved. Confirmation email dispatched.`,
+        type: "info",
+      });
+    } catch (err) {
+      showAlert({
+        title: "Error",
+        message: err instanceof Error ? err.message : "Failed to approve student",
+        type: "error",
+      });
+    } finally {
+      setUpdatingStudentId(null);
+    }
+  };
+
+  // Helper to reject student registration
+  const handleRejectStudent = async (studentUserId: string, studentName: string) => {
+    const confirmed = await showConfirm({
+      title: "Reject Registration?",
+      message: `Are you sure you want to reject ${studentName || "this student"}'s registration? They will not be allowed to submit projects.`,
+      confirmText: "Reject Registration",
+      cancelText: "Cancel",
+      destructive: true,
+    });
+    if (!confirmed) return;
+
+    setUpdatingStudentId(studentUserId);
+    try {
+      const res = await fetch(`/api/organizer/hackathons/${hackathon.id}/students`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "reject_student",
+          student_user_id: studentUserId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to reject registration");
+
+      setStudents((prev) =>
+        prev.map((s) => (s.user_id === studentUserId ? { ...s, status: "rejected" } : s))
+      );
+
+      showAlert({
+        title: "Registration Rejected",
+        message: `${studentName || "Student"}'s registration has been marked as rejected.`,
+        type: "info",
+      });
+    } catch (err) {
+      showAlert({
+        title: "Error",
+        message: err instanceof Error ? err.message : "Failed to reject student",
+        type: "error",
+      });
+    } finally {
+      setUpdatingStudentId(null);
+    }
+  };
+
   // Helper to export CSV
   const handleExportCSV = () => {
     if (students.length === 0) {
@@ -296,6 +384,7 @@ export function OrganizerStudentsClient({
       "College / Campus",
       "Academic Year",
       "Branch",
+      "Verification Status",
       "Participation Mode",
       "Submission Status",
       "Project Title",
@@ -310,6 +399,7 @@ export function OrganizerStudentsClient({
       `"${(s.college_name || "").replace(/"/g, '""')}"`,
       `"${(s.academic_year || "").replace(/"/g, '""')}"`,
       `"${(s.branch || "").replace(/"/g, '""')}"`,
+      `"${(s.status || "approved").toUpperCase()}"`,
       `"${s.participation_type === "solo" ? "Solo" : "Looking for Team"}"`,
       `"${s.has_submitted ? "Submitted" : "Pending"}"`,
       `"${(s.submission_title || "").replace(/"/g, '""')}"`,
@@ -496,8 +586,40 @@ export function OrganizerStudentsClient({
         </CardContent>
       </Card>
 
+      {/* Campus Security Alert Banner */}
+      {pendingReviewCount > 0 && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="size-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <Shield className="size-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
+                <span>Campus Verification Required</span>
+                <Badge className="bg-amber-500 text-amber-950 font-black text-[10px] px-2 py-0.5">
+                  {pendingReviewCount} Action{pendingReviewCount > 1 ? "s" : ""} Needed
+                </Badge>
+              </h4>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Students registered via campus access code or invite link are held in pending verification. Review their campus credentials to approve or reject project submission access.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => {
+              setActiveTab("registered");
+              setStatusFilter("pending_verification");
+            }}
+            className="shrink-0 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-xl shadow-xs cursor-pointer"
+          >
+            Review Pending ({pendingReviewCount})
+          </Button>
+        </div>
+      )}
+
       {/* KPI Metric Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Total Registered */}
         <Card className="shadow-xs border">
           <CardHeader className="pt-6 px-6 pb-2">
@@ -509,6 +631,24 @@ export function OrganizerStudentsClient({
           <CardContent className="px-6 pb-6 pt-0 space-y-1">
             <div className="text-3xl font-black tracking-tight text-foreground">{totalRegistered}</div>
             <p className="text-xs text-muted-foreground">Total campus participants</p>
+          </CardContent>
+        </Card>
+
+        {/* Verification Queue (Pending Review) */}
+        <Card className={`shadow-xs border ${pendingReviewCount > 0 ? "border-amber-500/40 bg-amber-500/5" : ""}`}>
+          <CardHeader className="pt-6 px-6 pb-2">
+            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+              <span>Awaiting Review</span>
+              <Clock className="size-4 text-amber-600" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-6 pb-6 pt-0 space-y-1">
+            <div className="text-3xl font-black tracking-tight text-amber-600 dark:text-amber-400">
+              {pendingReviewCount}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {pendingReviewCount > 0 ? "Require organizer approval" : "All students verified"}
+            </p>
           </CardContent>
         </Card>
 
@@ -626,11 +766,14 @@ export function OrganizerStudentsClient({
                 onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
                 className="h-9 rounded-xl border border-input bg-background px-3 text-xs font-medium cursor-pointer"
               >
-                <option value="all">All Statuses</option>
-                <option value="submitted">✅ Submitted Projects</option>
-                <option value="pending">⏳ Pending Submission</option>
-                <option value="solo">👤 Solo Builders</option>
-                <option value="team">🤝 Looking for Team</option>
+                <option value="all">All Statuses ({students.length})</option>
+                <option value="pending_verification">⏳ Pending Review ({pendingReviewCount})</option>
+                <option value="approved">✅ Approved ({approvedCount})</option>
+                <option value="rejected">❌ Rejected ({rejectedCount})</option>
+                <option value="submitted">🚀 Submitted Projects ({totalSubmitted})</option>
+                <option value="pending_submission">⏱️ In Progress / Not Submitted</option>
+                <option value="solo">👤 Solo Builders ({soloCount})</option>
+                <option value="team">🤝 Looking for Team ({teamCount})</option>
               </select>
             </div>
           </CardHeader>
@@ -658,7 +801,9 @@ export function OrganizerStudentsClient({
                       <th className="px-6 py-3.5">Student / Participant</th>
                       <th className="px-6 py-3.5">Campus Credentials</th>
                       <th className="px-6 py-3.5">Mode</th>
+                      <th className="px-6 py-3.5">Verification</th>
                       <th className="px-6 py-3.5">Submission Status</th>
+                      <th className="px-6 py-3.5">Actions</th>
                       <th className="px-6 py-3.5">Registered</th>
                     </tr>
                   </thead>
@@ -726,6 +871,23 @@ export function OrganizerStudentsClient({
                           )}
                         </td>
 
+                        {/* Verification Status */}
+                        <td className="px-6 py-4 text-xs">
+                          {s.status === "pending" ? (
+                            <Badge className="bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300 text-[10px] rounded-full font-bold gap-1">
+                              <Clock className="size-3" /> Pending Review
+                            </Badge>
+                          ) : s.status === "rejected" ? (
+                            <Badge className="bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300 text-[10px] rounded-full font-bold gap-1">
+                              <AlertCircle className="size-3" /> Rejected
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-[10px] rounded-full font-bold gap-1">
+                              <CheckCircle2 className="size-3" /> Approved
+                            </Badge>
+                          )}
+                        </td>
+
                         {/* Submission Status */}
                         <td className="px-6 py-4 text-xs">
                           {s.has_submitted ? (
@@ -748,6 +910,64 @@ export function OrganizerStudentsClient({
                               <Clock className="size-3" /> In Progress
                             </Badge>
                           )}
+                        </td>
+
+                        {/* Quick Approval / Rejection Actions */}
+                        <td className="px-6 py-4 text-xs whitespace-nowrap">
+                          <div className="flex items-center gap-1.5">
+                            {s.status === "pending" ? (
+                              <>
+                                <Button
+                                  size="sm"
+                                  disabled={updatingStudentId === s.user_id}
+                                  onClick={() => handleApproveStudent(s.user_id, s.name)}
+                                  className="h-7 px-2.5 rounded-lg text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1 shadow-2xs cursor-pointer"
+                                >
+                                  {updatingStudentId === s.user_id ? (
+                                    <Loader2 className="size-3 animate-spin" />
+                                  ) : (
+                                    <Check className="size-3" />
+                                  )}
+                                  Approve
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={updatingStudentId === s.user_id}
+                                  onClick={() => handleRejectStudent(s.user_id, s.name)}
+                                  className="h-7 px-2.5 rounded-lg text-[11px] font-bold text-rose-600 border-rose-500/30 hover:bg-rose-500/10 gap-1 cursor-pointer"
+                                >
+                                  Reject
+                                </Button>
+                              </>
+                            ) : s.status === "rejected" ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={updatingStudentId === s.user_id}
+                                onClick={() => handleApproveStudent(s.user_id, s.name)}
+                                className="h-7 px-2.5 rounded-lg text-[11px] font-semibold text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10 gap-1 cursor-pointer"
+                              >
+                                {updatingStudentId === s.user_id ? (
+                                  <Loader2 className="size-3 animate-spin" />
+                                ) : (
+                                  <Check className="size-3" />
+                                )}
+                                Re-Approve
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={updatingStudentId === s.user_id}
+                                onClick={() => handleRejectStudent(s.user_id, s.name)}
+                                className="h-7 px-2 rounded-lg text-[11px] text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer"
+                                title="Revoke or Reject Registration"
+                              >
+                                Revoke
+                              </Button>
+                            )}
+                          </div>
                         </td>
 
                         {/* Registered Date */}

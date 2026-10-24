@@ -42,8 +42,27 @@ export interface IHackathonRepository {
     ended: number;
   }>;
   isUserRegistered(hackathonId: string, userId: string): Promise<boolean>;
-  getUserRegistration(hackathonId: string, userId: string): Promise<{ registered: boolean; participation_type: string } | null>;
-  registerUser(hackathonId: string, userId: string, participationType?: string): Promise<boolean>;
+  getUserRegistration(
+    hackathonId: string,
+    userId: string
+  ): Promise<{ registered: boolean; participation_type: string; status: "approved" | "pending" | "rejected" } | null>;
+  registerUser(
+    hackathonId: string,
+    userId: string,
+    participationType?: string,
+    studentData?: {
+      student_id?: string | null;
+      college_name?: string | null;
+      academic_year?: string | null;
+      branch?: string | null;
+      status?: "approved" | "pending" | "rejected";
+    }
+  ): Promise<boolean>;
+  updateRegistrationStatus(
+    hackathonId: string,
+    userId: string,
+    status: "approved" | "pending" | "rejected"
+  ): Promise<boolean>;
   unregisterUser(hackathonId: string, userId: string): Promise<boolean>;
   getParticipantCount(hackathonId: string): Promise<number>;
   getParticipants(hackathonId: string, limit?: number): Promise<User[]>;
@@ -540,26 +559,32 @@ export class HackathonRepository implements IHackathonRepository {
       college_name?: string | null;
       academic_year?: string | null;
       branch?: string | null;
+      status?: "approved" | "pending" | "rejected";
     }
   ): Promise<boolean> {
     const studentId = studentData?.student_id || null;
     const collegeName = studentData?.college_name || null;
     const academicYear = studentData?.academic_year || null;
     const branch = studentData?.branch || null;
+    const status = studentData?.status || "approved";
 
     await db`
       INSERT INTO public.hackathon_registrations (
-        hackathon_id, user_id, participation_type, student_id, college_name, academic_year, branch, created_at
+        hackathon_id, user_id, participation_type, student_id, college_name, academic_year, branch, status, created_at
       )
       VALUES (
-        ${hackathonId}::uuid, ${userId}, ${participationType}, ${studentId}, ${collegeName}, ${academicYear}, ${branch}, NOW()
+        ${hackathonId}::uuid, ${userId}, ${participationType}, ${studentId}, ${collegeName}, ${academicYear}, ${branch}, ${status}, NOW()
       )
       ON CONFLICT (hackathon_id, user_id) DO UPDATE SET 
         participation_type = EXCLUDED.participation_type,
         student_id = COALESCE(EXCLUDED.student_id, hackathon_registrations.student_id),
         college_name = COALESCE(EXCLUDED.college_name, hackathon_registrations.college_name),
         academic_year = COALESCE(EXCLUDED.academic_year, hackathon_registrations.academic_year),
-        branch = COALESCE(EXCLUDED.branch, hackathon_registrations.branch);
+        branch = COALESCE(EXCLUDED.branch, hackathon_registrations.branch),
+        status = CASE
+          WHEN hackathon_registrations.status = 'rejected' THEN EXCLUDED.status
+          ELSE hackathon_registrations.status
+        END;
     `;
     return true;
   }
@@ -570,7 +595,7 @@ export class HackathonRepository implements IHackathonRepository {
   async getUserRegistration(
     hackathonId: string,
     userId: string
-  ): Promise<{ registered: boolean; participation_type: string } | null> {
+  ): Promise<{ registered: boolean; participation_type: string; status: "approved" | "pending" | "rejected" } | null> {
     try {
       const rows = await db`
         SELECT * FROM public.hackathon_registrations
@@ -581,10 +606,27 @@ export class HackathonRepository implements IHackathonRepository {
       return {
         registered: true,
         participation_type: rows[0].participation_type || "looking_for_team",
+        status: (rows[0].status as "approved" | "pending" | "rejected") || "approved",
       };
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Update student verification status
+   */
+  async updateRegistrationStatus(
+    hackathonId: string,
+    userId: string,
+    status: "approved" | "pending" | "rejected"
+  ): Promise<boolean> {
+    await db`
+      UPDATE public.hackathon_registrations
+      SET status = ${status}
+      WHERE hackathon_id = ${hackathonId}::uuid AND user_id = ${userId};
+    `;
+    return true;
   }
 
   /**
@@ -1701,6 +1743,7 @@ export class HackathonRepository implements IHackathonRepository {
           r.college_name,
           r.academic_year,
           r.branch,
+          COALESCE(r.status, 'approved') as registration_status,
           sub.id as submission_id,
           sub.title as submission_title,
           sub.created_at as submitted_at
@@ -1718,6 +1761,7 @@ export class HackathonRepository implements IHackathonRepository {
         image: (r.image as string) || null,
         registered_at: r.registered_at ? new Date(String(r.registered_at)).toISOString() : new Date().toISOString(),
         participation_type: (r.participation_type as string) || "solo",
+        status: (r.registration_status as "approved" | "pending" | "rejected") || "approved",
         student_id: (r.student_id as string) || null,
         college_name: (r.college_name as string) || null,
         academic_year: (r.academic_year as string) || null,

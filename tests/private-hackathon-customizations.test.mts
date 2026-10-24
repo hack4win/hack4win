@@ -27,28 +27,40 @@ describe("Suite AO: Private Hackathons Customizations & Student Roster Managemen
   let inviteToken = "";
   let organizerUserId = "";
   let studentUserId = "";
+  let pendingStudentUserId = "";
+  let inviteStudentUserId = "";
 
   const ORGANIZER_EMAIL = `org_campus_${Date.now()}@university.edu`;
   const STUDENT_EMAIL = `student_campus_${Date.now()}@university.edu`;
   const WHITELIST_EXTRA_EMAIL = `pending_student_${Date.now()}@gmail.com`;
+  const PENDING_STUDENT_EMAIL = `code_student_${Date.now()}@external.org`;
+  const INVITE_STUDENT_EMAIL = `invite_student_${Date.now()}@external.org`;
 
   const ORGANIZER_TOKEN = "e2e_org_campus_tok_" + Date.now();
   const STUDENT_TOKEN = "e2e_student_campus_tok_" + Date.now();
+  const PENDING_STUDENT_TOKEN = "e2e_pending_code_tok_" + Date.now();
+  const INVITE_STUDENT_TOKEN = "e2e_invite_tok_" + Date.now();
 
   before(async () => {
     // 1. Create Organizer User
     organizerUserId = await createActor("organizer", "Prof Campus Organizer", ORGANIZER_EMAIL);
 
-    // 2. Create Student User
+    // 2. Create Student User (domain-whitelisted)
     studentUserId = await createActor("user", "Jane Doe Student", STUDENT_EMAIL);
 
-    // 3. Create Sessions in neon_auth.session
+    // 3. Create External Students (who use access code or invite link)
+    pendingStudentUserId = await createActor("user", "Bob Leaked Code", PENDING_STUDENT_EMAIL);
+    inviteStudentUserId = await createActor("user", "Alice Invite Link", INVITE_STUDENT_EMAIL);
+
+    // 4. Create Sessions in neon_auth.session
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await sql`
       INSERT INTO neon_auth.session (id, "userId", token, "expiresAt", "createdAt", "updatedAt")
       VALUES
         (${crypto.randomUUID()}::uuid, ${organizerUserId}::uuid, ${ORGANIZER_TOKEN}, ${expiresAt}, NOW(), NOW()),
-        (${crypto.randomUUID()}::uuid, ${studentUserId}::uuid, ${STUDENT_TOKEN}, ${expiresAt}, NOW(), NOW())
+        (${crypto.randomUUID()}::uuid, ${studentUserId}::uuid, ${STUDENT_TOKEN}, ${expiresAt}, NOW(), NOW()),
+        (${crypto.randomUUID()}::uuid, ${pendingStudentUserId}::uuid, ${PENDING_STUDENT_TOKEN}, ${expiresAt}, NOW(), NOW()),
+        (${crypto.randomUUID()}::uuid, ${inviteStudentUserId}::uuid, ${INVITE_STUDENT_TOKEN}, ${expiresAt}, NOW(), NOW())
       ON CONFLICT (token) DO NOTHING;
     `;
   });
@@ -59,10 +71,11 @@ describe("Suite AO: Private Hackathons Customizations & Student Roster Managemen
       await sql`DELETE FROM public.hackathon_registrations WHERE hackathon_id = ${hackathonId}::uuid;`;
       await sql`DELETE FROM public.hackathons WHERE id = ${hackathonId}::uuid;`;
     }
-    await sql`DELETE FROM neon_auth.session WHERE token IN (${ORGANIZER_TOKEN}, ${STUDENT_TOKEN});`;
-    if (organizerUserId && studentUserId) {
-      await sql`DELETE FROM public.users WHERE id IN (${organizerUserId}, ${studentUserId});`;
-      await sql`DELETE FROM neon_auth.user WHERE id IN (${organizerUserId}::uuid, ${studentUserId}::uuid);`;
+    await sql`DELETE FROM neon_auth.session WHERE token IN (${ORGANIZER_TOKEN}, ${STUDENT_TOKEN}, ${PENDING_STUDENT_TOKEN}, ${INVITE_STUDENT_TOKEN});`;
+    const userIds = [organizerUserId, studentUserId, pendingStudentUserId, inviteStudentUserId].filter(Boolean);
+    if (userIds.length > 0) {
+      await sql`DELETE FROM public.users WHERE id = ANY(${userIds});`;
+      await sql`DELETE FROM neon_auth.user WHERE id = ANY(${userIds.map((id) => id)}::uuid[]);`;
     }
   });
 
@@ -257,5 +270,173 @@ describe("Suite AO: Private Hackathons Customizations & Student Roster Managemen
     assert.equal(res.status, 200, "Organizer student roster portal page must render HTTP 200");
     const html = await res.text();
     assert.ok(html.includes("Campus Student Roster"), "Page must contain Roster header");
+  });
+
+  it("AO.9. Student registering via campus access code receives pending verification status", async () => {
+    const regRes = await fetch(`${BASE_URL}/api/hackathons/${hackathonSlug}/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `neon-auth.session_token=${PENDING_STUDENT_TOKEN}`,
+      },
+      body: JSON.stringify({
+        participation_type: "solo",
+        access_code: "CAMPUS-PASS-2026",
+        student_id: "EXT-8821",
+        college_name: "External University",
+        academic_year: "4th Year",
+        branch: "Cybersecurity",
+      }),
+    });
+
+    assert.equal(regRes.status, 200, "Registration using valid access code should succeed");
+    const regData = await regRes.json();
+    assert.equal(regData.registered, true);
+    assert.equal(regData.status, "pending", "Campus access code registration must be pending verification");
+    assert.equal(regData.requires_verification, true);
+  });
+
+  it("AO.10. Student with pending verification status cannot submit project (HTTP 403)", async () => {
+    const subRes = await fetch(`${BASE_URL}/api/hackathons/${hackathonSlug}/submissions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `neon-auth.session_token=${PENDING_STUDENT_TOKEN}`,
+      },
+      body: JSON.stringify({
+        title: "Blocked Campus Project",
+        tagline: "Attempt before approval",
+        description: "Trying to submit while registration status is pending verification.",
+        demo_url: "https://demo.hack4win.online",
+        github_url: "https://github.com/hack4win/pending-test",
+        video_url: "https://youtube.com/watch?v=pending",
+        cover_image: "https://hack4win.online/cover.png",
+      }),
+    });
+
+    assert.equal(subRes.status, 403, "Submissions must be blocked while registration is pending verification");
+    const subData = await subRes.json();
+    assert.equal(subData.registration_status, "pending");
+    assert.ok(subData.error.includes("pending organizer verification"));
+  });
+
+  it("AO.11. Organizer can review and approve pending student from roster API", async () => {
+    // 1. Verify roster reports the student as pending
+    const rosterRes = await fetch(`${BASE_URL}/api/organizer/hackathons/${hackathonId}/students`, {
+      headers: {
+        Cookie: `neon-auth.session_token=${ORGANIZER_TOKEN}`,
+      },
+    });
+    assert.equal(rosterRes.status, 200);
+    const rosterData = await rosterRes.json();
+    const pendingStudent = rosterData.registered_students.find((s: any) => s.user_id === pendingStudentUserId);
+    assert.ok(pendingStudent, "Pending student must be in roster");
+    assert.equal(pendingStudent.status, "pending", "Roster must report pending status");
+
+    // 2. Organizer approves student
+    const approveRes = await fetch(`${BASE_URL}/api/organizer/hackathons/${hackathonId}/students`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `neon-auth.session_token=${ORGANIZER_TOKEN}`,
+      },
+      body: JSON.stringify({
+        action: "approve_student",
+        student_user_id: pendingStudentUserId,
+      }),
+    });
+
+    assert.equal(approveRes.status, 200);
+    const approveData = await approveRes.json();
+    assert.equal(approveData.success, true);
+    assert.equal(approveData.status, "approved");
+  });
+
+  it("AO.12. Approved student can now successfully submit project", async () => {
+    const subRes = await fetch(`${BASE_URL}/api/hackathons/${hackathonSlug}/submissions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `neon-auth.session_token=${PENDING_STUDENT_TOKEN}`,
+      },
+      body: JSON.stringify({
+        title: "Verified Campus Project",
+        tagline: "Submission after organizer approval",
+        description: "Now allowed to submit after campus credentials verified.",
+        demo_url: "https://demo.hack4win.online",
+        github_url: "https://github.com/hack4win/approved-test",
+        video_url: "https://youtube.com/watch?v=approved",
+        cover_image: "https://hack4win.online/cover.png",
+      }),
+    });
+
+    assert.equal(subRes.status, 200, "Approved student should submit successfully");
+    const subData = await subRes.json();
+    assert.ok(subData.submission?.id);
+  });
+
+  it("AO.13. Student registering via secret invite token receives pending verification status", async () => {
+    const regRes = await fetch(`${BASE_URL}/api/hackathons/${hackathonSlug}/register?invite=${inviteToken}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `neon-auth.session_token=${INVITE_STUDENT_TOKEN}`,
+      },
+      body: JSON.stringify({
+        participation_type: "solo",
+        student_id: "INV-9900",
+        college_name: "Invite Campus College",
+        academic_year: "2nd Year",
+        branch: "Data Science",
+      }),
+    });
+
+    assert.equal(regRes.status, 200);
+    const regData = await regRes.json();
+    assert.equal(regData.registered, true);
+    assert.equal(regData.status, "pending", "Invite token registration must be pending verification");
+    assert.equal(regData.requires_verification, true);
+  });
+
+  it("AO.14. Organizer can reject registration, preventing project submissions", async () => {
+    // 1. Organizer rejects registration
+    const rejectRes = await fetch(`${BASE_URL}/api/organizer/hackathons/${hackathonId}/students`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `neon-auth.session_token=${ORGANIZER_TOKEN}`,
+      },
+      body: JSON.stringify({
+        action: "reject_student",
+        student_user_id: inviteStudentUserId,
+      }),
+    });
+
+    assert.equal(rejectRes.status, 200);
+    const rejectData = await rejectRes.json();
+    assert.equal(rejectData.success, true);
+    assert.equal(rejectData.status, "rejected");
+
+    // 2. Rejected student attempts to submit a project
+    const subRes = await fetch(`${BASE_URL}/api/hackathons/${hackathonSlug}/submissions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `neon-auth.session_token=${INVITE_STUDENT_TOKEN}`,
+      },
+      body: JSON.stringify({
+        title: "Rejected Student Project",
+        tagline: "Attempt after rejection",
+        description: "Trying to submit after registration was rejected.",
+        demo_url: "https://demo.hack4win.online",
+        github_url: "https://github.com/hack4win/rejected-test",
+        video_url: "https://youtube.com/watch?v=rejected",
+        cover_image: "https://hack4win.online/cover.png",
+      }),
+    });
+
+    assert.equal(subRes.status, 403, "Rejected student submission must be blocked with HTTP 403");
+    const subData = await subRes.json();
+    assert.equal(subData.registration_status, "rejected");
   });
 });

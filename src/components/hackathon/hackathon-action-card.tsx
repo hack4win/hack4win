@@ -50,6 +50,7 @@ interface HackathonActionCardProps {
   isPrivate?: boolean;
   allowedEmailDomains?: string[];
   hasAccessCode?: boolean;
+  initialRegistrationStatus?: "approved" | "pending" | "rejected";
 }
 
 export function HackathonActionCard({
@@ -68,11 +69,15 @@ export function HackathonActionCard({
   isPrivate = false,
   allowedEmailDomains = [],
   hasAccessCode = false,
+  initialRegistrationStatus = "approved",
 }: HackathonActionCardProps) {
   const router = useRouter();
   const { showAlert, showConfirm } = useModalAlert();
 
   const [isRegistered, setIsRegistered] = useState(initialIsRegistered);
+  const [registrationStatus, setRegistrationStatus] = useState<"approved" | "pending" | "rejected">(
+    initialRegistrationStatus
+  );
   const [participationType, setParticipationType] = useState<"solo" | "looking_for_team">(
     initialParticipationType
   );
@@ -131,11 +136,24 @@ export function HackathonActionCard({
       }
 
       setIsRegistered(true);
+      if (data.status) {
+        setRegistrationStatus(data.status);
+      }
       setParticipationType(selectedJoinType);
       if (typeof data.count === "number") {
         setCount(data.count);
       }
       setIsJoinModalOpen(false);
+
+      if (data.requires_verification || data.status === "pending") {
+        await showAlert({
+          title: "Registration Received ⏳",
+          message:
+            "Your registration is pending campus verification by the organizer. Once approved, project submissions will be unlocked.",
+          type: "info",
+        });
+      }
+
       router.refresh();
     } catch (err) {
       console.error("Registration error:", err);
@@ -327,19 +345,59 @@ export function HackathonActionCard({
           </Button>
         ) : isRegistered ? (
           <div className="space-y-3">
-            {/* Registered Banner */}
-            <div className="w-full p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-between gap-2 text-xs font-bold px-3">
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                <span>Registered! 🎉</span>
+            {/* Registered Banner: Approved vs Pending vs Rejected */}
+            {registrationStatus === "pending" ? (
+              <div className="w-full p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-between gap-2 text-xs font-bold px-3">
+                <div className="flex items-center gap-1.5">
+                  <Clock className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                  <span>Pending Verification ⏳</span>
+                </div>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-bold border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 rounded-full"
+                >
+                  Under Review
+                </Badge>
               </div>
-              <Badge
-                variant="outline"
-                className="text-[10px] font-bold border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 rounded-full"
-              >
-                {participationType === "solo" ? "Solo Participant" : "Team Search"}
-              </Badge>
-            </div>
+            ) : registrationStatus === "rejected" ? (
+              <div className="w-full p-2.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 flex items-center justify-between gap-2 text-xs font-bold px-3">
+                <div className="flex items-center gap-1.5">
+                  <Shield className="size-4 shrink-0 text-rose-600 dark:text-rose-400" />
+                  <span>Registration Not Approved ❌</span>
+                </div>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-bold border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300 rounded-full"
+                >
+                  Rejected
+                </Badge>
+              </div>
+            ) : (
+              <div className="w-full p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-between gap-2 text-xs font-bold px-3">
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  <span>Registered! 🎉</span>
+                </div>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-bold border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 rounded-full"
+                >
+                  {participationType === "solo" ? "Solo Participant" : "Team Search"}
+                </Badge>
+              </div>
+            )}
+
+            {/* Pending Notice Explainer */}
+            {registrationStatus === "pending" && (
+              <div className="p-3 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-300 space-y-1">
+                <span className="font-bold flex items-center gap-1">
+                  <Shield className="size-3.5 text-amber-600 shrink-0" /> Campus Organizer Review
+                </span>
+                <p className="text-muted-foreground leading-relaxed">
+                  Your campus access registration is being verified by the host organizer. Once approved, project submissions will unlock automatically.
+                </p>
+              </div>
+            )}
 
             {/* Participation Mode Switcher */}
             <div className="p-3 rounded-2xl border bg-muted/30 space-y-2">
@@ -381,6 +439,25 @@ export function HackathonActionCard({
               >
                 <Clock className="size-3.5" />
                 Submissions Closed
+              </Button>
+            ) : registrationStatus === "pending" ? (
+              <Button
+                disabled
+                variant="outline"
+                size="default"
+                className="w-full rounded-full font-semibold text-xs gap-1.5 bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300 cursor-not-allowed"
+              >
+                <Clock className="size-3.5" />
+                Awaiting Organizer Approval
+              </Button>
+            ) : registrationStatus === "rejected" ? (
+              <Button
+                disabled
+                variant="outline"
+                size="default"
+                className="w-full rounded-full font-semibold text-xs gap-1.5 bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300 cursor-not-allowed"
+              >
+                Registration Not Approved
               </Button>
             ) : (
               <Button

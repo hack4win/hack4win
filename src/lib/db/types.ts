@@ -405,6 +405,7 @@ export interface RegisteredStudent {
   image: string | null;
   registered_at: string;
   participation_type: string;
+  status: "approved" | "pending" | "rejected";
   student_id?: string | null;
   college_name?: string | null;
   academic_year?: string | null;

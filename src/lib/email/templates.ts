@@ -423,17 +423,36 @@ export function getHackathonRegistrationEmailTemplate(params: {
   startDate: string;
   isPrivate?: boolean;
   accessCode?: string;
+  status?: "approved" | "pending" | "rejected";
 }): GeneratedEmail {
   const hackathonUrl = `${BRAND_URL}/hackathons/${params.slug}`;
-  const subject = `Registration Confirmed: You're in for ${params.hackathonTitle}! 🎟️`;
+  const isPending = params.status === "pending";
+
+  const subject = isPending
+    ? `Registration Received: Pending Campus Verification for ${params.hackathonTitle} ⏳`
+    : `Registration Confirmed: You're in for ${params.hackathonTitle}! 🎟️`;
 
   const content = `
     <h1 style="margin: 0 0 14px; font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">
-      You're Officially Registered! 🎟️
+      ${isPending ? "Registration Received & Pending Verification ⏳" : "You're Officially Registered! 🎟️"}
     </h1>
     <p style="margin: 0 0 16px; font-size: 14px; line-height: 1.6; color: #d1d5db;">
-      Hi <strong>${escapeHtml(params.userName)}</strong>, your registration for <strong>${escapeHtml(params.hackathonTitle)}</strong> has been confirmed.
+      Hi <strong>${escapeHtml(params.userName)}</strong>, ${
+        isPending
+          ? `your campus registration request for <strong>${escapeHtml(params.hackathonTitle)}</strong> has been received and is awaiting organizer review.`
+          : `your registration for <strong>${escapeHtml(params.hackathonTitle)}</strong> has been confirmed.`
+      }
     </p>
+
+    ${
+      isPending
+        ? `
+      <div style="background-color: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 10px; padding: 14px 16px; margin: 16px 0; font-size: 13px; color: #fde68a; line-height: 1.6;">
+        🛡️ <strong>Campus Security Verification Notice:</strong> Because this is an exclusive private campus challenge, the event organizers review all registrations to ensure student eligibility. You will receive an instant confirmation email as soon as your access is verified.
+      </div>
+    `
+        : ""
+    }
 
     <!-- Hackathon Overview Box -->
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0d1322; border: 1px solid #1f2937; border-radius: 12px; margin: 20px 0; padding: 18px;">
@@ -450,7 +469,7 @@ export function getHackathonRegistrationEmailTemplate(params: {
           <div style="font-size: 13px; color: #9ca3af; line-height: 1.6;">
             📅 <strong>Starts:</strong> ${new Date(params.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}<br>
             ${params.accessCode ? `🔑 <strong>Access Passcode:</strong> <code style="font-family: monospace; color: #a5b4fc; background: #1e1b4b; padding: 2px 6px; border-radius: 4px;">${escapeHtml(params.accessCode)}</code><br>` : ""}
-            🚀 <strong>Status:</strong> Active Participant
+            🚀 <strong>Status:</strong> ${isPending ? "⏳ Pending Organizer Verification" : "Active Participant"}
           </div>
         </td>
       </tr>
@@ -458,21 +477,72 @@ export function getHackathonRegistrationEmailTemplate(params: {
 
     <div style="text-align: center; margin: 28px 0 20px;">
       <a href="${hackathonUrl}" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: #ffffff; font-size: 14px; font-weight: 700; padding: 14px 28px; border-radius: 9999px; text-decoration: none; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);">
-        View Challenge & Team Workspace &rarr;
+        View Challenge Hub &rarr;
       </a>
     </div>
   `;
 
   const html = wrapInEmailLayout(content, {
-    preheader: `You have successfully joined ${params.hackathonTitle}. Access challenge rules, schedule, and team formation now.`,
-    badgeText: "Confirmed Entry",
+    preheader: isPending
+      ? `Your registration request for ${params.hackathonTitle} is pending campus verification.`
+      : `You have successfully joined ${params.hackathonTitle}. Access challenge rules, schedule, and team formation now.`,
+    badgeText: isPending ? "Pending Review" : "Confirmed Entry",
   });
 
-  const text = `Registration Confirmed: ${params.hackathonTitle}\n\n` +
+  const text = `${isPending ? "Registration Received (Pending Review)" : "Registration Confirmed"}: ${params.hackathonTitle}\n\n` +
     `Hi ${params.userName},\n` +
-    `You are officially registered for ${params.hackathonTitle}.\n\n` +
+    (isPending
+      ? `Your registration for ${params.hackathonTitle} has been received and is pending verification by the campus organizers.\n`
+      : `You are officially registered for ${params.hackathonTitle}.\n\n`) +
     `Challenge URL: ${hackathonUrl}\n\n` +
-    `Best of luck!\nThe Hack4Win Team`;
+    `Best regards,\nThe Hack4Win Team`;
+
+  return { subject, html, text };
+}
+
+/**
+ * 3.1.1 Campus Registration Approved Notification
+ */
+export function getCampusRegistrationApprovedEmailTemplate(params: {
+  userName: string;
+  hackathonTitle: string;
+  slug: string;
+  organizerName?: string;
+}): GeneratedEmail {
+  const hackathonUrl = `${BRAND_URL}/hackathons/${params.slug}`;
+  const subject = `Registration Approved: You're in for ${params.hackathonTitle}! 🎓`;
+
+  const content = `
+    <h1 style="margin: 0 0 14px; font-size: 20px; font-weight: 800; color: #10b981; letter-spacing: -0.5px;">
+      Campus Registration Approved! 🎓
+    </h1>
+    <p style="margin: 0 0 16px; font-size: 14px; line-height: 1.6; color: #d1d5db;">
+      Hi <strong>${escapeHtml(params.userName)}</strong>,
+    </p>
+    <p style="margin: 0 0 16px; font-size: 14px; line-height: 1.6; color: #d1d5db;">
+      Great news! The event organizers ${params.organizerName ? `(${escapeHtml(params.organizerName)}) ` : ""}have verified and <strong>approved</strong> your registration for <strong>${escapeHtml(params.hackathonTitle)}</strong>.
+    </p>
+    <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.6; color: #9ca3af;">
+      You now have full builder clearance to collaborate on teams, access competition resources, and submit your project builds.
+    </p>
+
+    <div style="text-align: center; margin: 28px 0 20px;">
+      <a href="${hackathonUrl}" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; font-size: 14px; font-weight: 700; padding: 14px 28px; border-radius: 9999px; text-decoration: none; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);">
+        Access Challenge Hub & Submit Project &rarr;
+      </a>
+    </div>
+  `;
+
+  const html = wrapInEmailLayout(content, {
+    preheader: `Your campus registration for ${params.hackathonTitle} has been verified and approved.`,
+    badgeText: "Verified & Approved",
+  });
+
+  const text = `Registration Approved: ${params.hackathonTitle}\n\n` +
+    `Hi ${params.userName},\n` +
+    `Your campus registration for ${params.hackathonTitle} has been verified and approved by the event organizers.\n\n` +
+    `Challenge URL: ${hackathonUrl}\n\n` +
+    `Happy building!\nThe Hack4Win Team`;
 
   return { subject, html, text };
 }

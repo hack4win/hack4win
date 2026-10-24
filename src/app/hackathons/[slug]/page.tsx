@@ -132,6 +132,7 @@ export default async function HackathonDetailPage({ params, searchParams }: Page
 
   const isRegistered = !!userRegistration?.registered;
   const participationType = (userRegistration?.participation_type as "solo" | "looking_for_team") || "looking_for_team";
+  const registrationStatus = (userRegistration?.status || "approved") as "approved" | "pending" | "rejected";
 
   // Calculate duration in days
   const startMs = new Date(hackathon.start_date).getTime();
@@ -346,6 +347,7 @@ export default async function HackathonDetailPage({ params, searchParams }: Page
               isPrivate={Boolean(hackathon.is_private)}
               allowedEmailDomains={hackathon.allowed_email_domains || []}
               hasAccessCode={Boolean(hackathon.access_code)}
+              initialRegistrationStatus={registrationStatus}
             />
           </div>
         </div>

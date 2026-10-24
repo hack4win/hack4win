@@ -29,6 +29,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   return NextResponse.json({
     registered: !!reg,
     participation_type: reg?.participation_type || "looking_for_team",
+    status: reg?.status || "approved",
   });
 }
 
@@ -76,6 +77,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }
 
     // 1. Private hackathon eligibility check
+    let registrationStatus: "approved" | "pending" = "approved";
     if (hackathon.is_private) {
       const inviteTokenFromQuery =
         req.nextUrl?.searchParams?.get("invite") ||
@@ -104,6 +106,13 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           },
           { status: 403 }
         );
+      }
+
+      // Security measure: If joining via a shared secret (campus access code or secret invitation link),
+      // place registration in 'pending' status so organizer/admin can verify student credentials before project submissions.
+      // Pre-whitelisted emails (invited_emails) and admins are pre-authorized and remain 'approved'.
+      if (accessCheck.reason === "access_code" || accessCheck.reason === "invite_token") {
+        registrationStatus = "pending";
       }
     }
 
@@ -146,6 +155,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       college_name: typeof body?.college_name === "string" ? body.college_name.trim().slice(0, 200) : null,
       academic_year: typeof body?.academic_year === "string" ? body.academic_year.trim().slice(0, 100) : null,
       branch: typeof body?.branch === "string" ? body.branch.trim().slice(0, 150) : null,
+      status: registrationStatus,
     };
 
     try {
@@ -162,6 +172,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           startDate: hackathon.start_date,
           isPrivate: hackathon.is_private,
           accessCode: hackathon.access_code || undefined,
+          status: registrationStatus,
         });
 
         await brevoService.sendEmail({
@@ -181,6 +192,8 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       success: true,
       registered: true,
       participation_type: participationType,
+      status: registrationStatus,
+      requires_verification: registrationStatus === "pending",
       count,
     });
   } catch (err) {

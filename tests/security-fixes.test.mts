@@ -235,8 +235,8 @@ describe("Security Fix 2: Private Hackathon Bypass Prevention via Submissions", 
     assert.equal(directSubmitFail.status, 403, "Direct submission without credentials must be blocked with 403");
     assert.match(directSubmitFail.data.error, /private hackathon/i);
 
-    // Builder supplies the valid access code in submission body -> Auto-registration & submission succeeds!
-    const directSubmitSuccess = await api(`/api/hackathons/${privateHackathonSlug}/submissions`, {
+    // Builder supplies the valid access code in submission body -> Auto-registration holds entry in pending verification
+    const directSubmitPending = await api(`/api/hackathons/${privateHackathonSlug}/submissions`, {
       method: "POST",
       token: BUILDER_TOKEN,
       body: {
@@ -250,7 +250,35 @@ describe("Security Fix 2: Private Hackathon Bypass Prevention via Submissions", 
       },
     });
 
-    assert.equal(directSubmitSuccess.status, 200, "Submission with valid access code should be accepted");
+    assert.equal(directSubmitPending.status, 403, "Direct submission with campus code must be held pending organizer verification");
+    assert.equal(directSubmitPending.data.registration_status, "pending");
+
+    // Organizer verifies and approves the builder's registration
+    const approveRes = await api(`/api/organizer/hackathons/${privateHackathonId}/students`, {
+      method: "POST",
+      token: ORG1_TOKEN,
+      body: {
+        action: "approve_student",
+        student_user_id: builderId,
+      },
+    });
+    assert.equal(approveRes.status, 200, "Organizer should approve student");
+
+    // Once approved by organizer, builder can successfully submit project
+    const directSubmitSuccess = await api(`/api/hackathons/${privateHackathonSlug}/submissions`, {
+      method: "POST",
+      token: BUILDER_TOKEN,
+      body: {
+        title: "Verified Student Project",
+        description: "Legitimate submission with correct access code credentials.",
+        demo_url: "https://demo.h4w.io",
+        github_url: "https://github.com/h4w/sec",
+        video_url: "https://youtube.com/watch?v=12345",
+        cover_image: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97",
+      },
+    });
+
+    assert.equal(directSubmitSuccess.status, 200, "Submission after organizer approval must succeed");
     assert.equal(directSubmitSuccess.data.success, true);
   });
 });
