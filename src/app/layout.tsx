@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ModalAlertProvider } from "@/components/ui/modal-alert";
@@ -81,8 +82,10 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}
     >
-      <head>
-        <script
+      <body className="min-h-full flex flex-col font-sans antialiased">
+        <Script
+          id="perf-timing-patch"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
@@ -116,8 +119,6 @@ export default function RootLayout({
             `,
           }}
         />
-      </head>
-      <body className="min-h-full flex flex-col font-sans antialiased">
         <PerformanceTimingPatch />
         <ModalAlertProvider>{children}</ModalAlertProvider>
       </body>
