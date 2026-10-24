@@ -7,6 +7,7 @@ import { signIn, emailOtp } from "@/lib/auth/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { BrandLogo } from "@/components/navigation/brand-logo";
 import {
   Trophy,
   Mail,
@@ -231,14 +232,12 @@ function SignInForm() {
         <div className="relative z-10 space-y-4">
           <Link
             href="/"
-            className="inline-flex items-center gap-3 font-bold text-2xl tracking-tight hover:opacity-90 transition-opacity"
+            className="inline-flex items-center hover:opacity-90 transition-opacity"
           >
-            <div className="size-11 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-xs">
-              <Trophy className="size-6 text-primary" />
-            </div>
-            <span className="text-2xl font-black tracking-tight">
-              Hack4Win<span className="text-muted-foreground text-sm font-normal">.online</span>
-            </span>
+            <BrandLogo
+              size="lg"
+              textClassName="text-2xl font-black tracking-tight"
+            />
           </Link>
 
           <div>
@@ -332,11 +331,8 @@ function SignInForm() {
           </Link>
 
           {/* Mobile Logo (Visible on mobile only) */}
-          <div className="lg:hidden flex items-center gap-2">
-            <div className="size-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-              <Trophy className="size-4" />
-            </div>
-            <span className="font-extrabold text-sm tracking-tight">Hack4Win</span>
+          <div className="lg:hidden flex items-center">
+            <BrandLogo size="xs" textClassName="font-extrabold text-sm tracking-tight" />
           </div>
         </header>
 

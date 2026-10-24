@@ -44,6 +44,16 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "./",
   },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "https://br-polished-unit-b3lk45ku.storage.c-4.ap-southeast-1.aws.neon.tech/do4win/branding/hack4win-icon.png", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [
+      { url: "https://br-polished-unit-b3lk45ku.storage.c-4.ap-southeast-1.aws.neon.tech/do4win/branding/hack4win-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
   openGraph: {
     title: "Hack4Win | The Global Hackathon Platform",
     description: "Join global hackathons, collaborate with top builders, and win prizes on hack4win.online.",
@@ -51,6 +61,14 @@ export const metadata: Metadata = {
     siteName: "Hack4Win",
     locale: "en_US",
     type: "website",
+    images: [
+      {
+        url: "https://br-polished-unit-b3lk45ku.storage.c-4.ap-southeast-1.aws.neon.tech/do4win/branding/hack4win-logo.png",
+        width: 512,
+        height: 512,
+        alt: "Hack4Win Platform Logo",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
@@ -58,6 +76,9 @@ export const metadata: Metadata = {
     description: "Join global hackathons, collaborate with top builders, and win prizes on hack4win.online.",
     creator: "@hack4win",
     site: "@hack4win",
+    images: [
+      "https://br-polished-unit-b3lk45ku.storage.c-4.ap-southeast-1.aws.neon.tech/do4win/branding/hack4win-logo.png",
+    ],
   },
   robots: {
     index: true,

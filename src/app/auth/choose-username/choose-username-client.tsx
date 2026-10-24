@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { BrandLogo } from "@/components/navigation/brand-logo";
 import {
   Trophy,
   Sparkles,
@@ -163,14 +164,9 @@ export function ChooseUsernameClient({ user, callbackUrl }: ChooseUsernameClient
         <div className="text-center space-y-2">
           <Link
             href="/"
-            className="inline-flex items-center gap-2.5 font-bold text-2xl tracking-tight hover:opacity-85 transition-opacity"
+            className="inline-flex items-center hover:opacity-85 transition-opacity"
           >
-            <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-              <Trophy className="size-5" />
-            </div>
-            <span>
-              Hack4Win<span className="text-muted-foreground text-sm font-normal">.online</span>
-            </span>
+            <BrandLogo size="lg" textClassName="text-2xl font-bold tracking-tight" />
           </Link>
           <div className="flex items-center justify-center gap-1.5 pt-1">
             <Badge variant="secondary" className="rounded-full text-[11px] gap-1 px-3 py-0.5">

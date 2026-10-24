@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import { BrandLogo } from "@/components/navigation/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Trophy, ArrowLeft, Search, Compass } from "lucide-react";
 
@@ -10,14 +11,9 @@ export default function NotFound() {
       <header className="border-b px-6 sm:px-8 py-4 flex items-center justify-between">
         <Link
           href="/"
-          className="flex items-center gap-2.5 font-bold text-xl tracking-tight hover:opacity-85 transition-opacity"
+          className="flex items-center hover:opacity-85 transition-opacity"
         >
-          <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-            <Trophy className="size-5" />
-          </div>
-          <span className="font-extrabold text-xl tracking-tight">
-            Hack4Win<span className="text-muted-foreground text-sm font-normal">.online</span>
-          </span>
+          <BrandLogo size="md" />
         </Link>
 
         <Button variant="outline" asChild size="sm" className="rounded-full text-xs">

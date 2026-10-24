@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { BrandLogo } from "@/components/navigation/brand-logo";
 import { SessionUser } from "@/lib/db/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -58,21 +59,20 @@ export function OrganizerSidebar({ user, children }: OrganizerSidebarProps) {
       <div className="p-6 border-b flex items-center justify-between">
         <Link
           href="/"
-          className="flex items-center gap-2.5 font-bold text-lg tracking-tight hover:opacity-85 transition-opacity"
+          className="flex items-center hover:opacity-85 transition-opacity"
         >
-          <div className="size-9 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
-            <Trophy className="size-4.5" />
-          </div>
-          <div>
-            <span className="font-extrabold text-base tracking-tight">
-              Hack4Win<span className="text-muted-foreground text-xs font-normal">.online</span>
-            </span>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <Badge variant="outline" className="text-[0.65rem] px-2 py-0 uppercase font-bold border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                Organizer Portal
-              </Badge>
-            </div>
-          </div>
+          <BrandLogo
+            size="md"
+            textClassName="font-extrabold text-base tracking-tight leading-none"
+            domainClassName="text-muted-foreground text-xs font-normal"
+            subtitle={
+              <div className="flex items-center gap-1.5 mt-1">
+                <Badge variant="outline" className="text-[0.65rem] px-2 py-0 uppercase font-bold border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                  Organizer Portal
+                </Badge>
+              </div>
+            }
+          />
         </Link>
 
         {mobileOpen && (

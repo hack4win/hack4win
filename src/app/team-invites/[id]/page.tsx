@@ -5,6 +5,7 @@ import { getServerSession } from "@/lib/auth/session";
 import { userRepository } from "@/lib/db/user-repository";
 import { hackathonRepository } from "@/lib/db/hackathon-repository";
 import { UserMenu } from "@/components/navigation/user-menu";
+import { BrandLogo } from "@/components/navigation/brand-logo";
 import { Trophy, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TeamInviteClient } from "./team-invite-client";
@@ -39,14 +40,9 @@ export default async function TeamInvitePage({ params }: PageProps) {
         <div className="flex items-center gap-4">
           <Link
             href="/hackathons"
-            className="flex items-center gap-2.5 font-bold text-xl tracking-tight hover:opacity-90 transition-opacity"
+            className="flex items-center hover:opacity-90 transition-opacity"
           >
-            <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-              <Trophy className="size-5" />
-            </div>
-            <span className="font-extrabold text-xl tracking-tight">
-              Hack4Win<span className="text-muted-foreground text-sm font-normal">.online</span>
-            </span>
+            <BrandLogo size="md" />
           </Link>
         </div>
 

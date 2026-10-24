@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Hackathon, HackathonSubmission, ProjectEvaluation, SessionUser, SubmissionTeamMember } from "@/lib/db/types";
 import { getSafeExternalUrl } from "@/lib/url-validation";
 import { UserMenu } from "@/components/navigation/user-menu";
+import { BrandLogo } from "@/components/navigation/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -260,14 +261,9 @@ export function ProjectDetailsClient({
         <div className="flex items-center gap-4">
           <Link
             href="/"
-            className="flex items-center gap-2.5 font-bold text-xl tracking-tight hover:opacity-90 transition-opacity"
+            className="flex items-center hover:opacity-90 transition-opacity"
           >
-            <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-xs">
-              <Trophy className="size-5" />
-            </div>
-            <span className="font-extrabold text-xl tracking-tight">
-              Hack4Win<span className="text-muted-foreground text-sm font-normal">.online</span>
-            </span>
+            <BrandLogo size="md" />
           </Link>
 
           {hackathon && (

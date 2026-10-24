@@ -4,6 +4,7 @@ import { getServerSession } from "@/lib/auth/session";
 import { hackathonRepository } from "@/lib/db/hackathon-repository";
 import { tagRepository } from "@/lib/db/tag-repository";
 import { safeJsonLdReplacer } from "@/lib/json-ld";
+import { BrandLogo } from "@/components/navigation/brand-logo";
 import { UserMenu } from "@/components/navigation/user-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -236,14 +237,9 @@ export default async function HackathonsBrowsePage({ searchParams }: BrowsePageP
       <header className="border-b px-4 sm:px-8 py-4 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-50">
         <Link
           href="/"
-          className="flex items-center gap-2.5 font-bold text-xl tracking-tight hover:opacity-90 transition-opacity"
+          className="flex items-center hover:opacity-90 transition-opacity"
         >
-          <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-            <Trophy className="size-5" />
-          </div>
-          <span className="font-extrabold text-xl tracking-tight">
-            Hack4Win<span className="text-muted-foreground text-sm font-normal">.online</span>
-          </span>
+          <BrandLogo size="md" />
         </Link>
 
         <div className="flex items-center gap-3">

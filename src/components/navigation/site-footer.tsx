@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { BrandLogo } from "@/components/navigation/brand-logo";
 import {
   Trophy,
   ArrowRight,
@@ -30,14 +31,9 @@ export function SiteFooter() {
           <div className="lg:col-span-5 space-y-4">
             <Link
               href="/"
-              className="inline-flex items-center gap-2.5 font-bold text-xl tracking-tight hover:opacity-90 transition-opacity"
+              className="inline-flex items-center hover:opacity-90 transition-opacity"
             >
-              <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                <Trophy className="size-5" />
-              </div>
-              <span className="font-extrabold text-xl tracking-tight">
-                Hack4Win<span className="text-muted-foreground text-sm font-normal">.online</span>
-              </span>
+              <BrandLogo size="md" />
             </Link>
 
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-sm">

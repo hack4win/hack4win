@@ -8,6 +8,7 @@ import { DevpostProfileView } from "@/components/profile/devpost-profile-view";
 import { Button } from "@/components/ui/button";
 import { Trophy, ShieldCheck, ArrowLeft, Gavel } from "lucide-react";
 import { UserMenu } from "@/components/navigation/user-menu";
+import { BrandLogo } from "@/components/navigation/brand-logo";
 
 export const dynamic = "force-dynamic";
 
@@ -60,14 +61,9 @@ export default async function ProfilePage({ searchParams }: PageProps) {
         <div className="flex items-center gap-4">
           <Link
             href="/hackathons"
-            className="flex items-center gap-2.5 font-bold text-xl tracking-tight hover:opacity-85 transition-opacity"
+            className="flex items-center hover:opacity-85 transition-opacity"
           >
-            <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-              <Trophy className="size-5" />
-            </div>
-            <span className="font-extrabold text-xl tracking-tight">
-              Hack4Win<span className="text-muted-foreground text-sm font-normal">.online</span>
-            </span>
+            <BrandLogo size="md" />
           </Link>
           <span className="text-muted-foreground hidden sm:inline">/</span>
           <span className="text-sm font-medium text-muted-foreground hidden sm:inline">
