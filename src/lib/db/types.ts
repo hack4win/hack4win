@@ -415,3 +415,30 @@ export interface RegisteredStudent {
   has_submitted: boolean;
   submitted_at?: string | null;
 }
+
+export type HostInquiryStatus = "new" | "contacted" | "in_discussion" | "approved" | "archived";
+
+export interface HostInquiry {
+  id: string;
+  organization_name: string;
+  contact_name: string;
+  email: string;
+  timeline: string;
+  estimated_prize_pool: string;
+  tracks: string[];
+  event_goals: string;
+  status: HostInquiryStatus;
+  admin_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateHostInquiryInput {
+  organization_name: string;
+  contact_name: string;
+  email: string;
+  timeline?: string;
+  estimated_prize_pool?: string;
+  tracks?: string[];
+  event_goals: string;
+}

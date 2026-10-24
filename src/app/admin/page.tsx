@@ -4,6 +4,7 @@ import { userRepository } from "@/lib/db/user-repository";
 import { hackathonRepository } from "@/lib/db/hackathon-repository";
 import { skillRepository } from "@/lib/db/skill-repository";
 import { mailRepository } from "@/lib/db/mail-repository";
+import { inquiryRepository } from "@/lib/db/inquiry-repository";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,8 @@ import {
   Plus,
   Mail,
   Sparkles,
+  Inbox,
+  Building2,
 } from "lucide-react";
 import { getHackathonStatus } from "@/lib/db/types";
 import { redirect } from "next/navigation";
@@ -36,13 +39,14 @@ export default async function AdminOverviewPage() {
   if (session?.user.role === "judge") {
     redirect("/admin/judging");
   }
-  const [stats, hackathonStats, allHackathons, allUsers, skillsList, mailStats] = await Promise.all([
+  const [stats, hackathonStats, allHackathons, allUsers, skillsList, mailStats, inquiryStats] = await Promise.all([
     userRepository.getStats(),
     hackathonRepository.getStats({ includeDrafts: true }),
     hackathonRepository.listHackathons({ limit: 100, includeDrafts: true }),
     userRepository.listUsers({ limit: 100 }),
     skillRepository.listSkills(),
     mailRepository.getCampaignStats(),
+    inquiryRepository.getStats(),
   ]);
 
   const recentUsers = allUsers.slice(0, 5);
@@ -153,6 +157,16 @@ export default async function AdminOverviewPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          <Button asChild variant="outline" size="sm" className="gap-2 rounded-full text-xs">
+            <Link href="/admin/inquiries">
+              <Inbox className="size-3.5 text-primary" /> Host Inquiries
+              {inquiryStats.new > 0 && (
+                <span className="bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+                  {inquiryStats.new} new
+                </span>
+              )}
+            </Link>
+          </Button>
           <Button asChild variant="outline" size="sm" className="gap-2 rounded-full text-xs">
             <Link href="/admin/mail">
               <Mail className="size-3.5 text-primary" /> Send Campaign

@@ -24,6 +24,7 @@ import {
   Mail,
   Rocket,
   Gavel,
+  Inbox,
 } from "lucide-react";
 import { authClient } from "@/lib/auth/auth-client";
 
@@ -50,6 +51,7 @@ export function AdminSidebar({ user, children }: AdminSidebarProps) {
     {
       group: "Platform Management",
       items: [
+        { label: "Host Inquiries", href: "/admin/inquiries", icon: Inbox },
         { label: "Users & Access", href: "/admin/users", icon: Users },
         { label: "Tags & Tracks", href: "/admin/tags", icon: Tag },
         { label: "Skills & Proficiencies", href: "/admin/skills", icon: Sparkles },

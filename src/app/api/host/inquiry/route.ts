@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/session";
+import { inquiryRepository } from "@/lib/db/inquiry-repository";
 import { brevoService, HACK4WIN_SENDERS } from "@/lib/email/brevo-service";
 import { getHostInquiryEmailTemplate, wrapInEmailLayout } from "@/lib/email/templates";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
@@ -81,6 +82,18 @@ export async function POST(req: NextRequest) {
 
     const cleanTimeline = typeof timeline === "string" ? timeline.trim().slice(0, 100) : "Flexible";
     const cleanPrizePool = typeof estimatedPrizePool === "string" ? estimatedPrizePool.trim().slice(0, 100) : "Not specified";
+    const cleanTracks = Array.isArray(tracks) ? tracks.filter((t): t is string => typeof t === "string") : [];
+
+    // Persist inquiry to database for administrative management
+    const savedInquiry = await inquiryRepository.createInquiry({
+      organization_name: organizationName.trim(),
+      contact_name: contactName.trim(),
+      email: cleanEmail,
+      timeline: cleanTimeline,
+      estimated_prize_pool: cleanPrizePool,
+      tracks: cleanTracks,
+      event_goals: eventGoals.trim(),
+    });
 
     // Dispatch inquiry confirmation to host and alert Hack4Win partnerships team
     try {
@@ -112,6 +125,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      inquiry_id: savedInquiry.id,
       message: "Thank you for your interest! Our Hackathon Operations & Partnerships team will review your inquiry and reach out within 24 hours.",
     });
   } catch (error) {
