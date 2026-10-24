@@ -736,11 +736,11 @@ export function AdminProjectsClient({
 
       {/* 4. PROJECT PREVIEW & EDIT MODAL */}
       <Dialog open={!!previewProject} onOpenChange={(open) => !open && setPreviewProject(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl p-0 gap-0">
+        <DialogContent className="w-[95vw] sm:max-w-4xl md:max-w-5xl lg:max-w-6xl max-h-[92vh] overflow-y-auto rounded-3xl p-0 gap-0 border-border/80 shadow-2xl">
           {previewProject && (
             <div>
               {/* Modal Banner */}
-              <div className="relative h-48 sm:h-60 w-full bg-muted overflow-hidden">
+              <div className="relative h-52 sm:h-64 md:h-72 w-full bg-muted overflow-hidden">
                 {previewProject.cover_image ? (
                   <img
                     src={previewProject.cover_image}
@@ -754,14 +754,17 @@ export function AdminProjectsClient({
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
 
-                <div className="absolute bottom-4 left-6 right-6 flex items-end justify-between gap-3">
+                <div className="absolute bottom-4 left-6 right-6 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
                   <div className="space-y-1">
                     <Badge variant="outline" className="bg-background/80 backdrop-blur-md text-xs font-semibold">
                       {previewProject.hackathon_title || "Hackathon Project"}
                     </Badge>
-                    <h2 className="text-xl sm:text-2xl font-black text-foreground drop-shadow-xs">
+                    <DialogTitle className="text-xl sm:text-2xl md:text-3xl font-black text-foreground drop-shadow-xs">
                       {previewProject.title}
-                    </h2>
+                    </DialogTitle>
+                    <DialogDescription className="sr-only">
+                      Admin preview, judging details, and award badge management for {previewProject.title}
+                    </DialogDescription>
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -795,15 +798,22 @@ export function AdminProjectsClient({
               </div>
 
               {/* Modal Body */}
-              <div className="p-6 space-y-6">
+              <div className="p-6 sm:p-8 space-y-6">
                 {/* Admin Quick Editor Ribbon */}
-                <div className="p-4 rounded-2xl border bg-muted/20 space-y-3">
-                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                    <ShieldCheck className="size-4 text-primary" /> Admin Controls & Award Management
-                  </span>
+                <div className="p-5 rounded-2xl border bg-muted/20 space-y-3.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <ShieldCheck className="size-4 text-primary" /> Admin Controls & Award Management
+                    </span>
+                    {previewProject.winner_badge && (
+                      <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30 text-[11px] font-bold rounded-full px-2.5 py-0.5">
+                        <Award className="size-3 mr-1" /> Current Award: {previewProject.winner_badge}
+                      </Badge>
+                    )}
+                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-                    <div className="sm:col-span-6 space-y-1.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
+                    <div className="sm:col-span-6 lg:col-span-7 space-y-1.5">
                       <div className="flex items-center justify-between">
                         <label className="text-[11px] font-semibold text-muted-foreground">Winner Award Badge</label>
                         {editingAward && (
@@ -820,7 +830,7 @@ export function AdminProjectsClient({
                         value={editingAward}
                         onChange={(e) => setEditingAward(e.target.value)}
                         placeholder="e.g. Overall Winner 🏆, 1st Place 🥇, Best AI 🤖"
-                        className="h-9 rounded-xl text-xs bg-background"
+                        className="h-10 rounded-xl text-xs bg-background"
                       />
 
                       {/* Dynamic Hackathon Prizes */}
@@ -829,7 +839,7 @@ export function AdminProjectsClient({
                         if (!projectHackathon) return null;
 
                         return (
-                          <div className="space-y-1 pt-1">
+                          <div className="space-y-1.5 pt-1">
                             {projectHackathon.prizes && projectHackathon.prizes.length > 0 && (
                               <div className="flex flex-wrap items-center gap-1.5">
                                 <span className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1">
@@ -891,10 +901,10 @@ export function AdminProjectsClient({
                       })()}
                     </div>
 
-                    <div className="sm:col-span-3 space-y-1">
+                    <div className="sm:col-span-3 lg:col-span-3 space-y-1.5">
                       <label className="text-[11px] font-semibold text-muted-foreground">Approval Status</label>
                       <Select value={editingStatus} onValueChange={(val) => setEditingStatus(val || "approved")}>
-                        <SelectTrigger className="h-9 rounded-xl text-xs bg-background">
+                        <SelectTrigger className="h-10 rounded-xl text-xs bg-background">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl text-xs">
@@ -905,13 +915,13 @@ export function AdminProjectsClient({
                       </Select>
                     </div>
 
-                    <div className="sm:col-span-3 flex items-end">
+                    <div className="sm:col-span-3 lg:col-span-2 flex items-end">
                       <Button
                         type="button"
                         onClick={handleSaveModalChanges}
                         disabled={isUpdating}
                         size="sm"
-                        className="w-full h-9 rounded-xl text-xs font-bold gap-1 cursor-pointer"
+                        className="w-full h-10 rounded-xl text-xs font-bold gap-1 cursor-pointer"
                       >
                         {isUpdating ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
                         Save Changes
@@ -965,7 +975,7 @@ export function AdminProjectsClient({
                     <span className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wider">
                       <Users className="size-3.5 text-primary" /> Credited Builders ({previewProject.team_members.length})
                     </span>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
                       {previewProject.team_members.map((m, idx) => (
                         <div
                           key={m.id || idx}
@@ -1001,6 +1011,32 @@ export function AdminProjectsClient({
                   </div>
                 )}
 
+                {/* Screenshots Gallery */}
+                {previewProject.screenshots && previewProject.screenshots.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wider">
+                      <Eye className="size-3.5 text-primary" /> Screenshots & Media ({previewProject.screenshots.length})
+                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {previewProject.screenshots.map((s, idx) => (
+                        <a
+                          key={idx}
+                          href={s}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="group relative aspect-video rounded-xl overflow-hidden border bg-muted block hover:ring-2 hover:ring-primary transition-all cursor-pointer"
+                        >
+                          <img
+                            src={s}
+                            alt={`Screenshot ${idx + 1}`}
+                            className="size-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Tech Stack */}
                 {previewProject.tech_stack && previewProject.tech_stack.length > 0 && (
                   <div className="space-y-2">
@@ -1022,7 +1058,7 @@ export function AdminProjectsClient({
                   <span className="text-xs font-bold text-foreground uppercase tracking-wider">
                     Project Story & Implementation
                   </span>
-                  <div className="p-4 rounded-2xl border bg-card">
+                  <div className="p-5 sm:p-6 rounded-2xl border bg-card">
                     <MarkdownPreview content={previewProject.description} />
                   </div>
                 </div>
