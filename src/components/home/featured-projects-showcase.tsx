@@ -34,6 +34,10 @@ interface FeaturedProjectsShowcaseProps {
 export function FeaturedProjectsShowcase({ projects }: FeaturedProjectsShowcaseProps) {
   const [filterCategory, setFilterCategory] = useState<string>("all");
 
+  if (!projects || projects.length === 0) {
+    return null;
+  }
+
   const filteredProjects = projects.filter((p) => {
     if (filterCategory === "winners") return Boolean(p.winner_badge || p.is_featured);
     if (filterCategory === "ai") {

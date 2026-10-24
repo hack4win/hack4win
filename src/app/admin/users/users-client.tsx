@@ -42,13 +42,6 @@ interface UsersClientProps {
   currentUser?: SessionUser | null;
 }
 
-const DEMO_EMAILS: Record<string, { label: string; icon: string }> = {
-  "admin@hack4win.online": { label: "Admin Demo", icon: "👑" },
-  "organizer@hack4win.online": { label: "Organizer Demo", icon: "🎪" },
-  "judge@hack4win.online": { label: "Judge Demo", icon: "⚖️" },
-  "builder@hack4win.online": { label: "Builder Demo", icon: "💻" },
-};
-
 export function UsersClient({ initialUsers, initialTotal, currentUser }: UsersClientProps) {
   const { showConfirm, showAlert } = useModalAlert();
   const [users, setUsers] = useState<User[]>(initialUsers);
@@ -64,7 +57,6 @@ export function UsersClient({ initialUsers, initialTotal, currentUser }: UsersCl
   const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
-  const [switchingRole, setSwitchingRole] = useState<string | null>(null);
 
   // Create User modal state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -130,38 +122,6 @@ export function UsersClient({ initialUsers, initialTotal, currentUser }: UsersCl
       isCancelled = true;
     };
   }, [debouncedSearch, selectedRole, hideTestAccounts, page]);
-
-  /**
-   * 1-Click Role Switcher for Testing
-   */
-  const handleTestSwitch = async (role: string) => {
-    setSwitchingRole(role);
-    setStatusMessage(null);
-    try {
-      const res = await fetch("/api/auth/demo-login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to switch role");
-      }
-      setStatusMessage({
-        type: "success",
-        text: `Switched session to ${role.toUpperCase()} (${data.user.email}). Redirecting...`,
-      });
-      setTimeout(() => {
-        window.location.href = data.redirectUrl || "/admin";
-      }, 500);
-    } catch (err) {
-      setStatusMessage({
-        type: "error",
-        text: err instanceof Error ? err.message : "Failed to switch role",
-      });
-      setSwitchingRole(null);
-    }
-  };
 
   /**
    * Handle Create User submit
@@ -329,89 +289,6 @@ export function UsersClient({ initialUsers, initialTotal, currentUser }: UsersCl
           <span>{statusMessage.text}</span>
         </div>
       )}
-
-      {/* QUICK ROLE TESTING PANEL */}
-      <Card className="border border-primary/20 bg-primary/5 shadow-2xs overflow-hidden">
-        <CardContent className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Sparkles className="size-4 text-amber-500" />
-              <h3 className="text-sm font-bold text-foreground">
-                Role Testing Console (1-Click Switcher)
-              </h3>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Instant login as any pre-configured role to test UI permissions, forms, and workflows without re-entering credentials.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 shrink-0">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={Boolean(switchingRole)}
-              onClick={() => handleTestSwitch("admin")}
-              className="h-9 px-3 rounded-xl text-xs font-bold gap-1.5 bg-background hover:bg-card border-border/80 shadow-2xs cursor-pointer"
-            >
-              {switchingRole === "admin" ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <span>👑</span>
-              )}
-              <span>Admin</span>
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={Boolean(switchingRole)}
-              onClick={() => handleTestSwitch("organizer")}
-              className="h-9 px-3 rounded-xl text-xs font-bold gap-1.5 bg-background hover:bg-card border-border/80 shadow-2xs cursor-pointer"
-            >
-              {switchingRole === "organizer" ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <span>🎪</span>
-              )}
-              <span>Organizer</span>
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={Boolean(switchingRole)}
-              onClick={() => handleTestSwitch("judge")}
-              className="h-9 px-3 rounded-xl text-xs font-bold gap-1.5 bg-background hover:bg-card border-border/80 shadow-2xs cursor-pointer"
-            >
-              {switchingRole === "judge" ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <span>⚖️</span>
-              )}
-              <span>Judge</span>
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={Boolean(switchingRole)}
-              onClick={() => handleTestSwitch("user")}
-              className="h-9 px-3 rounded-xl text-xs font-bold gap-1.5 bg-background hover:bg-card border-border/80 shadow-2xs cursor-pointer"
-            >
-              {switchingRole === "user" ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <span>💻</span>
-              )}
-              <span>Builder</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* SEARCH AND FILTERS BAR */}
       <div className="flex flex-col sm:flex-row items-center gap-3">
@@ -629,7 +506,6 @@ export function UsersClient({ initialUsers, initialTotal, currentUser }: UsersCl
                     const isUpdating = updatingUserId === u.id;
                     const isDeleting = deletingUserId === u.id;
                     const isSelf = Boolean(currentUser && u.id === currentUser.id);
-                    const demoMeta = DEMO_EMAILS[u.email.toLowerCase()];
 
                     return (
                       <tr key={u.id} className="hover:bg-muted/20 transition-colors">
@@ -651,14 +527,6 @@ export function UsersClient({ initialUsers, initialTotal, currentUser }: UsersCl
                                 <span className="font-semibold text-foreground truncate">
                                   {u.name || "Anonymous"}
                                 </span>
-                                {demoMeta && (
-                                  <Badge
-                                    variant="outline"
-                                    className="text-[0.65rem] px-2 py-0 border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold"
-                                  >
-                                    {demoMeta.icon} Demo
-                                  </Badge>
-                                )}
                               </div>
                               <div className="text-xs text-muted-foreground truncate">{u.email}</div>
                               {u.username && (
@@ -724,23 +592,6 @@ export function UsersClient({ initialUsers, initialTotal, currentUser }: UsersCl
 
                         <td className="px-6 py-4 text-right">
                           <div className="inline-flex items-center gap-2 justify-end">
-                            {demoMeta && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleTestSwitch(u.role)}
-                                disabled={Boolean(switchingRole)}
-                                title={`Login immediately as ${u.name}`}
-                                className="h-8 px-2.5 text-xs text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 font-bold gap-1 rounded-full cursor-pointer"
-                              >
-                                {switchingRole === u.role ? (
-                                  <Loader2 className="size-3 animate-spin" />
-                                ) : (
-                                  <span>{demoMeta.icon} Test</span>
-                                )}
-                              </Button>
-                            )}
-
                             {isUpdating ? (
                               <Loader2 className="size-4 animate-spin text-muted-foreground" />
                             ) : (

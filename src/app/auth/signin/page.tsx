@@ -54,32 +54,6 @@ function SignInForm() {
   const [activeAction, setActiveAction] = useState<"google" | "send-otp" | "verify-otp" | null>(null);
   const [isPending, startTransition] = useTransition();
   const [resendCountdown, setResendCountdown] = useState(0);
-  const [demoLoadingRole, setDemoLoadingRole] = useState<string | null>(null);
-
-  /**
-   * 1-Click Instant Demo / Test Role Login
-   */
-  const handleDemoLogin = async (role: string) => {
-    setError(null);
-    setSuccessMessage(null);
-    setDemoLoadingRole(role);
-    try {
-      const res = await fetch("/api/auth/demo-login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to log in as demo account");
-      }
-      window.location.href = data.redirectUrl || callbackUrl;
-    } catch (err) {
-      console.error("Demo login error:", err);
-      setError(err instanceof Error ? err.message : "Failed to sign in as demo account");
-      setDemoLoadingRole(null);
-    }
-  };
 
   // Countdown timer for OTP resend
   useEffect(() => {
@@ -498,97 +472,6 @@ function SignInForm() {
                     )}
                   </Button>
                 </form>
-
-                {/* 3. Instant Test Accounts for All Roles */}
-                <div className="pt-2 border-t border-border/70 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[0.7rem] uppercase tracking-wider text-muted-foreground font-bold flex items-center gap-1.5">
-                      <Sparkles className="size-3 text-amber-500" />
-                      Test Accounts (1-Click)
-                    </span>
-                    <Badge variant="outline" className="text-[0.65rem] py-0 px-2 font-mono text-muted-foreground">
-                      4 Roles Available
-                    </Badge>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={isPending || Boolean(demoLoadingRole)}
-                      onClick={() => handleDemoLogin("admin")}
-                      className="h-11 rounded-xl justify-start px-2.5 text-xs font-semibold hover:border-primary/50 hover:bg-primary/5 cursor-pointer"
-                    >
-                      {demoLoadingRole === "admin" ? (
-                        <Loader2 className="size-3.5 animate-spin mr-1.5 text-primary" />
-                      ) : (
-                        <span className="text-base mr-1.5">👑</span>
-                      )}
-                      <div className="text-left min-w-0">
-                        <span className="block font-bold leading-none truncate">Admin</span>
-                        <span className="text-[10px] text-muted-foreground leading-tight truncate block">Full Console</span>
-                      </div>
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={isPending || Boolean(demoLoadingRole)}
-                      onClick={() => handleDemoLogin("organizer")}
-                      className="h-11 rounded-xl justify-start px-2.5 text-xs font-semibold hover:border-primary/50 hover:bg-primary/5 cursor-pointer"
-                    >
-                      {demoLoadingRole === "organizer" ? (
-                        <Loader2 className="size-3.5 animate-spin mr-1.5 text-primary" />
-                      ) : (
-                        <span className="text-base mr-1.5">🎪</span>
-                      )}
-                      <div className="text-left min-w-0">
-                        <span className="block font-bold leading-none truncate">Organizer</span>
-                        <span className="text-[10px] text-muted-foreground leading-tight truncate block">Host & Manage</span>
-                      </div>
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={isPending || Boolean(demoLoadingRole)}
-                      onClick={() => handleDemoLogin("judge")}
-                      className="h-11 rounded-xl justify-start px-2.5 text-xs font-semibold hover:border-primary/50 hover:bg-primary/5 cursor-pointer"
-                    >
-                      {demoLoadingRole === "judge" ? (
-                        <Loader2 className="size-3.5 animate-spin mr-1.5 text-primary" />
-                      ) : (
-                        <span className="text-base mr-1.5">⚖️</span>
-                      )}
-                      <div className="text-left min-w-0">
-                        <span className="block font-bold leading-none truncate">Judge</span>
-                        <span className="text-[10px] text-muted-foreground leading-tight truncate block">Score & Review</span>
-                      </div>
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={isPending || Boolean(demoLoadingRole)}
-                      onClick={() => handleDemoLogin("user")}
-                      className="h-11 rounded-xl justify-start px-2.5 text-xs font-semibold hover:border-primary/50 hover:bg-primary/5 cursor-pointer"
-                    >
-                      {demoLoadingRole === "user" ? (
-                        <Loader2 className="size-3.5 animate-spin mr-1.5 text-primary" />
-                      ) : (
-                        <span className="text-base mr-1.5">💻</span>
-                      )}
-                      <div className="text-left min-w-0">
-                        <span className="block font-bold leading-none truncate">Builder</span>
-                        <span className="text-[10px] text-muted-foreground leading-tight truncate block">Submit & Compete</span>
-                      </div>
-                    </Button>
-                  </div>
-                </div>
               </div>
             ) : (
               /* STEP 2: VERIFICATION OTP CODE FORM */

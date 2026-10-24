@@ -64,6 +64,12 @@ export const DEMO_ACCOUNTS: Record<
 };
 
 export async function GET() {
+  if ((process.env.NODE_ENV as string) === "production") {
+    return NextResponse.json(
+      { error: "Demo accounts are disabled in production environment." },
+      { status: 403 }
+    );
+  }
   return NextResponse.json({
     accounts: Object.values(DEMO_ACCOUNTS),
   });
@@ -71,8 +77,14 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    if ((process.env.NODE_ENV as string) === "production") {
+      return NextResponse.json(
+        { error: "Demo accounts are disabled in production environment." },
+        { status: 403 }
+      );
+    }
     const clientIp = getClientIp(req);
-    const isTestOrLocal = process.env.NODE_ENV !== "production" && (clientIp === "127.0.0.1" || clientIp === "::1");
+    const isTestOrLocal = (process.env.NODE_ENV as string) !== "production" && (clientIp === "127.0.0.1" || clientIp === "::1");
     const limit = isTestOrLocal ? 200 : 15;
     const limiter = rateLimit(`demo_login:${clientIp}`, limit, 60 * 1000);
     if (!limiter.success) {
@@ -173,7 +185,7 @@ export async function POST(req: NextRequest) {
       redirectUrl,
     });
 
-    const isSecure = process.env.NODE_ENV === "production" && !req.url.includes("localhost");
+    const isSecure = (process.env.NODE_ENV as string) === "production" && !req.url.includes("localhost");
     const cookieOpts = {
       path: "/",
       httpOnly: true,

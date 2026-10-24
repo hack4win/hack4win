@@ -299,7 +299,8 @@ export default async function Home() {
             ) : (
               <div className="col-span-3 p-12 text-center border rounded-2xl bg-card">
                 <Trophy className="size-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Competitions are loading...</p>
+                <p className="text-sm font-semibold text-foreground">No competitions published yet</p>
+                <p className="text-xs text-muted-foreground mt-1">Check back soon or be the first to host a global challenge!</p>
               </div>
             )}
           </div>
