@@ -163,10 +163,6 @@ export function HostOnboardingClient({ currentUser }: HostOnboardingClientProps)
             <Link href="/hackathons">Explore Challenges</Link>
           </Button>
 
-          <Button variant="ghost" asChild className="hidden sm:inline-flex rounded-full text-xs font-semibold">
-            <Link href="/projects">Showcase</Link>
-          </Button>
-
           <Button variant="secondary" asChild className="hidden sm:inline-flex rounded-full text-xs font-bold gap-1.5 shadow-2xs">
             <Link href="/host">
               <Sparkles className="size-3.5 text-primary" /> Host an Event

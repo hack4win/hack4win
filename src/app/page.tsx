@@ -142,10 +142,6 @@ export default async function Home() {
             <Link href="/hackathons">Explore Challenges</Link>
           </Button>
 
-          <Button variant="ghost" asChild className="hidden md:inline-flex rounded-full text-xs font-semibold">
-            <Link href="/projects">Showcase</Link>
-          </Button>
-
           {(session?.user.role === "admin" || session?.user.role === "judge") && (
             <Button variant="outline" asChild className="hidden sm:inline-flex rounded-full text-xs font-semibold">
               <Link href="/admin/judging">Judging Portal</Link>

@@ -178,12 +178,6 @@ export function ProjectsDirectoryClient({
             <Link href="/hackathons">Explore Challenges</Link>
           </Button>
 
-          <Button variant="secondary" asChild className="hidden sm:inline-flex rounded-full text-xs font-bold gap-1.5 shadow-2xs">
-            <Link href="/projects">
-              <Rocket className="size-3.5 text-primary" /> Showcase
-            </Link>
-          </Button>
-
           {(currentUser?.role === "admin" || currentUser?.role === "judge") && (
             <Button variant="outline" asChild className="hidden sm:inline-flex rounded-full text-xs font-semibold">
               <Link href="/admin/judging">Judging Portal</Link>
