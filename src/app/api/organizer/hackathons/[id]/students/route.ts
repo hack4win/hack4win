@@ -5,6 +5,8 @@ import { brevoService, HACK4WIN_SENDERS } from "@/lib/email/brevo-service";
 import {
   getPrivateCampusInviteEmailTemplate,
   getCampusRegistrationApprovedEmailTemplate,
+  getPaymentVerifiedEmailTemplate,
+  getPaymentRejectedEmailTemplate,
 } from "@/lib/email/templates";
 
 interface RouteContext {
@@ -49,6 +51,12 @@ export async function GET(req: NextRequest, context: RouteContext) {
     hackathon_id: hackathon.id,
     title: hackathon.title,
     is_private: hackathon.is_private || false,
+    is_paid: hackathon.is_paid || false,
+    registration_fee: hackathon.registration_fee || 0,
+    fee_currency: hackathon.fee_currency || "₹",
+    upi_id: hackathon.upi_id || null,
+    upi_qr_code_url: hackathon.upi_qr_code_url || null,
+    payment_instructions: hackathon.payment_instructions || null,
     access_code: hackathon.access_code,
     allowed_email_domains: hackathon.allowed_email_domains || [],
     invited_emails: hackathon.invited_emails || [],
@@ -86,6 +94,103 @@ export async function POST(req: NextRequest, context: RouteContext) {
   try {
     const body = await req.json();
     const action = body.action || "add_emails";
+
+    if (action === "verify_payment") {
+      const studentUserId =
+        typeof body.student_user_id === "string"
+          ? body.student_user_id
+          : typeof body.user_id === "string"
+          ? body.user_id
+          : "";
+      if (!studentUserId) {
+        return NextResponse.json({ error: "student_user_id is required" }, { status: 400 });
+      }
+
+      await hackathonRepository.verifyPayment(hackathon.id, studentUserId, session.user.id, "approve");
+
+      // Notify the participant via Brevo email that their payment has been verified & registration approved
+      const students = await hackathonRepository.getRegisteredStudents(hackathon.id);
+      const student = students.find((s) => s.user_id === studentUserId);
+      if (student?.email) {
+        try {
+          const verifiedTemplate = getPaymentVerifiedEmailTemplate({
+            userName: student.name || "Builder",
+            hackathonTitle: hackathon.title,
+            slug: hackathon.slug,
+            feeAmount: student.payment_amount || hackathon.registration_fee || 0,
+            currency: hackathon.fee_currency || "₹",
+            utrNumber: student.payment_reference || undefined,
+          });
+
+          await brevoService.sendEmail({
+            to: [{ email: student.email, name: student.name || undefined }],
+            subject: verifiedTemplate.subject,
+            htmlContent: verifiedTemplate.html,
+            textContent: verifiedTemplate.text,
+            sender: HACK4WIN_SENDERS.NOTIFICATIONS,
+            tags: ["payment-verified", "transactional"],
+          });
+        } catch (mailErr) {
+          console.warn("[Payment Verification Email Notice]:", mailErr);
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Verified payment and approved registration for ${student?.name || student?.email || "participant"}`,
+        student_user_id: studentUserId,
+        status: "approved",
+        payment_status: "verified",
+      });
+    }
+
+    if (action === "reject_payment") {
+      const studentUserId =
+        typeof body.student_user_id === "string"
+          ? body.student_user_id
+          : typeof body.user_id === "string"
+          ? body.user_id
+          : "";
+      if (!studentUserId) {
+        return NextResponse.json({ error: "student_user_id is required" }, { status: 400 });
+      }
+
+      const reason = typeof body.reason === "string" ? body.reason.trim() : undefined;
+      await hackathonRepository.verifyPayment(hackathon.id, studentUserId, session.user.id, "reject", reason);
+
+      const students = await hackathonRepository.getRegisteredStudents(hackathon.id);
+      const student = students.find((s) => s.user_id === studentUserId);
+      if (student?.email) {
+        try {
+          const rejectedTemplate = getPaymentRejectedEmailTemplate({
+            userName: student.name || "Builder",
+            hackathonTitle: hackathon.title,
+            slug: hackathon.slug,
+            reason,
+          });
+
+          await brevoService.sendEmail({
+            to: [{ email: student.email, name: student.name || undefined }],
+            subject: rejectedTemplate.subject,
+            htmlContent: rejectedTemplate.html,
+            textContent: rejectedTemplate.text,
+            sender: HACK4WIN_SENDERS.REQUESTS,
+            tags: ["payment-rejected", "transactional"],
+          });
+        } catch (mailErr) {
+          console.warn("[Payment Rejection Email Notice]:", mailErr);
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: "Payment proof marked as rejected",
+        student_user_id: studentUserId,
+        status: "rejected",
+        payment_status: "rejected",
+        reason,
+      });
+    }
 
     if (action === "approve_student") {
       const studentUserId =

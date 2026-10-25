@@ -72,6 +72,9 @@ export async function POST(req: NextRequest) {
       "banners",
       "avatars",
       "covers",
+      "payments",
+      "receipts",
+      "qr_codes",
     ]);
 
     const normalizedFolder = rawFolder.replace(/^\/+|\/+$/g, "");
@@ -85,7 +88,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "Invalid target folder. Must be one of: hackathons, projects, submissions, profiles, banners, avatars, covers",
+            "Invalid target folder. Must be one of: hackathons, projects, submissions, profiles, banners, avatars, covers, payments, receipts, qr_codes",
         },
         { status: 400 }
       );

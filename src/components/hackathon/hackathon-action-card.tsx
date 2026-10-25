@@ -32,6 +32,8 @@ import {
   Key,
   School,
   Shield,
+  CreditCard,
+  IndianRupee,
 } from "lucide-react";
 
 interface HackathonActionCardProps {
@@ -51,6 +53,11 @@ interface HackathonActionCardProps {
   allowedEmailDomains?: string[];
   hasAccessCode?: boolean;
   initialRegistrationStatus?: "approved" | "pending" | "rejected";
+  isPaid?: boolean;
+  registrationFee?: number | null;
+  feeCurrency?: string;
+  initialPaymentStatus?: "unpaid" | "pending_verification" | "verified" | "rejected" | null;
+  initialPaymentReference?: string | null;
 }
 
 export function HackathonActionCard({
@@ -70,6 +77,11 @@ export function HackathonActionCard({
   allowedEmailDomains = [],
   hasAccessCode = false,
   initialRegistrationStatus = "approved",
+  isPaid = false,
+  registrationFee = 0,
+  feeCurrency = "₹",
+  initialPaymentStatus = null,
+  initialPaymentReference = null,
 }: HackathonActionCardProps) {
   const router = useRouter();
   const { showAlert, showConfirm } = useModalAlert();
@@ -85,6 +97,10 @@ export function HackathonActionCard({
   const [isLoading, setIsLoading] = useState(false);
   const [isSwitchingType, setIsSwitchingType] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<
+    "unpaid" | "pending_verification" | "verified" | "rejected" | null
+  >(initialPaymentStatus);
+  const [paymentReference, setPaymentReference] = useState<string | null>(initialPaymentReference);
 
   // Modal choice state for registration
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
@@ -99,7 +115,13 @@ export function HackathonActionCard({
 
   const handleOpenJoinFlow = () => {
     if (!isLoggedIn) {
-      window.location.href = `/auth/signin?callbackUrl=/hackathons/${slug}`;
+      window.location.href = isPaid
+        ? `/auth/signin?callbackUrl=/hackathons/${slug}/register`
+        : `/auth/signin?callbackUrl=/hackathons/${slug}`;
+      return;
+    }
+    if (isPaid) {
+      router.push(`/hackathons/${slug}/register`);
       return;
     }
     // Open choice modal
@@ -287,6 +309,21 @@ export function HackathonActionCard({
           </div>
         )}
 
+        {/* Paid Registration Badge */}
+        {isPaid && (
+          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 flex items-start gap-2.5 text-xs">
+            <CreditCard className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
+            <div className="space-y-0.5 flex-1 min-w-0">
+              <span className="font-bold block">
+                Registration Fee: {feeCurrency}{registrationFee || 0}
+              </span>
+              <span className="text-[11px] text-muted-foreground block">
+                Payable via UPI QR code. Submit your transaction UTR and screenshot for verification.
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Stats summary & Participant progress */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -346,7 +383,52 @@ export function HackathonActionCard({
         ) : isRegistered ? (
           <div className="space-y-3">
             {/* Registered Banner: Approved vs Pending vs Rejected */}
-            {registrationStatus === "pending" ? (
+            {paymentStatus === "pending_verification" || (isPaid && registrationStatus === "pending") ? (
+              <div className="space-y-2">
+                <div className="w-full p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-between gap-2 text-xs font-bold px-3">
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                    <span>Payment Verification Pending ⏳</span>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] font-bold border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 rounded-full"
+                  >
+                    UTR Submitted
+                  </Badge>
+                </div>
+                <div className="p-3 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-300 space-y-1.5">
+                  <p className="text-muted-foreground leading-relaxed">
+                    Your payment of {feeCurrency}{registrationFee || 0} is awaiting organizer verification.
+                  </p>
+                  <Button asChild variant="outline" size="sm" className="w-full rounded-xl text-xs font-bold h-7 gap-1">
+                    <Link href={`/hackathons/${slug}/register`}>
+                      <span>View Receipt &amp; Status &rarr;</span>
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            ) : paymentStatus === "rejected" ? (
+              <div className="space-y-2">
+                <div className="w-full p-2.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 flex items-center justify-between gap-2 text-xs font-bold px-3">
+                  <div className="flex items-center gap-1.5">
+                    <Shield className="size-4 shrink-0 text-rose-600 dark:text-rose-400" />
+                    <span>Payment Proof Rejected ❌</span>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] font-bold border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300 rounded-full"
+                  >
+                    Action Needed
+                  </Badge>
+                </div>
+                <Button asChild variant="destructive" size="sm" className="w-full rounded-xl text-xs font-bold h-8">
+                  <Link href={`/hackathons/${slug}/register`}>
+                    Re-Submit Payment Proof &rarr;
+                  </Link>
+                </Button>
+              </div>
+            ) : registrationStatus === "pending" ? (
               <div className="w-full p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-between gap-2 text-xs font-bold px-3">
                 <div className="flex items-center gap-1.5">
                   <Clock className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
@@ -504,14 +586,24 @@ export function HackathonActionCard({
             onClick={handleOpenJoinFlow}
             disabled={isLoading}
             size="lg"
-            className="w-full rounded-full gap-2 shadow-sm font-bold text-sm cursor-pointer"
+            className={`w-full rounded-full gap-2 shadow-sm font-bold text-sm cursor-pointer ${
+              isPaid ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""
+            }`}
           >
             {isLoading ? (
               <Loader2 className="size-4 animate-spin" />
+            ) : isPaid ? (
+              <CreditCard className="size-4" />
             ) : (
               <Sparkles className="size-4" />
             )}
-            {isLoggedIn ? "Register / Join Hackathon" : "Sign In to Join"}
+            {isLoggedIn
+              ? isPaid
+                ? `Register & Pay (${feeCurrency}${registrationFee || 0})`
+                : "Register / Join Hackathon"
+              : isPaid
+              ? `Sign In to Register (${feeCurrency}${registrationFee || 0})`
+              : "Sign In to Join"}
           </Button>
         )}
 

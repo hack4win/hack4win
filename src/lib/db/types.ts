@@ -144,6 +144,12 @@ export interface Hackathon {
   allowed_email_domains?: string[];
   invited_emails?: string[];
   invite_token?: string | null;
+  is_paid?: boolean;
+  registration_fee?: number | null;
+  fee_currency?: string;
+  upi_id?: string | null;
+  upi_qr_code_url?: string | null;
+  payment_instructions?: string | null;
 }
 
 export interface CreateHackathonInput {
@@ -174,6 +180,12 @@ export interface CreateHackathonInput {
   allowed_email_domains?: string[];
   invited_emails?: string[];
   invite_token?: string | null;
+  is_paid?: boolean;
+  registration_fee?: number | null;
+  fee_currency?: string;
+  upi_id?: string | null;
+  upi_qr_code_url?: string | null;
+  payment_instructions?: string | null;
 }
 
 export type UpdateHackathonInput = Partial<CreateHackathonInput>;
@@ -397,6 +409,8 @@ export interface TeamInvitation {
   updated_at: string;
 }
 
+export type PaymentStatus = "unpaid" | "pending_verification" | "verified" | "rejected";
+
 export interface RegisteredStudent {
   user_id: string;
   name: string;
@@ -414,6 +428,14 @@ export interface RegisteredStudent {
   submission_title?: string | null;
   has_submitted: boolean;
   submitted_at?: string | null;
+  payment_status?: PaymentStatus | null;
+  payment_reference?: string | null;
+  payment_screenshot_url?: string | null;
+  payment_amount?: number | null;
+  payment_submitted_at?: string | null;
+  payment_verified_at?: string | null;
+  payment_verified_by?: string | null;
+  payment_rejection_reason?: string | null;
 }
 
 export type HostInquiryStatus = "new" | "contacted" | "in_discussion" | "approved" | "archived";

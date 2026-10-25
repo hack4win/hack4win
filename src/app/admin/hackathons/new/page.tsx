@@ -47,6 +47,9 @@ import {
   Check,
   RefreshCw,
   Share2,
+  CreditCard,
+  QrCode,
+  IndianRupee,
 } from "lucide-react";
 
 const PRESET_BANNERS = [
@@ -123,6 +126,16 @@ export default function CreateHackathonPage() {
   const [invitedEmailsStr, setInvitedEmailsStr] = useState("");
   const [inviteToken, setInviteToken] = useState(() => Math.random().toString(36).substring(2, 12));
   const [copiedInvite, setCopiedInvite] = useState(false);
+
+  // Paid Hackathon & UPI Configuration
+  const [isPaid, setIsPaid] = useState(false);
+  const [registrationFee, setRegistrationFee] = useState("299");
+  const [feeCurrency, setFeeCurrency] = useState("₹");
+  const [upiId, setUpiId] = useState("");
+  const [upiQrCodeUrl, setUpiQrCodeUrl] = useState("");
+  const [paymentInstructions, setPaymentInstructions] = useState(
+    "Scan the UPI QR code or pay directly to the UPI ID. Enter your 12-digit UTR / UPI reference number and attach a screenshot of the completed payment."
+  );
 
   const generateAccessCode = () => {
     const prefix = title
@@ -394,6 +407,14 @@ Welcome to this premier hackathon hosted on **Hack4Win**! Build cutting-edge sol
       return;
     }
 
+    if (isPaid && (Number(registrationFee) <= 0 || isNaN(Number(registrationFee)))) {
+      const msg = "Please enter a valid registration fee greater than 0 for paid hackathons.";
+      setErrorMessage(msg);
+      setIsSubmitting(false);
+      await showAlert({ title: "Validation Error", message: msg, type: "warning" });
+      return;
+    }
+
     try {
       const payload = {
         title: trimmedTitle,
@@ -429,6 +450,12 @@ Welcome to this premier hackathon hosted on **Hack4Win**! Build cutting-edge sol
           ? invitedEmailsStr.split(/[\n,; ]+/).map((e) => e.trim().toLowerCase()).filter(Boolean)
           : undefined,
         invite_token: isPrivate ? inviteToken : undefined,
+        is_paid: isPaid,
+        registration_fee: isPaid ? (Number(registrationFee) || 0) : 0,
+        fee_currency: feeCurrency,
+        upi_id: isPaid && upiId.trim() ? upiId.trim() : undefined,
+        upi_qr_code_url: isPaid && upiQrCodeUrl.trim() ? upiQrCodeUrl.trim() : undefined,
+        payment_instructions: isPaid && paymentInstructions.trim() ? paymentInstructions.trim() : undefined,
       };
 
       const res = await fetch("/api/admin/hackathons", {
@@ -722,6 +749,141 @@ Welcome to this premier hackathon hosted on **Hack4Win**! Build cutting-edge sol
                     <p className="text-[0.65rem] text-muted-foreground">
                       Distribute this link in college groups or emails. Visiting with this link automatically unlocks registration for the student.
                     </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Section: Registration Fee & UPI Payment Model */}
+          <Card className="border shadow-xs rounded-2xl overflow-hidden">
+            <CardHeader className="border-b bg-muted/20 py-4 flex flex-row items-center justify-between gap-4">
+              <div>
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <CreditCard className="size-4 text-emerald-500" /> Registration Fee &amp; UPI Payment
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Choose whether this hackathon is free to enter or requires a registration fee paid via UPI QR code.
+                </CardDescription>
+              </div>
+              <Badge variant={isPaid ? "default" : "outline"} className={isPaid ? "bg-emerald-600 text-white font-bold" : ""}>
+                {isPaid ? `Paid (₹${registrationFee || "0"})` : "Free Entry"}
+              </Badge>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+              {/* Fee Mode Selector */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setIsPaid(false)}
+                  className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                    !isPaid
+                      ? "border-emerald-600 bg-emerald-500/10 ring-2 ring-emerald-600/20"
+                      : "border-border hover:bg-muted/30"
+                  }`}
+                >
+                  <div className="font-bold text-sm flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                    <Sparkles className="size-4" /> Free Registration
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    No fee. Any authenticated participant can register directly with 1 click.
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsPaid(true)}
+                  className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                    isPaid
+                      ? "border-emerald-600 bg-emerald-500/10 ring-2 ring-emerald-600/20"
+                      : "border-border hover:bg-muted/30"
+                  }`}
+                >
+                  <div className="font-bold text-sm flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                    <IndianRupee className="size-4" /> Paid Registration (UPI QR)
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Charge a registration fee. Participants scan your UPI QR code, attach screenshot, and you verify manually.
+                  </div>
+                </button>
+              </div>
+
+              {/* Paid Configuration Fields */}
+              {isPaid && (
+                <div className="p-5 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 space-y-5 animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                    <QrCode className="size-4" /> UPI Payment Setup
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Registration Fee */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="registrationFee" className="text-xs font-semibold flex items-center gap-1">
+                        <IndianRupee className="size-3 text-emerald-600" /> Registration Fee Amount (₹) *
+                      </Label>
+                      <Input
+                        id="registrationFee"
+                        type="number"
+                        min="1"
+                        step="1"
+                        placeholder="e.g. 299"
+                        value={registrationFee}
+                        onChange={(e) => setRegistrationFee(e.target.value)}
+                        className="rounded-xl font-semibold"
+                        required
+                      />
+                      <p className="text-[0.7rem] text-muted-foreground">
+                        Exact amount participants must send via UPI to register.
+                      </p>
+                    </div>
+
+                    {/* Organizer UPI ID */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="upiId" className="text-xs font-semibold flex items-center gap-1">
+                        <CreditCard className="size-3 text-emerald-600" /> UPI ID / VPA *
+                      </Label>
+                      <Input
+                        id="upiId"
+                        type="text"
+                        placeholder="e.g. organizer@okaxis, 9876543210@paytm"
+                        value={upiId}
+                        onChange={(e) => setUpiId(e.target.value)}
+                        className="rounded-xl font-mono text-sm"
+                      />
+                      <p className="text-[0.7rem] text-muted-foreground">
+                        Your UPI ID where participants will send the registration fee.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Custom UPI QR Code Image (Optional) */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold flex items-center gap-1.5">
+                      <QrCode className="size-3.5 text-emerald-600" /> Custom UPI QR Code Image (Optional)
+                    </Label>
+                    <ImageUploader
+                      label="Upload your UPI QR code (Google Pay / PhonePe / Paytm scanner image)"
+                      folder="qr_codes"
+                      value={upiQrCodeUrl}
+                      onChange={(url) => setUpiQrCodeUrl(url)}
+                    />
+                    <p className="text-[0.7rem] text-muted-foreground">
+                      💡 If left empty, Hack4Win will automatically generate a crisp, scannable UPI QR code from your UPI ID and fee!
+                    </p>
+                  </div>
+
+                  {/* Payment Instructions */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="paymentInstructions" className="text-xs font-semibold">
+                      Payment Instructions for Participants
+                    </Label>
+                    <Input
+                      id="paymentInstructions"
+                      placeholder="e.g. Scan QR, pay ₹299, enter 12-digit UTR, and upload screenshot."
+                      value={paymentInstructions}
+                      onChange={(e) => setPaymentInstructions(e.target.value)}
+                      className="rounded-xl text-xs"
+                    />
                   </div>
                 </div>
               )}

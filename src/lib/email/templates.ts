@@ -1498,6 +1498,192 @@ export function getProjectApprovedEmailTemplate(params: {
   return { subject, html, text };
 }
 
+/**
+ * 3.7 Paid Hackathon - Payment Proof Submitted Receipt
+ */
+export function getPaidRegistrationSubmittedEmailTemplate(params: {
+  userName: string;
+  hackathonTitle: string;
+  slug: string;
+  feeAmount: string | number;
+  currency?: string;
+  utrNumber: string;
+}): GeneratedEmail {
+  const hackathonUrl = `${BRAND_URL}/hackathons/${params.slug}`;
+  const curr = params.currency || "₹";
+  const subject = `Payment Proof Received (UTR: ${params.utrNumber}) - ${params.hackathonTitle} 🧾`;
+
+  const content = `
+    <h1 style="margin: 0 0 14px; font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">
+      Payment Proof Submitted Successfully 🧾
+    </h1>
+    <p style="margin: 0 0 16px; font-size: 14px; line-height: 1.6; color: #d1d5db;">
+      Hi <strong>${escapeHtml(params.userName)}</strong>, we have received your payment proof for 
+      <strong>${escapeHtml(params.hackathonTitle)}</strong>.
+    </p>
+
+    <!-- Payment Verification Details Box -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0d1322; border: 1px solid #1f2937; border-radius: 12px; margin: 20px 0; padding: 18px;">
+      <tr>
+        <td>
+          <div style="display: inline-block; background-color: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.4); color: #fbbf24; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 9999px; margin-bottom: 10px;">
+            ⏳ Verification Pending
+          </div>
+          <div style="font-size: 16px; font-weight: 800; color: #ffffff; margin-bottom: 8px;">
+            ${escapeHtml(params.hackathonTitle)}
+          </div>
+          <div style="font-size: 13px; color: #9ca3af; line-height: 1.8;">
+            💰 <strong>Registration Fee:</strong> ${curr}${params.feeAmount}<br>
+            🔢 <strong>UPI Reference / UTR:</strong> <code style="font-family: monospace; color: #a5b4fc; background: #1e1b4b; padding: 2px 6px; border-radius: 4px;">${escapeHtml(params.utrNumber)}</code><br>
+            ⏱️ <strong>Estimated Verification:</strong> Within 24 hours by organizer
+          </div>
+        </td>
+      </tr>
+    </table>
+
+    <div style="background-color: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 10px; padding: 14px 16px; margin: 16px 0; font-size: 13px; color: #93c5fd; line-height: 1.6;">
+      ℹ️ The event organizer will verify your payment in their account statement. Once confirmed, your registration will be marked as <strong>Approved</strong> and project submissions will unlock automatically.
+    </div>
+
+    <div style="text-align: center; margin: 28px 0 20px;">
+      <a href="${hackathonUrl}" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: #ffffff; font-size: 14px; font-weight: 700; padding: 14px 28px; border-radius: 9999px; text-decoration: none; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);">
+        View Challenge Status &rarr;
+      </a>
+    </div>
+  `;
+
+  const html = wrapInEmailLayout(content, {
+    preheader: `Payment proof received for ${params.hackathonTitle}. Verification pending.`,
+  });
+
+  const text = `Payment Proof Received: ${params.hackathonTitle}\n\n` +
+    `Hi ${params.userName},\n` +
+    `We have received your payment proof for ${params.hackathonTitle}.\n` +
+    `Amount: ${curr}${params.feeAmount}\n` +
+    `UTR / Reference: ${params.utrNumber}\n` +
+    `Status: Verification Pending\n\n` +
+    `The organizer will verify your screenshot and confirm your registration.\n` +
+    `View Challenge: ${hackathonUrl}\n\n` +
+    `The Hack4Win Team`;
+
+  return { subject, html, text };
+}
+
+/**
+ * 3.8 Paid Hackathon - Payment Verified & Registration Approved
+ */
+export function getPaymentVerifiedEmailTemplate(params: {
+  userName: string;
+  hackathonTitle: string;
+  slug: string;
+  feeAmount: string | number;
+  currency?: string;
+  utrNumber?: string;
+}): GeneratedEmail {
+  const hackathonUrl = `${BRAND_URL}/hackathons/${params.slug}`;
+  const curr = params.currency || "₹";
+  const subject = `Payment Verified: Registration Confirmed for ${params.hackathonTitle}! 🎉`;
+
+  const content = `
+    <h1 style="margin: 0 0 14px; font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">
+      Payment Verified & Registration Confirmed! 🎉
+    </h1>
+    <p style="margin: 0 0 16px; font-size: 14px; line-height: 1.6; color: #d1d5db;">
+      Hi <strong>${escapeHtml(params.userName)}</strong>, your payment for 
+      <strong>${escapeHtml(params.hackathonTitle)}</strong> has been verified and approved by the event organizer.
+    </p>
+
+    <!-- Verified Badge & Card -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0d1322; border: 1px solid #10b981; border-radius: 12px; margin: 20px 0; padding: 18px;">
+      <tr>
+        <td>
+          <div style="display: inline-block; background-color: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.5); color: #34d399; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 9999px; margin-bottom: 10px;">
+            ✓ Payment Verified &amp; Confirmed
+          </div>
+          <div style="font-size: 16px; font-weight: 800; color: #ffffff; margin-bottom: 8px;">
+            ${escapeHtml(params.hackathonTitle)}
+          </div>
+          <div style="font-size: 13px; color: #9ca3af; line-height: 1.8;">
+            💰 <strong>Amount Paid:</strong> ${curr}${params.feeAmount}<br>
+            ${params.utrNumber ? `🔢 <strong>UTR:</strong> ${escapeHtml(params.utrNumber)}<br>` : ""}
+            🚀 <strong>Status:</strong> Active Participant (Submissions Unlocked)
+          </div>
+        </td>
+      </tr>
+    </table>
+
+    <div style="text-align: center; margin: 28px 0 20px;">
+      <a href="${hackathonUrl}" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; font-size: 14px; font-weight: 700; padding: 14px 28px; border-radius: 9999px; text-decoration: none; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);">
+        Enter Challenge Workspace &rarr;
+      </a>
+    </div>
+  `;
+
+  const html = wrapInEmailLayout(content, {
+    preheader: `Payment verified! You are officially registered for ${params.hackathonTitle}.`,
+  });
+
+  const text = `Payment Verified: ${params.hackathonTitle}\n\n` +
+    `Hi ${params.userName},\n` +
+    `Your payment for ${params.hackathonTitle} has been verified and confirmed.\n` +
+    `Amount Paid: ${curr}${params.feeAmount}\n` +
+    `Status: Confirmed Participant\n\n` +
+    `Open Challenge: ${hackathonUrl}\n\n` +
+    `The Hack4Win Team`;
+
+  return { subject, html, text };
+}
+
+/**
+ * 3.9 Paid Hackathon - Payment Rejected
+ */
+export function getPaymentRejectedEmailTemplate(params: {
+  userName: string;
+  hackathonTitle: string;
+  slug: string;
+  reason?: string;
+}): GeneratedEmail {
+  const registerUrl = `${BRAND_URL}/hackathons/${params.slug}/register`;
+  const subject = `Payment Notice: Verification Issue for ${params.hackathonTitle} ⚠️`;
+
+  const content = `
+    <h1 style="margin: 0 0 14px; font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">
+      Payment Verification Update ⚠️
+    </h1>
+    <p style="margin: 0 0 16px; font-size: 14px; line-height: 1.6; color: #d1d5db;">
+      Hi <strong>${escapeHtml(params.userName)}</strong>, the event organizer was unable to verify your payment proof for 
+      <strong>${escapeHtml(params.hackathonTitle)}</strong>.
+    </p>
+
+    <div style="background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 10px; padding: 14px 16px; margin: 16px 0; font-size: 13px; color: #fca5a5; line-height: 1.6;">
+      ❌ <strong>Organizer Note:</strong> ${escapeHtml(params.reason || "Payment proof could not be verified with bank statement. Please verify your 12-digit UTR number and attach a clear screenshot of the completed transaction.")}
+    </div>
+
+    <p style="margin: 16px 0; font-size: 14px; color: #9ca3af; line-height: 1.6;">
+      Don&apos;t worry! You can easily re-submit your payment details and valid screenshot using the link below:
+    </p>
+
+    <div style="text-align: center; margin: 28px 0 20px;">
+      <a href="${registerUrl}" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: #ffffff; font-size: 14px; font-weight: 700; padding: 14px 28px; border-radius: 9999px; text-decoration: none; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);">
+        Re-Submit Payment Proof &rarr;
+      </a>
+    </div>
+  `;
+
+  const html = wrapInEmailLayout(content, {
+    preheader: `Payment verification issue for ${params.hackathonTitle}. Please re-submit proof.`,
+  });
+
+  const text = `Payment Notice: ${params.hackathonTitle}\n\n` +
+    `Hi ${params.userName},\n` +
+    `The organizer was unable to verify your payment proof for ${params.hackathonTitle}.\n` +
+    `Reason: ${params.reason || "Payment proof could not be verified."}\n\n` +
+    `Re-submit proof: ${registerUrl}\n\n` +
+    `The Hack4Win Team`;
+
+  return { subject, html, text };
+}
+
 // =========================================================================
 // TEMPLATE REGISTRY CATALOG (For UI & API Dispatching)
 // =========================================================================

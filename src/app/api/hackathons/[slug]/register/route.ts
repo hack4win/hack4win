@@ -3,7 +3,10 @@ import { getServerSession } from "@/lib/auth/session";
 import { hackathonRepository } from "@/lib/db/hackathon-repository";
 import { getHackathonStatus } from "@/lib/db/types";
 import { brevoService, HACK4WIN_SENDERS } from "@/lib/email/brevo-service";
-import { getHackathonRegistrationEmailTemplate } from "@/lib/email/templates";
+import {
+  getHackathonRegistrationEmailTemplate,
+  getPaidRegistrationSubmittedEmailTemplate,
+} from "@/lib/email/templates";
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -30,6 +33,19 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     registered: !!reg,
     participation_type: reg?.participation_type || "looking_for_team",
     status: reg?.status || "approved",
+    is_paid: Boolean(hackathon.is_paid),
+    registration_fee: hackathon.registration_fee || 0,
+    fee_currency: hackathon.fee_currency || "₹",
+    upi_id: hackathon.upi_id || null,
+    upi_qr_code_url: hackathon.upi_qr_code_url || null,
+    payment_instructions: hackathon.payment_instructions || null,
+    payment_status: reg?.payment_status || (hackathon.is_paid ? "unpaid" : null),
+    payment_reference: reg?.payment_reference || null,
+    payment_screenshot_url: reg?.payment_screenshot_url || null,
+    payment_amount: reg?.payment_amount || null,
+    payment_submitted_at: reg?.payment_submitted_at || null,
+    payment_verified_at: reg?.payment_verified_at || null,
+    payment_rejection_reason: reg?.payment_rejection_reason || null,
   });
 }
 
@@ -150,57 +166,107 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       participationType = mapped;
     }
 
+    // Payment details handling for paid hackathons
+    const isPaid = Boolean(hackathon.is_paid && Number(hackathon.registration_fee || 0) > 0);
+    const paymentRef = typeof body?.payment_reference === "string" ? body.payment_reference.trim().slice(0, 100) : null;
+    const paymentScreenshotUrl = typeof body?.payment_screenshot_url === "string" ? body.payment_screenshot_url.trim() : null;
+    const paymentAmount =
+      body?.payment_amount !== undefined && body?.payment_amount !== null
+        ? Number(body.payment_amount)
+        : Number(hackathon.registration_fee || 0);
+
+    let paymentStatus: "unpaid" | "pending_verification" | "verified" | "rejected" = "unpaid";
+    let paymentSubmittedAt: string | null = null;
+
+    if (isPaid) {
+      if (paymentRef || paymentScreenshotUrl) {
+        paymentStatus = "pending_verification";
+        registrationStatus = "pending";
+        paymentSubmittedAt = new Date().toISOString();
+      } else {
+        paymentStatus = "unpaid";
+        registrationStatus = "pending";
+      }
+    }
+
     const studentData = {
       student_id: typeof body?.student_id === "string" ? body.student_id.trim().slice(0, 100) : null,
       college_name: typeof body?.college_name === "string" ? body.college_name.trim().slice(0, 200) : null,
       academic_year: typeof body?.academic_year === "string" ? body.academic_year.trim().slice(0, 100) : null,
       branch: typeof body?.branch === "string" ? body.branch.trim().slice(0, 150) : null,
       status: registrationStatus,
+      payment_status: paymentStatus,
+      payment_reference: paymentRef,
+      payment_screenshot_url: paymentScreenshotUrl,
+      payment_amount: isPaid ? paymentAmount : null,
+      payment_submitted_at: paymentSubmittedAt,
     };
 
     try {
       await hackathonRepository.registerUser(hackathon.id, session.user.id, participationType, studentData);
-    const count = await hackathonRepository.getParticipantCount(hackathon.id);
+      const count = await hackathonRepository.getParticipantCount(hackathon.id);
 
-    // Send confirmation email via Brevo
-    if (session.user.email) {
-      try {
-        const regTemplate = getHackathonRegistrationEmailTemplate({
-          userName: session.user.name || "Builder",
-          hackathonTitle: hackathon.title,
-          slug: hackathon.slug,
-          startDate: hackathon.start_date,
-          isPrivate: hackathon.is_private,
-          accessCode: hackathon.access_code || undefined,
-          status: registrationStatus,
-        });
+      // Send confirmation email via Brevo
+      if (session.user.email) {
+        try {
+          if (isPaid && paymentStatus === "pending_verification") {
+            const paidTemplate = getPaidRegistrationSubmittedEmailTemplate({
+              userName: session.user.name || "Builder",
+              hackathonTitle: hackathon.title,
+              slug: hackathon.slug,
+              feeAmount: paymentAmount,
+              currency: hackathon.fee_currency || "₹",
+              utrNumber: paymentRef || "Attached Screenshot",
+            });
 
-        await brevoService.sendEmail({
-          to: [{ email: session.user.email, name: session.user.name || undefined }],
-          subject: regTemplate.subject,
-          htmlContent: regTemplate.html,
-          textContent: regTemplate.text,
-          sender: HACK4WIN_SENDERS.NOTIFICATIONS,
-          tags: ["hackathon-registration", "transactional"],
-        });
-      } catch (mailErr) {
-        console.warn("[Registration Confirmation Mail Notice]:", mailErr);
+            await brevoService.sendEmail({
+              to: [{ email: session.user.email, name: session.user.name || undefined }],
+              subject: paidTemplate.subject,
+              htmlContent: paidTemplate.html,
+              textContent: paidTemplate.text,
+              sender: HACK4WIN_SENDERS.NOTIFICATIONS,
+              tags: ["hackathon-paid-registration", "transactional"],
+            });
+          } else {
+            const regTemplate = getHackathonRegistrationEmailTemplate({
+              userName: session.user.name || "Builder",
+              hackathonTitle: hackathon.title,
+              slug: hackathon.slug,
+              startDate: hackathon.start_date,
+              isPrivate: hackathon.is_private,
+              accessCode: hackathon.access_code || undefined,
+              status: registrationStatus,
+            });
+
+            await brevoService.sendEmail({
+              to: [{ email: session.user.email, name: session.user.name || undefined }],
+              subject: regTemplate.subject,
+              htmlContent: regTemplate.html,
+              textContent: regTemplate.text,
+              sender: HACK4WIN_SENDERS.NOTIFICATIONS,
+              tags: ["hackathon-registration", "transactional"],
+            });
+          }
+        } catch (mailErr) {
+          console.warn("[Registration Confirmation Mail Notice]:", mailErr);
+        }
       }
-    }
 
-    return NextResponse.json({
-      success: true,
-      registered: true,
-      participation_type: participationType,
-      status: registrationStatus,
-      requires_verification: registrationStatus === "pending",
-      count,
-    });
-  } catch (err) {
-    console.error("[Hackathon Register Error]:", err);
-    return NextResponse.json({ error: "Failed to register for hackathon" }, { status: 500 });
+      return NextResponse.json({
+        success: true,
+        registered: true,
+        participation_type: participationType,
+        status: registrationStatus,
+        is_paid: isPaid,
+        payment_status: paymentStatus,
+        requires_verification: registrationStatus === "pending",
+        count,
+      });
+    } catch (err) {
+      console.error("[Hackathon Register Error]:", err);
+      return NextResponse.json({ error: "Failed to register for hackathon" }, { status: 500 });
+    }
   }
-}
 
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
   const session = await getServerSession();

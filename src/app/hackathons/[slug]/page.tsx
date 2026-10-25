@@ -31,6 +31,7 @@ import {
   Smartphone,
   Gavel,
   Lock,
+  CreditCard,
 } from "lucide-react";
 import { MarkdownPreview } from "@/components/ui/markdown-preview";
 import { getHackathonStatus } from "@/lib/db/types";
@@ -134,6 +135,9 @@ export default async function HackathonDetailPage({ params, searchParams }: Page
   const isRegistered = !!userRegistration?.registered;
   const participationType = (userRegistration?.participation_type as "solo" | "looking_for_team") || "looking_for_team";
   const registrationStatus = (userRegistration?.status || "approved") as "approved" | "pending" | "rejected";
+  const isPaid = Boolean(hackathon.is_paid && Number(hackathon.registration_fee || 0) > 0);
+  const paymentStatus = userRegistration?.payment_status || null;
+  const paymentReference = userRegistration?.payment_reference || null;
 
   // Calculate duration in days
   const startMs = new Date(hackathon.start_date).getTime();
@@ -288,6 +292,12 @@ export default async function HackathonDetailPage({ params, searchParams }: Page
                   </Badge>
                 )}
 
+                {isPaid && (
+                  <Badge className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-xs font-semibold gap-1.5 rounded-full px-3 py-1">
+                    <CreditCard className="size-3.5" /> Entry: {hackathon.fee_currency || "₹"}{hackathon.registration_fee}
+                  </Badge>
+                )}
+
                 <Badge variant="outline" className="capitalize text-xs rounded-full px-3 py-1">
                   {hackathon.format}
                 </Badge>
@@ -346,6 +356,11 @@ export default async function HackathonDetailPage({ params, searchParams }: Page
                 allowedEmailDomains={hackathon.allowed_email_domains || []}
                 hasAccessCode={Boolean(hackathon.access_code)}
                 initialRegistrationStatus={registrationStatus}
+                isPaid={isPaid}
+                registrationFee={hackathon.registration_fee}
+                feeCurrency={hackathon.fee_currency || "₹"}
+                initialPaymentStatus={paymentStatus}
+                initialPaymentReference={paymentReference}
               />
             </div>
           </div>

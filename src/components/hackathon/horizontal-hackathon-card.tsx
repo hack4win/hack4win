@@ -17,6 +17,7 @@ import {
   CalendarClock,
   CheckCircle2,
   Lock,
+  Ticket,
 } from "lucide-react";
 import type { Hackathon } from "@/lib/db/types";
 import { getHackathonStatus } from "@/lib/db/types";
@@ -240,6 +241,15 @@ export function HorizontalHackathonCard({ hackathon }: HorizontalHackathonCardPr
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
               {statusStyles.badge}
+              {hackathon.is_paid && hackathon.registration_fee && Number(hackathon.registration_fee) > 0 ? (
+                <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/25 text-xs font-semibold gap-1 rounded-full px-2.5 py-0.5">
+                  <Ticket className="size-3" /> {hackathon.fee_currency || "₹"}{hackathon.registration_fee}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-muted-foreground text-xs font-medium rounded-full px-2.5 py-0.5">
+                  Free
+                </Badge>
+              )}
               {hackathon.is_private && (
                 <Badge className="bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/25 text-xs font-semibold gap-1 rounded-full px-2.5 py-0.5">
                   <Lock className="size-3" /> Campus

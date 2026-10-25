@@ -35,6 +35,8 @@ import {
   Shield,
   Loader2,
   FileSpreadsheet,
+  Receipt,
+  CreditCard,
 } from "lucide-react";
 
 interface OrganizerStudentsClientProps {
@@ -57,7 +59,7 @@ export function OrganizerStudentsClient({
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<
-    "all" | "submitted" | "pending_submission" | "pending_verification" | "approved" | "rejected" | "solo" | "team"
+    "all" | "submitted" | "pending_submission" | "pending_verification" | "approved" | "rejected" | "solo" | "team" | "pending_payment" | "verified_payment" | "rejected_payment"
   >("all");
   const [activeTab, setActiveTab] = useState<"registered" | "whitelist" | "access">("registered");
 
@@ -66,6 +68,11 @@ export function OrganizerStudentsClient({
   const [newEmailsInput, setNewEmailsInput] = useState("");
   const [sendInviteEmails, setSendInviteEmails] = useState(true);
   const [isSubmittingEmails, setIsSubmittingEmails] = useState(false);
+
+  // Lightbox preview for UPI payment screenshot
+  const [previewingReceiptUrl, setPreviewingReceiptUrl] = useState<string | null>(null);
+  const [previewingReceiptStudent, setPreviewingReceiptStudent] = useState<RegisteredStudent | null>(null);
+  const [copiedUtrId, setCopiedUtrId] = useState<string | null>(null);
 
   // Quick Action States
   const [copiedLink, setCopiedLink] = useState(false);
@@ -83,6 +90,11 @@ export function OrganizerStudentsClient({
   const pendingReviewCount = students.filter((s) => s.status === "pending").length;
   const approvedCount = students.filter((s) => s.status !== "pending" && s.status !== "rejected").length;
   const rejectedCount = students.filter((s) => s.status === "rejected").length;
+  const pendingPaymentCount = students.filter((s) => s.payment_status === "pending_verification").length;
+  const verifiedPaymentCount = students.filter((s) => s.payment_status === "verified").length;
+  const totalVerifiedRevenue = students
+    .filter((s) => s.payment_status === "verified")
+    .reduce((sum, s) => sum + (Number(s.payment_amount) || Number(hackathon.registration_fee) || 0), 0);
 
   // Registered email set for fast lookup
   const registeredEmailSet = useMemo(() => {
@@ -106,8 +118,9 @@ export function OrganizerStudentsClient({
         const matchesStudentId = s.student_id?.toLowerCase().includes(q) || false;
         const matchesBranch = s.branch?.toLowerCase().includes(q) || false;
         const matchesProject = s.submission_title?.toLowerCase().includes(q) || false;
+        const matchesUtr = s.payment_reference?.toLowerCase().includes(q) || false;
 
-        if (!matchesName && !matchesEmail && !matchesUsername && !matchesStudentId && !matchesBranch && !matchesProject) {
+        if (!matchesName && !matchesEmail && !matchesUsername && !matchesStudentId && !matchesBranch && !matchesProject && !matchesUtr) {
           return false;
         }
       }
@@ -120,6 +133,9 @@ export function OrganizerStudentsClient({
       if (statusFilter === "rejected") return s.status === "rejected";
       if (statusFilter === "solo") return s.participation_type === "solo";
       if (statusFilter === "team") return s.participation_type !== "solo";
+      if (statusFilter === "pending_payment") return s.payment_status === "pending_verification";
+      if (statusFilter === "verified_payment") return s.payment_status === "verified";
+      if (statusFilter === "rejected_payment") return s.payment_status === "rejected";
 
       return true;
     });
@@ -365,6 +381,101 @@ export function OrganizerStudentsClient({
     }
   };
 
+  // Helper to verify student UPI payment
+  const handleVerifyPayment = async (studentUserId: string, studentName: string) => {
+    setUpdatingStudentId(studentUserId);
+    try {
+      const res = await fetch(`/api/organizer/hackathons/${hackathon.id}/students`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "verify_payment",
+          student_user_id: studentUserId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to verify payment");
+
+      setStudents((prev) =>
+        prev.map((s) =>
+          s.user_id === studentUserId
+            ? { ...s, status: "approved", payment_status: "verified", payment_verified_at: new Date().toISOString() }
+            : s
+        )
+      );
+
+      showAlert({
+        title: "Payment Verified",
+        message: `${studentName || "Participant"}'s UPI payment has been verified and their registration approved.`,
+        type: "info",
+      });
+    } catch (err) {
+      showAlert({
+        title: "Error",
+        message: err instanceof Error ? err.message : "Failed to verify payment",
+        type: "error",
+      });
+    } finally {
+      setUpdatingStudentId(null);
+    }
+  };
+
+  // Helper to reject student UPI payment proof
+  const handleRejectPayment = async (studentUserId: string, studentName: string) => {
+    const confirmed = await showConfirm({
+      title: "Reject Payment Proof?",
+      message: `Are you sure you want to reject ${studentName || "this participant"}'s payment submission? They will receive an email notice with instructions to re-upload their correct screenshot or UTR.`,
+      confirmText: "Reject Payment",
+      cancelText: "Cancel",
+      destructive: true,
+    });
+    if (!confirmed) return;
+
+    setUpdatingStudentId(studentUserId);
+    try {
+      const res = await fetch(`/api/organizer/hackathons/${hackathon.id}/students`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "reject_payment",
+          student_user_id: studentUserId,
+          reason: "Payment screenshot or UTR reference could not be verified with bank statement.",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to reject payment");
+
+      setStudents((prev) =>
+        prev.map((s) =>
+          s.user_id === studentUserId
+            ? { ...s, status: "rejected", payment_status: "rejected" }
+            : s
+        )
+      );
+
+      showAlert({
+        title: "Payment Rejected",
+        message: `${studentName || "Participant"}'s payment was marked as rejected and notification sent.`,
+        type: "info",
+      });
+    } catch (err) {
+      showAlert({
+        title: "Error",
+        message: err instanceof Error ? err.message : "Failed to reject payment",
+        type: "error",
+      });
+    } finally {
+      setUpdatingStudentId(null);
+    }
+  };
+
+  // Helper to copy UTR number
+  const handleCopyUtr = (utr: string, id: string) => {
+    navigator.clipboard.writeText(utr);
+    setCopiedUtrId(id);
+    setTimeout(() => setCopiedUtrId(null), 2000);
+  };
+
   // Helper to export CSV
   const handleExportCSV = () => {
     if (students.length === 0) {
@@ -385,6 +496,10 @@ export function OrganizerStudentsClient({
       "Academic Year",
       "Branch",
       "Verification Status",
+      "Payment Status",
+      "Fee Amount",
+      "Payment UTR / Reference",
+      "Screenshot URL",
       "Participation Mode",
       "Submission Status",
       "Project Title",
@@ -400,6 +515,10 @@ export function OrganizerStudentsClient({
       `"${(s.academic_year || "").replace(/"/g, '""')}"`,
       `"${(s.branch || "").replace(/"/g, '""')}"`,
       `"${(s.status || "approved").toUpperCase()}"`,
+      `"${(s.payment_status || (hackathon.is_paid ? "unpaid" : "free")).toUpperCase()}"`,
+      `"${s.payment_amount ?? (hackathon.is_paid ? hackathon.registration_fee : 0)}"`,
+      `"${(s.payment_reference || "").replace(/"/g, '""')}"`,
+      `"${(s.payment_screenshot_url || "").replace(/"/g, '""')}"`,
       `"${s.participation_type === "solo" ? "Solo" : "Looking for Team"}"`,
       `"${s.has_submitted ? "Submitted" : "Pending"}"`,
       `"${(s.submission_title || "").replace(/"/g, '""')}"`,
@@ -618,6 +737,38 @@ export function OrganizerStudentsClient({
         </div>
       )}
 
+      {/* Payment Proof Verification Alert Banner */}
+      {pendingPaymentCount > 0 && (
+        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="size-10 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <Receipt className="size-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
+                <span>UPI Payment Verification Required</span>
+                <Badge className="bg-emerald-600 text-white font-black text-[10px] px-2 py-0.5">
+                  {pendingPaymentCount} Proof{pendingPaymentCount > 1 ? "s" : ""} Awaiting Review
+                </Badge>
+              </h4>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Participants have submitted registration fee receipts and UPI UTR references. Compare with your bank account statement and verify to activate their access.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => {
+              setActiveTab("registered");
+              setStatusFilter("pending_payment");
+            }}
+            className="shrink-0 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs cursor-pointer"
+          >
+            Review Payments ({pendingPaymentCount})
+          </Button>
+        </div>
+      )}
+
       {/* KPI Metric Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Total Registered */}
@@ -634,40 +785,63 @@ export function OrganizerStudentsClient({
           </CardContent>
         </Card>
 
-        {/* Verification Queue (Pending Review) */}
-        <Card className={`shadow-xs border ${pendingReviewCount > 0 ? "border-amber-500/40 bg-amber-500/5" : ""}`}>
+        {/* Verification Queue (Pending Review) or Payment Queue */}
+        <Card className={`shadow-xs border ${pendingReviewCount > 0 || pendingPaymentCount > 0 ? "border-amber-500/40 bg-amber-500/5" : ""}`}>
           <CardHeader className="pt-6 px-6 pb-2">
             <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
-              <span>Awaiting Review</span>
+              <span>{pendingPaymentCount > 0 ? "Payments Awaiting Review" : "Awaiting Review"}</span>
               <Clock className="size-4 text-amber-600" />
             </CardTitle>
           </CardHeader>
           <CardContent className="px-6 pb-6 pt-0 space-y-1">
             <div className="text-3xl font-black tracking-tight text-amber-600 dark:text-amber-400">
-              {pendingReviewCount}
+              {pendingPaymentCount > 0 ? pendingPaymentCount : pendingReviewCount}
             </div>
             <p className="text-xs text-muted-foreground">
-              {pendingReviewCount > 0 ? "Require organizer approval" : "All students verified"}
+              {pendingPaymentCount > 0
+                ? "Pending UPI proof check"
+                : pendingReviewCount > 0
+                ? "Require organizer approval"
+                : "All students verified"}
             </p>
           </CardContent>
         </Card>
 
-        {/* Project Submissions */}
-        <Card className="shadow-xs border">
-          <CardHeader className="pt-6 px-6 pb-2">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
-              <span>Projects Submitted</span>
-              <Rocket className="size-4 text-emerald-600" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-6 pb-6 pt-0 space-y-1">
-            <div className="text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
-              {totalSubmitted}
-              <span className="text-xs font-bold text-muted-foreground ml-2">({submissionRate}%)</span>
-            </div>
-            <p className="text-xs text-muted-foreground">Completed submissions in judging queue</p>
-          </CardContent>
-        </Card>
+        {/* Paid Revenue / Registrations */}
+        {hackathon.is_paid ? (
+          <Card className="shadow-xs border border-emerald-500/30 bg-emerald-500/5">
+            <CardHeader className="pt-6 px-6 pb-2">
+              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                <span>Verified Revenue</span>
+                <CreditCard className="size-4 text-emerald-600" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-6 pb-6 pt-0 space-y-1">
+              <div className="text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
+                {hackathon.fee_currency || "₹"}{totalVerifiedRevenue.toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {verifiedPaymentCount} verified payment{verifiedPaymentCount === 1 ? "" : "s"}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="shadow-xs border">
+            <CardHeader className="pt-6 px-6 pb-2">
+              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                <span>Projects Submitted</span>
+                <Rocket className="size-4 text-emerald-600" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-6 pb-6 pt-0 space-y-1">
+              <div className="text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
+                {totalSubmitted}
+                <span className="text-xs font-bold text-muted-foreground ml-2">({submissionRate}%)</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Completed submissions</p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Builders Mode Breakdown */}
         <Card className="shadow-xs border">
@@ -767,6 +941,13 @@ export function OrganizerStudentsClient({
                 className="h-9 rounded-xl border border-input bg-background px-3 text-xs font-medium cursor-pointer"
               >
                 <option value="all">All Statuses ({students.length})</option>
+                {hackathon.is_paid && (
+                  <>
+                    <option value="pending_payment">💳 Pending Payment ({pendingPaymentCount})</option>
+                    <option value="verified_payment">✅ Verified Payments ({verifiedPaymentCount})</option>
+                    <option value="rejected_payment">❌ Rejected Payments ({students.filter((s) => s.payment_status === "rejected").length})</option>
+                  </>
+                )}
                 <option value="pending_verification">⏳ Pending Review ({pendingReviewCount})</option>
                 <option value="approved">✅ Approved ({approvedCount})</option>
                 <option value="rejected">❌ Rejected ({rejectedCount})</option>
@@ -801,6 +982,7 @@ export function OrganizerStudentsClient({
                       <th className="px-6 py-3.5">Student / Participant</th>
                       <th className="px-6 py-3.5">Campus Credentials</th>
                       <th className="px-6 py-3.5">Mode</th>
+                      <th className="px-6 py-3.5">Payment & Fee</th>
                       <th className="px-6 py-3.5">Verification</th>
                       <th className="px-6 py-3.5">Submission Status</th>
                       <th className="px-6 py-3.5">Actions</th>
@@ -871,6 +1053,110 @@ export function OrganizerStudentsClient({
                           )}
                         </td>
 
+                        {/* Payment & Fee Column */}
+                        <td className="px-6 py-4 text-xs">
+                          {s.payment_status === "verified" ? (
+                            <div className="space-y-1">
+                              <Badge className="bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-[10px] rounded-full font-bold gap-1">
+                                <CheckCircle2 className="size-2.5" />
+                                {hackathon.fee_currency || "₹"}{s.payment_amount ?? hackathon.registration_fee ?? 0} Paid
+                              </Badge>
+                              {s.payment_reference && (
+                                <div className="flex items-center gap-1 font-mono text-[11px] text-muted-foreground">
+                                  <span>UTR: {s.payment_reference}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyUtr(s.payment_reference!, s.user_id)}
+                                    className="hover:text-foreground transition-colors cursor-pointer"
+                                    title="Copy UTR Reference"
+                                  >
+                                    {copiedUtrId === s.user_id ? (
+                                      <Check className="size-3 text-emerald-500" />
+                                    ) : (
+                                      <Copy className="size-3" />
+                                    )}
+                                  </button>
+                                </div>
+                              )}
+                              {s.payment_screenshot_url && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setPreviewingReceiptUrl(s.payment_screenshot_url!);
+                                    setPreviewingReceiptStudent(s);
+                                  }}
+                                  className="text-[11px] font-semibold text-primary hover:underline inline-flex items-center gap-1 cursor-pointer block"
+                                >
+                                  <Receipt className="size-3" /> View Proof
+                                </button>
+                              )}
+                            </div>
+                          ) : s.payment_status === "pending_verification" ? (
+                            <div className="space-y-1">
+                              <Badge className="bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300 text-[10px] rounded-full font-bold gap-1">
+                                <Clock className="size-2.5" />
+                                {hackathon.fee_currency || "₹"}{s.payment_amount ?? hackathon.registration_fee ?? 0} &bull; Verification Pending
+                              </Badge>
+                              {s.payment_reference && (
+                                <div className="flex items-center gap-1 font-mono text-[11px] font-bold text-foreground">
+                                  <span>UTR: {s.payment_reference}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyUtr(s.payment_reference!, s.user_id)}
+                                    className="hover:text-foreground transition-colors cursor-pointer"
+                                    title="Copy UTR Reference"
+                                  >
+                                    {copiedUtrId === s.user_id ? (
+                                      <Check className="size-3 text-emerald-500" />
+                                    ) : (
+                                      <Copy className="size-3" />
+                                    )}
+                                  </button>
+                                </div>
+                              )}
+                              {s.payment_screenshot_url && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setPreviewingReceiptUrl(s.payment_screenshot_url!);
+                                    setPreviewingReceiptStudent(s);
+                                  }}
+                                  className="text-[11px] font-bold text-primary hover:underline inline-flex items-center gap-1 cursor-pointer block"
+                                >
+                                  <Receipt className="size-3" /> View Screenshot &rarr;
+                                </button>
+                              )}
+                            </div>
+                          ) : s.payment_status === "rejected" ? (
+                            <div className="space-y-1">
+                              <Badge className="bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300 text-[10px] rounded-full font-bold gap-1">
+                                <AlertCircle className="size-2.5" />
+                                Payment Rejected
+                              </Badge>
+                              {s.payment_screenshot_url && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setPreviewingReceiptUrl(s.payment_screenshot_url!);
+                                    setPreviewingReceiptStudent(s);
+                                  }}
+                                  className="text-[11px] text-muted-foreground hover:text-foreground hover:underline inline-flex items-center gap-1 cursor-pointer block"
+                                >
+                                  <Receipt className="size-3" /> View Proof
+                                </button>
+                              )}
+                            </div>
+                          ) : hackathon.is_paid ? (
+                            <Badge variant="outline" className="text-[10px] rounded-full text-amber-600 border-amber-500/30">
+                              Unpaid
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] rounded-full text-muted-foreground">
+                              Free
+                            </Badge>
+                          )}
+                        </td>
+
                         {/* Verification Status */}
                         <td className="px-6 py-4 text-xs">
                           {s.status === "pending" ? (
@@ -915,7 +1201,34 @@ export function OrganizerStudentsClient({
                         {/* Quick Approval / Rejection Actions */}
                         <td className="px-6 py-4 text-xs whitespace-nowrap">
                           <div className="flex items-center gap-1.5">
-                            {s.status === "pending" ? (
+                            {s.payment_status === "pending_verification" ? (
+                              <>
+                                <Button
+                                  size="sm"
+                                  disabled={updatingStudentId === s.user_id}
+                                  onClick={() => handleVerifyPayment(s.user_id, s.name)}
+                                  className="h-7 px-2.5 rounded-lg text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1 shadow-2xs cursor-pointer"
+                                  title="Verify UPI payment and approve registration"
+                                >
+                                  {updatingStudentId === s.user_id ? (
+                                    <Loader2 className="size-3 animate-spin" />
+                                  ) : (
+                                    <Check className="size-3" />
+                                  )}
+                                  Verify Payment
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={updatingStudentId === s.user_id}
+                                  onClick={() => handleRejectPayment(s.user_id, s.name)}
+                                  className="h-7 px-2 rounded-lg text-[11px] font-bold text-rose-600 border-rose-500/30 hover:bg-rose-500/10 gap-1 cursor-pointer"
+                                  title="Reject invalid payment proof"
+                                >
+                                  Reject
+                                </Button>
+                              </>
+                            ) : s.status === "pending" ? (
                               <>
                                 <Button
                                   size="sm"
@@ -940,7 +1253,7 @@ export function OrganizerStudentsClient({
                                   Reject
                                 </Button>
                               </>
-                            ) : s.status === "rejected" ? (
+                            ) : s.payment_status === "rejected" || s.status === "rejected" ? (
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -1181,6 +1494,112 @@ export function OrganizerStudentsClient({
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* UPI Payment Proof Lightbox Modal */}
+      <Dialog
+        open={Boolean(previewingReceiptUrl)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewingReceiptUrl(null);
+            setPreviewingReceiptStudent(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-xl rounded-3xl p-6">
+          <DialogHeader className="pb-3 border-b">
+            <div className="flex items-center gap-2">
+              <Badge className="bg-emerald-600 text-white rounded-full text-[10px] font-bold">
+                UPI Payment Receipt
+              </Badge>
+              {previewingReceiptStudent?.payment_status && (
+                <Badge variant="outline" className="text-[10px] uppercase font-bold">
+                  {previewingReceiptStudent.payment_status.replace(/_/g, " ")}
+                </Badge>
+              )}
+            </div>
+            <DialogTitle className="text-lg font-black text-foreground pt-1 flex items-center justify-between">
+              <span>{previewingReceiptStudent?.name || "Participant"} &bull; {hackathon.fee_currency || "₹"}{previewingReceiptStudent?.payment_amount ?? hackathon.registration_fee ?? 0}</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground space-y-1">
+              <div>Email: {previewingReceiptStudent?.email}</div>
+              {previewingReceiptStudent?.payment_reference && (
+                <div className="flex items-center gap-2 font-mono text-foreground font-bold text-xs bg-muted/60 p-2 rounded-xl mt-1">
+                  <span>UTR / Reference: {previewingReceiptStudent.payment_reference}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyUtr(previewingReceiptStudent.payment_reference!, "modal")}
+                    className="hover:text-primary transition-colors cursor-pointer"
+                    title="Copy UTR Reference"
+                  >
+                    {copiedUtrId === "modal" ? (
+                      <Check className="size-3.5 text-emerald-500" />
+                    ) : (
+                      <Copy className="size-3.5" />
+                    )}
+                  </button>
+                </div>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-3 space-y-4">
+            <div className="rounded-2xl border bg-black/5 dark:bg-white/5 overflow-hidden max-h-[55vh] flex items-center justify-center p-2">
+              {previewingReceiptUrl && (
+                <img
+                  src={previewingReceiptUrl}
+                  alt="UPI Payment Screenshot"
+                  className="max-h-[50vh] w-auto max-w-full rounded-xl object-contain shadow-md"
+                />
+              )}
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t">
+              <a
+                href={previewingReceiptUrl || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1.5"
+              >
+                <ExternalLink className="size-3.5" />
+                Open original resolution in new tab
+              </a>
+
+              {previewingReceiptStudent && previewingReceiptStudent.payment_status === "pending_verification" && (
+                <div className="flex items-center gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={updatingStudentId === previewingReceiptStudent.user_id}
+                    onClick={async () => {
+                      await handleRejectPayment(previewingReceiptStudent.user_id, previewingReceiptStudent.name);
+                      setPreviewingReceiptUrl(null);
+                      setPreviewingReceiptStudent(null);
+                    }}
+                    className="rounded-xl text-xs font-bold text-rose-600 border-rose-500/30 hover:bg-rose-500/10 cursor-pointer h-9"
+                  >
+                    Reject Payment
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={updatingStudentId === previewingReceiptStudent.user_id}
+                    onClick={async () => {
+                      await handleVerifyPayment(previewingReceiptStudent.user_id, previewingReceiptStudent.name);
+                      setPreviewingReceiptUrl(null);
+                      setPreviewingReceiptStudent(null);
+                    }}
+                    className="rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 shadow-xs cursor-pointer h-9"
+                  >
+                    <Check className="size-3.5" />
+                    Verify & Approve
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </main>

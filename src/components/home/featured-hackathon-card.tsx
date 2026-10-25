@@ -20,6 +20,7 @@ import {
   ArrowRight,
   MapPin,
   Lock,
+  Ticket,
 } from "lucide-react";
 import type { Hackathon } from "@/lib/db/types";
 import { getHackathonStatus } from "@/lib/db/types";
@@ -217,6 +218,11 @@ export function FeaturedHackathonCard({ hackathon }: FeaturedHackathonCardProps)
           <Badge className="bg-background/90 backdrop-blur-md border text-[11px] font-bold capitalize text-foreground shadow-xs">
             {hackathon.format || "Online"}
           </Badge>
+          {hackathon.is_paid && hackathon.registration_fee && Number(hackathon.registration_fee) > 0 && (
+            <Badge className="bg-emerald-950/80 backdrop-blur-md text-emerald-300 border border-emerald-500/30 text-[11px] font-bold rounded-full px-2 py-0.5 flex items-center gap-1 shadow-xs">
+              <Ticket className="size-2.5" /> {hackathon.fee_currency || "₹"}{hackathon.registration_fee}
+            </Badge>
+          )}
           {hackathon.is_private && (
             <Badge className="bg-purple-950/80 backdrop-blur-md text-purple-200 border border-purple-400/30 text-[11px] font-bold rounded-full px-2 py-0.5 flex items-center gap-1 shadow-xs">
               <Lock className="size-2.5" /> Campus

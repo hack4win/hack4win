@@ -12,6 +12,7 @@ import {
   ProjectEvaluation,
   SaveEvaluationInput,
   RegisteredStudent,
+  PaymentStatus,
 } from "./types";
 import { generateSlug } from "../utils/slug";
 
@@ -46,7 +47,18 @@ export interface IHackathonRepository {
   getUserRegistration(
     hackathonId: string,
     userId: string
-  ): Promise<{ registered: boolean; participation_type: string; status: "approved" | "pending" | "rejected" } | null>;
+  ): Promise<{
+    registered: boolean;
+    participation_type: string;
+    status: "approved" | "pending" | "rejected";
+    payment_status?: "unpaid" | "pending_verification" | "verified" | "rejected" | null;
+    payment_reference?: string | null;
+    payment_screenshot_url?: string | null;
+    payment_amount?: number | null;
+    payment_submitted_at?: string | null;
+    payment_verified_at?: string | null;
+    payment_rejection_reason?: string | null;
+  } | null>;
   registerUser(
     hackathonId: string,
     userId: string,
@@ -57,7 +69,19 @@ export interface IHackathonRepository {
       academic_year?: string | null;
       branch?: string | null;
       status?: "approved" | "pending" | "rejected";
+      payment_status?: "unpaid" | "pending_verification" | "verified" | "rejected";
+      payment_reference?: string | null;
+      payment_screenshot_url?: string | null;
+      payment_amount?: number | null;
+      payment_submitted_at?: Date | string | null;
     }
+  ): Promise<boolean>;
+  verifyPayment(
+    hackathonId: string,
+    userId: string,
+    verifiedBy: string,
+    action: "approve" | "reject",
+    rejectionReason?: string
   ): Promise<boolean>;
   updateRegistrationStatus(
     hackathonId: string,
@@ -134,15 +158,7 @@ export interface IHackathonRepository {
       userRole?: string;
     }
   ): Promise<{ allowed: boolean; reason?: string }>;
-  getRegisteredStudents(hackathonId: string): Promise<Array<{
-    user_id: string;
-    name: string;
-    email: string;
-    username: string | null;
-    image: string | null;
-    registered_at: string;
-    participation_type: string;
-  }>>;
+  getRegisteredStudents(hackathonId: string): Promise<RegisteredStudent[]>;
   updateInvitedEmails(hackathonId: string, emails: string[]): Promise<string[]>;
   regenerateInviteToken(hackathonId: string): Promise<string>;
 }
@@ -158,6 +174,12 @@ function mapHackathonRow(row: Record<string, unknown>): Hackathon {
     is_private: Boolean(row.is_private),
     access_code: row.access_code || null,
     invite_token: row.invite_token || null,
+    is_paid: Boolean(row.is_paid),
+    registration_fee: row.registration_fee != null ? Number(row.registration_fee) : 0,
+    fee_currency: (row.fee_currency as string) || "₹",
+    upi_id: (row.upi_id as string) || null,
+    upi_qr_code_url: (row.upi_qr_code_url as string) || null,
+    payment_instructions: (row.payment_instructions as string) || null,
     participant_count:
       typeof row.participant_count === "number"
         ? row.participant_count
@@ -271,6 +293,15 @@ export class HackathonRepository implements IHackathonRepository {
       .filter(Boolean);
     const invite_token =
       input.invite_token || (is_private ? crypto.randomUUID().replace(/-/g, "").substring(0, 16) : null);
+    const is_paid = Boolean(input.is_paid);
+    const registration_fee =
+      input.registration_fee !== undefined && input.registration_fee !== null && Number(input.registration_fee) >= 0
+        ? Number(input.registration_fee)
+        : 0;
+    const fee_currency = input.fee_currency || "₹";
+    const upi_id = input.upi_id ? input.upi_id.trim() : null;
+    const upi_qr_code_url = input.upi_qr_code_url || null;
+    const payment_instructions = input.payment_instructions ? input.payment_instructions.trim() : null;
 
     const rows = await db`
       INSERT INTO public.hackathons (
@@ -279,6 +310,7 @@ export class HackathonRepository implements IHackathonRepository {
         start_date, end_date, submission_deadline, max_team_size, max_participants,
         website_url, organizer_id, organizer_name,
         is_private, access_code, allowed_email_domains, invited_emails, invite_token,
+        is_paid, registration_fee, fee_currency, upi_id, upi_qr_code_url, payment_instructions,
         created_at, updated_at
       )
       VALUES (
@@ -287,6 +319,7 @@ export class HackathonRepository implements IHackathonRepository {
         ${start_date}, ${end_date}, ${submission_deadline}, ${max_team_size}, ${max_participants},
         ${website_url}, ${organizer_id}, ${organizer_name},
         ${is_private}, ${access_code}, ${allowed_email_domains}, ${invited_emails}, ${invite_token},
+        ${is_paid}, ${registration_fee}, ${fee_currency}, ${upi_id}, ${upi_qr_code_url}, ${payment_instructions},
         NOW(), NOW()
       )
       RETURNING *;
@@ -364,6 +397,19 @@ export class HackathonRepository implements IHackathonRepository {
       input.invite_token !== undefined
         ? input.invite_token
         : existing.invite_token || (is_private ? crypto.randomUUID().replace(/-/g, "").substring(0, 16) : null);
+    const is_paid = input.is_paid !== undefined ? Boolean(input.is_paid) : Boolean(existing.is_paid);
+    const registration_fee =
+      input.registration_fee !== undefined
+        ? (input.registration_fee !== null && Number(input.registration_fee) >= 0 ? Number(input.registration_fee) : 0)
+        : (existing.registration_fee ?? 0);
+    const fee_currency = input.fee_currency !== undefined ? input.fee_currency : (existing.fee_currency || "₹");
+    const upi_id = input.upi_id !== undefined ? (input.upi_id ? input.upi_id.trim() : null) : existing.upi_id;
+    const upi_qr_code_url =
+      input.upi_qr_code_url !== undefined ? input.upi_qr_code_url : existing.upi_qr_code_url;
+    const payment_instructions =
+      input.payment_instructions !== undefined
+        ? (input.payment_instructions ? input.payment_instructions.trim() : null)
+        : existing.payment_instructions;
 
     const rows = await db`
       UPDATE public.hackathons
@@ -394,6 +440,12 @@ export class HackathonRepository implements IHackathonRepository {
         allowed_email_domains = ${allowed_email_domains},
         invited_emails = ${invited_emails},
         invite_token = ${invite_token},
+        is_paid = ${is_paid},
+        registration_fee = ${registration_fee},
+        fee_currency = ${fee_currency},
+        upi_id = ${upi_id},
+        upi_qr_code_url = ${upi_qr_code_url},
+        payment_instructions = ${payment_instructions},
         updated_at = NOW()
       WHERE id = ${id}::uuid
       RETURNING *;
@@ -580,6 +632,11 @@ export class HackathonRepository implements IHackathonRepository {
       academic_year?: string | null;
       branch?: string | null;
       status?: "approved" | "pending" | "rejected";
+      payment_status?: "unpaid" | "pending_verification" | "verified" | "rejected";
+      payment_reference?: string | null;
+      payment_screenshot_url?: string | null;
+      payment_amount?: number | null;
+      payment_submitted_at?: Date | string | null;
     }
   ): Promise<boolean> {
     const studentId = studentData?.student_id || null;
@@ -587,13 +644,22 @@ export class HackathonRepository implements IHackathonRepository {
     const academicYear = studentData?.academic_year || null;
     const branch = studentData?.branch || null;
     const status = studentData?.status || "approved";
+    const paymentStatus = studentData?.payment_status || "unpaid";
+    const paymentReference = studentData?.payment_reference || null;
+    const paymentScreenshotUrl = studentData?.payment_screenshot_url || null;
+    const paymentAmount = studentData?.payment_amount != null ? Number(studentData.payment_amount) : null;
+    const paymentSubmittedAt = studentData?.payment_submitted_at
+      ? new Date(studentData.payment_submitted_at).toISOString()
+      : null;
 
     await db`
       INSERT INTO public.hackathon_registrations (
-        hackathon_id, user_id, participation_type, student_id, college_name, academic_year, branch, status, created_at
+        hackathon_id, user_id, participation_type, student_id, college_name, academic_year, branch, status,
+        payment_status, payment_reference, payment_screenshot_url, payment_amount, payment_submitted_at, created_at
       )
       VALUES (
-        ${hackathonId}::uuid, ${userId}, ${participationType}, ${studentId}, ${collegeName}, ${academicYear}, ${branch}, ${status}, NOW()
+        ${hackathonId}::uuid, ${userId}, ${participationType}, ${studentId}, ${collegeName}, ${academicYear}, ${branch}, ${status},
+        ${paymentStatus}, ${paymentReference}, ${paymentScreenshotUrl}, ${paymentAmount}, ${paymentSubmittedAt}, NOW()
       )
       ON CONFLICT (hackathon_id, user_id) DO UPDATE SET 
         participation_type = EXCLUDED.participation_type,
@@ -601,6 +667,11 @@ export class HackathonRepository implements IHackathonRepository {
         college_name = COALESCE(EXCLUDED.college_name, hackathon_registrations.college_name),
         academic_year = COALESCE(EXCLUDED.academic_year, hackathon_registrations.academic_year),
         branch = COALESCE(EXCLUDED.branch, hackathon_registrations.branch),
+        payment_status = COALESCE(EXCLUDED.payment_status, hackathon_registrations.payment_status),
+        payment_reference = COALESCE(EXCLUDED.payment_reference, hackathon_registrations.payment_reference),
+        payment_screenshot_url = COALESCE(EXCLUDED.payment_screenshot_url, hackathon_registrations.payment_screenshot_url),
+        payment_amount = COALESCE(EXCLUDED.payment_amount, hackathon_registrations.payment_amount),
+        payment_submitted_at = COALESCE(EXCLUDED.payment_submitted_at, hackathon_registrations.payment_submitted_at),
         status = CASE
           WHEN hackathon_registrations.status = 'rejected' THEN EXCLUDED.status
           ELSE hackathon_registrations.status
@@ -615,7 +686,18 @@ export class HackathonRepository implements IHackathonRepository {
   async getUserRegistration(
     hackathonId: string,
     userId: string
-  ): Promise<{ registered: boolean; participation_type: string; status: "approved" | "pending" | "rejected" } | null> {
+  ): Promise<{
+    registered: boolean;
+    participation_type: string;
+    status: "approved" | "pending" | "rejected";
+    payment_status?: "unpaid" | "pending_verification" | "verified" | "rejected" | null;
+    payment_reference?: string | null;
+    payment_screenshot_url?: string | null;
+    payment_amount?: number | null;
+    payment_submitted_at?: string | null;
+    payment_verified_at?: string | null;
+    payment_rejection_reason?: string | null;
+  } | null> {
     try {
       const rows = await db`
         SELECT * FROM public.hackathon_registrations
@@ -627,10 +709,44 @@ export class HackathonRepository implements IHackathonRepository {
         registered: true,
         participation_type: rows[0].participation_type || "looking_for_team",
         status: (rows[0].status as "approved" | "pending" | "rejected") || "approved",
+        payment_status: (rows[0].payment_status as PaymentStatus) || "unpaid",
+        payment_reference: (rows[0].payment_reference as string) || null,
+        payment_screenshot_url: (rows[0].payment_screenshot_url as string) || null,
+        payment_amount: rows[0].payment_amount != null ? Number(rows[0].payment_amount) : null,
+        payment_submitted_at: rows[0].payment_submitted_at ? new Date(rows[0].payment_submitted_at).toISOString() : null,
+        payment_verified_at: rows[0].payment_verified_at ? new Date(rows[0].payment_verified_at).toISOString() : null,
+        payment_rejection_reason: (rows[0].payment_rejection_reason as string) || null,
       };
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Verify or reject participant payment
+   */
+  async verifyPayment(
+    hackathonId: string,
+    userId: string,
+    verifiedBy: string,
+    action: "approve" | "reject",
+    rejectionReason?: string
+  ): Promise<boolean> {
+    const isApprove = action === "approve";
+    const paymentStatus = isApprove ? "verified" : "rejected";
+    const regStatus = isApprove ? "approved" : "rejected";
+
+    await db`
+      UPDATE public.hackathon_registrations
+      SET
+        payment_status = ${paymentStatus},
+        status = ${regStatus},
+        payment_verified_at = NOW(),
+        payment_verified_by = ${verifiedBy},
+        payment_rejection_reason = ${isApprove ? null : rejectionReason || "Payment verification failed"}
+      WHERE hackathon_id = ${hackathonId}::uuid AND user_id = ${userId};
+    `;
+    return true;
   }
 
   /**
@@ -1768,6 +1884,14 @@ export class HackathonRepository implements IHackathonRepository {
           r.academic_year,
           r.branch,
           COALESCE(r.status, 'approved') as registration_status,
+          r.payment_status,
+          r.payment_reference,
+          r.payment_screenshot_url,
+          r.payment_amount,
+          r.payment_submitted_at,
+          r.payment_verified_at,
+          r.payment_verified_by,
+          r.payment_rejection_reason,
           sub.id as submission_id,
           sub.title as submission_title,
           sub.created_at as submitted_at
@@ -1794,6 +1918,14 @@ export class HackathonRepository implements IHackathonRepository {
         submission_title: (r.submission_title as string) || null,
         has_submitted: Boolean(r.submission_id),
         submitted_at: r.submitted_at ? new Date(String(r.submitted_at)).toISOString() : null,
+        payment_status: (r.payment_status as PaymentStatus) || "unpaid",
+        payment_reference: (r.payment_reference as string) || null,
+        payment_screenshot_url: (r.payment_screenshot_url as string) || null,
+        payment_amount: r.payment_amount != null ? Number(r.payment_amount) : null,
+        payment_submitted_at: r.payment_submitted_at ? new Date(String(r.payment_submitted_at)).toISOString() : null,
+        payment_verified_at: r.payment_verified_at ? new Date(String(r.payment_verified_at)).toISOString() : null,
+        payment_verified_by: (r.payment_verified_by as string) || null,
+        payment_rejection_reason: (r.payment_rejection_reason as string) || null,
       }));
     } catch (err) {
       console.error("[getRegisteredStudents Error]:", err);
