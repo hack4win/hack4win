@@ -80,6 +80,131 @@ const SMTP_CONFIG = {
 };
 
 /**
+ * Checks whether an email address is a test, mock, dummy, or temporary address.
+ * Prevents exhausting daily Brevo SMTP/API quota (300 emails/day cap) on testing.
+ */
+export function isTestOrDummyEmail(email: string): boolean {
+  if (!email || typeof email !== "string") return true;
+  const clean = email.trim().toLowerCase();
+  if (!clean.includes("@")) return true;
+
+  const [localPart, domain] = clean.split("@");
+  if (!domain || !localPart) return true;
+
+  // Domains used in automated tests or throwaways
+  const testDomains = [
+    "example.com",
+    "example.org",
+    "example.net",
+    "test.com",
+    "test.org",
+    "test.net",
+    "platform.io",
+    "localhost",
+    "local",
+    "invalid",
+    "do4win.com",
+    "mailinator.com",
+    "tempmail.com",
+    "throwawaymail.com",
+    "guerrillamail.com",
+    "yopmail.com",
+  ];
+  if (
+    testDomains.includes(domain) ||
+    domain.endsWith(".test") ||
+    domain.endsWith(".example") ||
+    domain.endsWith(".localhost") ||
+    domain.endsWith(".invalid")
+  ) {
+    return true;
+  }
+
+  // Common test patterns in the local part of the email address
+  const testPatterns = [
+    /^test(?:_|-|\.|$)/,
+    /(?:_|-|\.)test$/,
+    /^dummy(?:_|-|\.|$)/,
+    /^mock(?:_|-|\.|$)/,
+    /^e2e(?:_|-|\.|$)/,
+    /^collab\d*(?:_|-|\.|$)/,
+    /^fake(?:_|-|\.|$)/,
+    /^sample(?:_|-|\.|$)/,
+    /^brevo_(?:admin|user|tester)/,
+    /^testuser\d*$/,
+    /^test_recipient/,
+    /^builder(?:_|-|\.|$)/,
+    /^participant\d*(?:_|-|\.|$)/,
+    /^someone(?:_|-|\.|$)/,
+    /^audience(?:_|-|\.|$)/,
+  ];
+
+  return testPatterns.some((p) => p.test(localPart));
+}
+
+/**
+ * Evaluates whether an email dispatch should be simulated to protect Brevo quota.
+ * Real emails are NEVER dispatched if:
+ * 1. Running in automated test suites (NODE_ENV=test, node:test runner, or DISABLE_REAL_EMAILS=true)
+ * 2. In non-production development without explicit ENABLE_REAL_EMAILS=true
+ * 3. All target recipients are test/dummy addresses
+ */
+export function shouldSimulateEmail(recipients?: (string | EmailRecipient)[]): {
+  simulate: boolean;
+  reason?: string;
+} {
+  // Explicit kill-switch or test flags
+  if (
+    process.env.DISABLE_REAL_EMAILS === "true" ||
+    process.env.MOCK_EMAILS === "true" ||
+    process.env.NEXT_PUBLIC_DISABLE_EMAILS === "true"
+  ) {
+    return {
+      simulate: true,
+      reason: "Real emails disabled by environment configuration (DISABLE_REAL_EMAILS=true).",
+    };
+  }
+
+  // Automated test environment detection
+  const isTestEnvironment =
+    process.env.NODE_ENV === "test" ||
+    process.env.NODE_TEST_CONTEXT !== undefined ||
+    process.argv.some((arg) => arg.includes("test") || arg.includes(".test."));
+
+  if (isTestEnvironment) {
+    return {
+      simulate: true,
+      reason: "Automated test environment detected. Dispatches are simulated to preserve Brevo quota.",
+    };
+  }
+
+  // Non-production development: Require explicit opt-in via ENABLE_REAL_EMAILS="true"
+  const isProduction = (process.env.NODE_ENV as string) === "production";
+  const realEmailsEnabled = process.env.ENABLE_REAL_EMAILS === "true";
+
+  if (!isProduction && !realEmailsEnabled) {
+    return {
+      simulate: true,
+      reason: `Development mode active (${process.env.NODE_ENV || "development"}). Simulated to preserve Brevo quota. Set ENABLE_REAL_EMAILS=true to dispatch live emails.`,
+    };
+  }
+
+  // If recipients provided, check if all are dummy/test emails
+  if (recipients && recipients.length > 0) {
+    const rawEmails = recipients.map((r) => (typeof r === "string" ? r : r.email));
+    const allDummy = rawEmails.every((email) => isTestOrDummyEmail(email));
+    if (allDummy) {
+      return {
+        simulate: true,
+        reason: "All recipients are test/dummy email addresses. Simulated to preserve Brevo quota.",
+      };
+    }
+  }
+
+  return { simulate: false };
+}
+
+/**
  * Helper to analyze Brevo errors for IP restriction (525 / unrecognised IP)
  */
 export function analyzeBrevoError(error: unknown): BrevoErrorAnalysis {
@@ -116,6 +241,18 @@ export function analyzeBrevoError(error: unknown): BrevoErrorAnalysis {
  * 1. Send via Brevo REST API v3 (Direct HTTPS: https://api.brevo.com/v3/smtp/email)
  */
 export async function sendViaBrevoApi(options: SendEmailOptions): Promise<SendEmailResult> {
+  const simCheck = shouldSimulateEmail(options.to);
+  if (simCheck.simulate) {
+    console.log(`🛡️ [EMAIL QUOTA PROTECTED] (Brevo API simulated): ${simCheck.reason}`);
+    return {
+      success: true,
+      messageId: `simulated_api_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      engineUsed: "simulated",
+      warning: `[Simulated] ${simCheck.reason}`,
+      response: { dispatched: false, simulated: true, reason: simCheck.reason },
+    };
+  }
+
   const recipients = options.to.map((r) => (typeof r === "string" ? { email: r } : r));
   const sender = options.sender || DEFAULT_SENDER;
 
@@ -181,6 +318,18 @@ export async function sendViaBrevoApi(options: SendEmailOptions): Promise<SendEm
  * 2. Send via Brevo SMTP Relay (Nodemailer, smtp-relay.brevo.com:587 STARTTLS)
  */
 export async function sendViaBrevoSmtp(options: SendEmailOptions): Promise<SendEmailResult> {
+  const simCheck = shouldSimulateEmail(options.to);
+  if (simCheck.simulate) {
+    console.log(`🛡️ [EMAIL QUOTA PROTECTED] (Brevo SMTP simulated): ${simCheck.reason}`);
+    return {
+      success: true,
+      messageId: `simulated_smtp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      engineUsed: "simulated",
+      warning: `[Simulated] ${simCheck.reason}`,
+      response: { dispatched: false, simulated: true, reason: simCheck.reason },
+    };
+  }
+
   const recipients = options.to.map((r) =>
     typeof r === "string" ? r : r.name ? `"${r.name}" <${r.email}>` : r.email
   );
@@ -248,50 +397,93 @@ export async function sendViaBrevoSmtp(options: SendEmailOptions): Promise<SendE
  * 3. Unified Dispatcher:
  * Tries direct REST API first; if unavailable, seamlessly falls back to SMTP Relay.
  * If both are blocked by Brevo IP security restriction, handles gracefully with diagnostics.
+ * Includes quota protection to guarantee test and development runs do not consume Brevo sending limits.
  */
 export async function sendEmail(options: SendEmailOptions): Promise<SendEmailResult> {
-  const engine = options.engine || "auto";
+  // First evaluate simulation to protect quota
+  const simCheck = shouldSimulateEmail(options.to);
+  if (simCheck.simulate) {
+    console.log(`🛡️ [EMAIL QUOTA PROTECTED] sendEmail: ${simCheck.reason}`);
+    console.log(`   Subject: "${options.subject}"`);
+    console.log(`   Recipients: ${JSON.stringify(options.to)}`);
+    return {
+      success: true,
+      messageId: `simulated_protected_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      engineUsed: "simulated",
+      warning: `[Simulated] ${simCheck.reason}`,
+      response: {
+        dispatched: false,
+        simulated: true,
+        reason: simCheck.reason,
+        recipients: options.to,
+      },
+    };
+  }
+
+  // Filter out any dummy emails if sending to multiple recipients in production / enabled mode
+  const normalizedRecipients = options.to.map((r) =>
+    typeof r === "string" ? { email: r } : r
+  );
+  const realRecipients = normalizedRecipients.filter((r) => !isTestOrDummyEmail(r.email));
+
+  if (realRecipients.length === 0) {
+    console.log(`🛡️ [EMAIL QUOTA PROTECTED]: All recipients are test/dummy addresses.`);
+    return {
+      success: true,
+      messageId: `simulated_dummy_${Date.now()}`,
+      engineUsed: "simulated",
+      warning: "All recipients were filtered out as test/dummy addresses.",
+      response: { dispatched: false, simulated: true },
+    };
+  }
+
+  const effectiveOptions: SendEmailOptions = {
+    ...options,
+    to: realRecipients,
+  };
+
+  const engine = effectiveOptions.engine || "auto";
 
   // If specific engine requested
   if (engine === "brevo_api") {
     try {
-      return await sendViaBrevoApi(options);
+      return await sendViaBrevoApi(effectiveOptions);
     } catch (err) {
       const analysis = analyzeBrevoError(err);
       // If failed, attempt SMTP fallback
       console.log(`[Brevo API failed, attempting SMTP fallback...]: ${analysis.rawError}`);
       try {
-        return await sendViaBrevoSmtp(options);
+        return await sendViaBrevoSmtp(effectiveOptions);
       } catch (smtpErr) {
-        return handleAllEnginesFailed(err, smtpErr, options);
+        return handleAllEnginesFailed(err, smtpErr, effectiveOptions);
       }
     }
   }
 
   if (engine === "brevo_smtp") {
     try {
-      return await sendViaBrevoSmtp(options);
+      return await sendViaBrevoSmtp(effectiveOptions);
     } catch (err) {
       const analysis = analyzeBrevoError(err);
       console.log(`[Brevo SMTP failed, attempting API fallback...]: ${analysis.rawError}`);
       try {
-        return await sendViaBrevoApi(options);
+        return await sendViaBrevoApi(effectiveOptions);
       } catch (apiErr) {
-        return handleAllEnginesFailed(apiErr, err, options);
+        return handleAllEnginesFailed(apiErr, err, effectiveOptions);
       }
     }
   }
 
   // Engine: "auto" (Try API first, then SMTP fallback)
   try {
-    return await sendViaBrevoApi(options);
+    return await sendViaBrevoApi(effectiveOptions);
   } catch (apiErr) {
     const analysis = analyzeBrevoError(apiErr);
     console.log(`[Brevo Auto Dispatcher: API unready, attempting SMTP relay...]: ${analysis.rawError}`);
     try {
-      return await sendViaBrevoSmtp(options);
+      return await sendViaBrevoSmtp(effectiveOptions);
     } catch (smtpErr) {
-      return handleAllEnginesFailed(apiErr, smtpErr, options);
+      return handleAllEnginesFailed(apiErr, smtpErr, effectiveOptions);
     }
   }
 }
@@ -479,6 +671,8 @@ export const brevoService = {
   verifyApiConnection,
   verifyEmailService,
   analyzeBrevoError,
+  isTestOrDummyEmail,
+  shouldSimulateEmail,
   HACK4WIN_SENDERS,
   DEFAULT_SENDER,
   DEFAULT_REPLY_TO,

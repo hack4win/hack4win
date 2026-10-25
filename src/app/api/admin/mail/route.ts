@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/session";
 import { mailRepository } from "@/lib/db/mail-repository";
-import { brevoService, HACK4WIN_SENDERS } from "@/lib/email/brevo-service";
+import { brevoService, HACK4WIN_SENDERS, isTestOrDummyEmail } from "@/lib/email/brevo-service";
 import { getMarketingCampaignEmailTemplate, wrapInEmailLayout } from "@/lib/email/templates";
 
 export async function GET() {
@@ -55,11 +55,14 @@ export async function POST(req: NextRequest) {
 
     // Resolve target audience emails
     const audience = await mailRepository.resolveRecipients(target_filter);
-    const recipientEmails = audience.recipients.map((r) => r.email);
+    const rawRecipientEmails = audience.recipients.map((r) => r.email);
+
+    // Filter out test and dummy accounts to protect daily Brevo quota
+    const recipientEmails = rawRecipientEmails.filter((email) => !isTestOrDummyEmail(email));
 
     if (recipientEmails.length === 0) {
       return NextResponse.json(
-        { error: "No recipients matched the selected filter criteria" },
+        { error: "No valid recipients found (test and dummy accounts were excluded to protect email quota)" },
         { status: 400 }
       );
     }
