@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -351,11 +350,10 @@ export function UpiPaymentForm({
                 </button>
               </div>
               <div className="relative aspect-4/3 w-full bg-muted rounded-xl overflow-hidden">
-                <Image
+                <img
                   src={previewScreenshot}
                   alt="Payment receipt proof"
-                  fill
-                  className="object-contain"
+                  className="w-full h-full object-contain"
                 />
               </div>
             </div>
@@ -408,12 +406,10 @@ export function UpiPaymentForm({
             <div className="relative mx-auto w-56 h-56 rounded-2xl p-3 bg-white shadow-md border flex items-center justify-center">
               {qrImageUrl ? (
                 <div className="relative w-full h-full">
-                  <Image
+                  <img
                     src={qrImageUrl}
                     alt={`UPI QR code for ${hackathon.title}`}
-                    fill
-                    className="object-contain rounded-lg"
-                    priority
+                    className="w-full h-full object-contain rounded-lg"
                   />
                 </div>
               ) : (
@@ -519,11 +515,10 @@ export function UpiPaymentForm({
                 {screenshotUrl ? (
                   <div className="relative rounded-2xl border bg-muted/30 p-3 flex items-center gap-3">
                     <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-muted border shrink-0">
-                      <Image
+                      <img
                         src={screenshotUrl}
                         alt="Screenshot preview"
-                        fill
-                        className="object-cover"
+                        className="w-full h-full object-cover"
                       />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -673,11 +668,10 @@ export function UpiPaymentForm({
               </button>
             </div>
             <div className="relative aspect-4/3 w-full bg-muted rounded-xl overflow-hidden">
-              <Image
+              <img
                 src={previewScreenshot}
                 alt="Payment receipt proof"
-                fill
-                className="object-contain"
+                className="w-full h-full object-contain"
               />
             </div>
           </div>

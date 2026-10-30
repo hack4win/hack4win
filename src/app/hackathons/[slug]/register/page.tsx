@@ -1,6 +1,5 @@
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { getServerSession } from "@/lib/auth/session";
 import { hackathonRepository } from "@/lib/db/hackathon-repository";
@@ -108,11 +107,10 @@ export default async function HackathonRegisterPage({ params }: PageProps) {
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             {hackathon.thumbnail_url ? (
               <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border bg-muted shrink-0 shadow-sm">
-                <Image
+                <img
                   src={hackathon.thumbnail_url}
                   alt={hackathon.title}
-                  fill
-                  className="object-cover"
+                  className="w-full h-full object-cover"
                 />
               </div>
             ) : (
