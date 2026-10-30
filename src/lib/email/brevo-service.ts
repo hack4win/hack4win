@@ -149,7 +149,10 @@ export function isTestOrDummyEmail(email: string): boolean {
  * 2. In non-production development without explicit ENABLE_REAL_EMAILS=true
  * 3. All target recipients are test/dummy addresses
  */
-export function shouldSimulateEmail(recipients?: (string | EmailRecipient)[]): {
+export function shouldSimulateEmail(
+  recipients?: (string | EmailRecipient)[],
+  options?: { subject?: string; tags?: string[] }
+): {
   simulate: boolean;
   reason?: string;
 } {
@@ -162,6 +165,21 @@ export function shouldSimulateEmail(recipients?: (string | EmailRecipient)[]): {
     return {
       simulate: true,
       reason: "Real emails disabled by environment configuration (DISABLE_REAL_EMAILS=true).",
+    };
+  }
+
+  // Safety: If subject or tags indicate an automated test, E2E run, or benchmark, NEVER send real email
+  const subjectLower = (options?.subject || "").toLowerCase();
+  if (
+    subjectLower.startsWith("e2e") ||
+    subjectLower.includes("[test]") ||
+    subjectLower.includes("e2e announcement") ||
+    subjectLower.includes("automated test") ||
+    options?.tags?.some((t) => t.toLowerCase().includes("test") || t.toLowerCase().includes("e2e"))
+  ) {
+    return {
+      simulate: true,
+      reason: "Test or E2E subject/tag pattern detected. Simulated to prevent sending test emails to users.",
     };
   }
 
@@ -400,8 +418,8 @@ export async function sendViaBrevoSmtp(options: SendEmailOptions): Promise<SendE
  * Includes quota protection to guarantee test and development runs do not consume Brevo sending limits.
  */
 export async function sendEmail(options: SendEmailOptions): Promise<SendEmailResult> {
-  // First evaluate simulation to protect quota
-  const simCheck = shouldSimulateEmail(options.to);
+  // First evaluate simulation to protect quota and prevent sending test/E2E emails
+  const simCheck = shouldSimulateEmail(options.to, { subject: options.subject, tags: options.tags });
   if (simCheck.simulate) {
     console.log(`🛡️ [EMAIL QUOTA PROTECTED] sendEmail: ${simCheck.reason}`);
     console.log(`   Subject: "${options.subject}"`);
