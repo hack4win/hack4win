@@ -1522,7 +1522,10 @@ export function OrganizerStudentsClient({
             <DialogTitle className="text-lg font-black text-foreground pt-1 flex items-center justify-between">
               <span>{previewingReceiptStudent?.name || "Participant"} &bull; {hackathon.fee_currency || "₹"}{previewingReceiptStudent?.payment_amount ?? hackathon.registration_fee ?? 0}</span>
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground space-y-1">
+            <DialogDescription className="text-xs text-muted-foreground">
+              Review transaction proof and verify against your bank account statement.
+            </DialogDescription>
+            <div className="text-xs text-muted-foreground space-y-1 pt-1">
               <div>Email: {previewingReceiptStudent?.email}</div>
               {previewingReceiptStudent?.payment_reference && (
                 <div className="flex items-center gap-2 font-mono text-foreground font-bold text-xs bg-muted/60 p-2 rounded-xl mt-1">
@@ -1541,7 +1544,7 @@ export function OrganizerStudentsClient({
                   </button>
                 </div>
               )}
-            </DialogDescription>
+            </div>
           </DialogHeader>
 
           <div className="py-3 space-y-4">
