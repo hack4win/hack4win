@@ -17,6 +17,8 @@ async function proxyAuthRequest(req: NextRequest) {
   const path = url.pathname.replace(/^\/api\/auth/, "");
   const targetUrl = `${NEON_AUTH_BASE_URL}${path}${url.search}`;
 
+  const neonOrigin = new URL(NEON_AUTH_BASE_URL).origin;
+
   const forwardHeaders = new Headers();
   const allowedHeaders = [
     "accept",
@@ -33,13 +35,31 @@ async function proxyAuthRequest(req: NextRequest) {
     }
   }
 
-  // Ensure origin is set to application origin
-  forwardHeaders.set("origin", url.origin);
+  // Upstream Neon Auth (managed Better Auth) verifies origin against its configured trusted origins.
+  // Using Neon Auth's origin for upstream calls ensures origin validation passes for all production
+  // domains (e.g. www.hack4win.online) and preview URLs without throwing 403 INVALID_ORIGIN.
+  forwardHeaders.set("origin", neonOrigin);
 
-  const body =
-    req.method !== "GET" && req.method !== "HEAD"
-      ? await req.arrayBuffer()
-      : undefined;
+  let body: BodyInit | undefined = undefined;
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    const contentType = req.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      const text = await req.text();
+      try {
+        const json = JSON.parse(text);
+        // If social sign-in callbackURL is absolute to the app domain, sanitize to relative
+        // to pass Neon Auth's redirect whitelist check.
+        if (json.callbackURL && typeof json.callbackURL === "string") {
+          json.callbackURL = json.callbackURL.replace(/^https?:\/\/[^\/]+/, "");
+        }
+        body = JSON.stringify(json);
+      } catch {
+        body = text;
+      }
+    } else {
+      body = await req.arrayBuffer();
+    }
+  }
 
   try {
     const upstreamRes = await fetch(targetUrl, {
@@ -100,6 +120,15 @@ async function proxyAuthRequest(req: NextRequest) {
       }
     }
 
+    // Ensure CORS headers match the client application request
+    const clientOrigin = req.headers.get("origin") || url.origin;
+    responseHeaders.set("access-control-allow-origin", clientOrigin);
+    responseHeaders.set("access-control-allow-credentials", "true");
+
+    // Remove conflicting transport headers so Next.js runtime writes optimal body
+    responseHeaders.delete("content-length");
+    responseHeaders.delete("content-encoding");
+
     return new NextResponse(upstreamRes.body, {
       status: upstreamRes.status,
       statusText: upstreamRes.statusText,
@@ -112,6 +141,20 @@ async function proxyAuthRequest(req: NextRequest) {
       { status: 502 }
     );
   }
+}
+
+export async function OPTIONS(req: NextRequest) {
+  const origin = req.headers.get("origin") || "*";
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      "access-control-allow-origin": origin,
+      "access-control-allow-methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+      "access-control-allow-headers": "Content-Type, Authorization, Cookie, User-Agent, Accept",
+      "access-control-allow-credentials": "true",
+      "access-control-max-age": "86400",
+    },
+  });
 }
 
 export const GET = proxyAuthRequest;

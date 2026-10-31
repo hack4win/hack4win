@@ -80,7 +80,8 @@ export async function GET(req: NextRequest) {
       const exchangeHeaders = new Headers();
       exchangeHeaders.set("cookie", req.headers.get("cookie") || "");
       exchangeHeaders.set("user-agent", req.headers.get("user-agent") || "");
-      exchangeHeaders.set("origin", url.origin);
+      const neonOrigin = new URL(NEON_AUTH_BASE_URL).origin;
+      exchangeHeaders.set("origin", neonOrigin);
 
       const upstreamRes = await fetch(targetUrl, {
         method: "GET",
