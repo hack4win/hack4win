@@ -108,15 +108,6 @@ export default async function AdminOverviewPage() {
     })
     .sort((a, b) => b.count - a.count);
 
-  // Fallback demo skills if newly initialized
-  if (topSkills.length < 5) {
-    skillsList.slice(0, 6).forEach((s, idx) => {
-      if (!topSkills.some((ts) => ts.name.toLowerCase() === s.name.toLowerCase())) {
-        topSkills.push({ name: s.name, count: Math.max(1, 5 - idx), category: s.category });
-      }
-    });
-  }
-
   // Calculate total prize money
   let totalNumericPrizes = 0;
   allHackathons.forEach((h) => {
@@ -133,17 +124,39 @@ export default async function AdminOverviewPage() {
     }
   });
 
-  const totalPrizeValue = `₹${totalNumericPrizes > 0 ? totalNumericPrizes.toLocaleString() : "2,50,000"}`;
+  const totalPrizeValue = `₹${totalNumericPrizes.toLocaleString("en-IN")}`;
 
-  // Growth trajectory data points (past 6 months)
-  const growthPoints = [
-    { month: "May", users: Math.max(2, Math.round(stats.totalUsers * 0.15)), hackathons: 1 },
-    { month: "Jun", users: Math.max(4, Math.round(stats.totalUsers * 0.3)), hackathons: 1 },
-    { month: "Jul", users: Math.max(6, Math.round(stats.totalUsers * 0.5)), hackathons: 2 },
-    { month: "Aug", users: Math.max(8, Math.round(stats.totalUsers * 0.7)), hackathons: 2 },
-    { month: "Sep", users: Math.max(10, Math.round(stats.totalUsers * 0.85)), hackathons: 2 },
-    { month: "Oct", users: Math.max(stats.totalUsers, 12), hackathons: allHackathons.length },
-  ];
+  // Dynamically compute growth trajectory data points for past 6 months
+  const now = new Date();
+  const past6Months: { label: string; year: number; month: number }[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    past6Months.push({
+      label: d.toLocaleString("en-US", { month: "short" }),
+      year: d.getFullYear(),
+      month: d.getMonth(),
+    });
+  }
+
+  const growthPoints = past6Months.map((m) => {
+    const usersInMonth = allUsers.filter((u) => {
+      // Exclude admin and staff roles from participant onboardings
+      if (u.role && u.role !== "user") return false;
+      const d = new Date(u.created_at);
+      return d.getFullYear() === m.year && d.getMonth() === m.month;
+    }).length;
+
+    const hackathonsInMonth = allHackathons.filter((h) => {
+      const d = new Date(h.created_at || (h as any).createdAt);
+      return d.getFullYear() === m.year && d.getMonth() === m.month;
+    }).length;
+
+    return {
+      month: m.label,
+      users: usersInMonth,
+      hackathons: hackathonsInMonth,
+    };
+  });
 
   return (
     <main className="flex-1 max-w-7xl w-full mx-auto p-6 md:p-8 space-y-8">
@@ -214,7 +227,7 @@ export default async function AdminOverviewPage() {
             </div>
           </CardHeader>
           <CardContent className="px-6 pb-6 pt-0">
-            <div className="text-3xl font-black">{stats.totalUsers}</div>
+            <div className="text-3xl font-black">{stats.participantCount}</div>
             <p className="text-xs text-muted-foreground mt-1">
               Registered platform participants
             </p>
@@ -263,7 +276,7 @@ export default async function AdminOverviewPage() {
         topSkills={topSkills}
         totalPrizeValue={totalPrizeValue}
         growthPoints={growthPoints}
-        totalParticipants={stats.totalUsers}
+        totalParticipants={stats.participantCount}
       />
 
       {/* Infrastructure Services Grid */}

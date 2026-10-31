@@ -29,7 +29,7 @@ export interface IUserRepository {
   updateRole(id: string, role: UserRole): Promise<User>;
   listUsers(params?: { search?: string; role?: string; limit?: number; offset?: number; hideTestAccounts?: boolean }): Promise<User[]>;
   countUsers(params?: { search?: string; role?: string; hideTestAccounts?: boolean }): Promise<number>;
-  getStats(): Promise<{ totalUsers: number; adminCount: number; recentSignups: number }>;
+  getStats(): Promise<{ totalUsers: number; participantCount: number; adminCount: number; recentSignups: number }>;
   getUserProjects(userId: string, options?: { includeDrafts?: boolean }): Promise<UserProjectSubmission[]>;
   getUserHackathons(userId: string, options?: { includeDrafts?: boolean }): Promise<UserHackathonParticipation[]>;
   createTeamInvitation(data: {
@@ -525,10 +525,11 @@ export class UserRepository implements IUserRepository {
   /**
    * Get administrative platform user metrics
    */
-  async getStats(): Promise<{ totalUsers: number; adminCount: number; recentSignups: number }> {
+  async getStats(): Promise<{ totalUsers: number; participantCount: number; adminCount: number; recentSignups: number }> {
     const rows = await db`
       SELECT 
         COUNT(*)::int as total,
+        COUNT(*) FILTER (WHERE role = 'user')::int as participant_count,
         COUNT(*) FILTER (WHERE role = 'admin')::int as admin_count,
         COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days')::int as recent_signups
       FROM public.users;
@@ -536,6 +537,7 @@ export class UserRepository implements IUserRepository {
     const r = (rows[0] || {}) as Record<string, number>;
     return {
       totalUsers: r.total ?? 0,
+      participantCount: r.participant_count ?? 0,
       adminCount: r.admin_count ?? 0,
       recentSignups: r.recent_signups ?? 0,
     };

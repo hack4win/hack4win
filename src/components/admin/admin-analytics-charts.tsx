@@ -94,7 +94,15 @@ export function AdminAnalyticsCharts({
   const hybridPct = Math.round((formatCounts.hybrid / totalFormats) * 100);
 
   // Max for growth chart scaling
-  const maxGrowthUsers = Math.max(10, ...growthPoints.map((p) => p.users));
+  const maxGrowthUsers = Math.max(1, ...growthPoints.map((p) => p.users));
+  const totalGrowthUsers = growthPoints.reduce((acc, p) => acc + p.users, 0);
+  const latestMonthUsers = growthPoints[growthPoints.length - 1]?.users || 0;
+  const previousMonthUsers = growthPoints[growthPoints.length - 2]?.users || 0;
+  const growthRate = previousMonthUsers > 0
+    ? Math.round(((latestMonthUsers - previousMonthUsers) / previousMonthUsers) * 100)
+    : latestMonthUsers > 0
+      ? 100
+      : 0;
 
   return (
     <div className="space-y-6">
@@ -111,17 +119,26 @@ export function AdminAnalyticsCharts({
                 Monthly participant onboardings and hackathon challenges created.
               </CardDescription>
             </div>
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
-              <ArrowUpRight className="size-3.5" />
-              <span>+38.2% Growth</span>
-            </div>
+            {totalGrowthUsers > 0 ? (
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                <ArrowUpRight className="size-3.5" />
+                <span>{growthRate >= 0 ? `+${growthRate}%` : `${growthRate}%`} Growth</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground bg-muted/40 px-2.5 py-1 rounded-full border">
+                <TrendingUp className="size-3.5 text-muted-foreground" />
+                <span>Live Analytics</span>
+              </div>
+            )}
           </CardHeader>
 
           <CardContent className="p-6 space-y-4">
             {/* SVG Area / Bar Chart */}
             <div className="h-48 w-full flex items-end gap-2 sm:gap-4 pt-6 pb-2 border-b">
               {growthPoints.map((point, idx) => {
-                const heightPct = Math.max(15, Math.round((point.users / maxGrowthUsers) * 100));
+                const heightPct = point.users > 0 && maxGrowthUsers > 0
+                  ? Math.max(15, Math.round((point.users / maxGrowthUsers) * 100))
+                  : 0;
                 const isHovered = hoveredMonth?.month === point.month;
 
                 return (
@@ -135,20 +152,26 @@ export function AdminAnalyticsCharts({
                     {isHovered && (
                       <div className="absolute -top-12 z-20 px-2.5 py-1.5 rounded-lg bg-popover text-popover-foreground border shadow-md text-[11px] whitespace-nowrap animate-in fade-in zoom-in-95">
                         <div className="font-bold">{point.month}</div>
-                        <div className="text-primary font-semibold">{point.users} Participants</div>
+                        <div className="text-primary font-semibold">
+                          {point.users} {point.users === 1 ? "Participant" : "Participants"}
+                        </div>
                       </div>
                     )}
 
                     {/* Bar visualization */}
-                    <div className="w-full max-w-[42px] bg-muted/60 rounded-t-xl overflow-hidden relative flex flex-col justify-end h-full">
-                      <div
-                        className={`w-full rounded-t-xl transition-all duration-300 ${
-                          isHovered
-                            ? "bg-primary shadow-sm scale-y-102"
-                            : "bg-gradient-to-t from-primary/80 to-primary/40 group-hover:from-primary group-hover:to-primary/70"
-                        }`}
-                        style={{ height: `${heightPct}%` }}
-                      />
+                    <div className="w-full max-w-[42px] bg-muted/40 rounded-t-xl overflow-hidden relative flex flex-col justify-end h-full">
+                      {heightPct > 0 ? (
+                        <div
+                          className={`w-full rounded-t-xl transition-all duration-300 ${
+                            isHovered
+                              ? "bg-primary shadow-sm scale-y-102"
+                              : "bg-gradient-to-t from-primary/80 to-primary/40 group-hover:from-primary group-hover:to-primary/70"
+                          }`}
+                          style={{ height: `${heightPct}%` }}
+                        />
+                      ) : (
+                        <div className="w-full h-1 bg-muted-foreground/20 rounded-full my-auto" />
+                      )}
                     </div>
 
                     <span className="text-[10px] sm:text-xs font-medium text-muted-foreground group-hover:text-foreground">
