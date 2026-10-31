@@ -170,7 +170,7 @@ export async function POST(req: NextRequest) {
       );
     `;
 
-    let redirectUrl = "/profile";
+    let redirectUrl = "/hackathons";
     if (targetAccount.role === "admin") {
       redirectUrl = "/admin";
     } else if (targetAccount.role === "organizer") {

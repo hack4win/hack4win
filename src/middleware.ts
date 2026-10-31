@@ -77,9 +77,9 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(signInUrl);
   }
 
-  // 4. Prevent authenticated users from getting stuck in Sign-In page (only if not directed with callbackUrl)
+  // 4. Prevent authenticated users from getting stuck in Sign-In page (redirect to /hackathons)
   if (pathname === "/auth/signin" && isAuthenticated && !req.nextUrl.searchParams.has("callbackUrl")) {
-    return NextResponse.redirect(new URL("/profile", req.url));
+    return NextResponse.redirect(new URL("/hackathons", req.url));
   }
 
   return NextResponse.next();

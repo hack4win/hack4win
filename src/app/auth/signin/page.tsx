@@ -39,7 +39,11 @@ import {
 function SignInForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const callbackUrl = searchParams.get("callbackUrl") || "/profile";
+  const rawCallbackUrl = searchParams.get("callbackUrl");
+  const callbackUrl =
+    rawCallbackUrl && rawCallbackUrl !== "/profile"
+      ? rawCallbackUrl
+      : "/hackathons";
 
   // State management
   const [email, setEmail] = useState("");

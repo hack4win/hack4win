@@ -24,7 +24,11 @@ export default async function ChooseUsernamePage({ searchParams }: PageProps) {
 
   const user = await userRepository.findById(session.user.id);
   const resolvedParams = searchParams ? await searchParams : undefined;
-  const callbackUrl = resolvedParams?.callbackUrl || "/profile";
+  const rawCallbackUrl = resolvedParams?.callbackUrl;
+  const callbackUrl =
+    rawCallbackUrl && rawCallbackUrl !== "/profile"
+      ? rawCallbackUrl
+      : "/hackathons";
 
   // If user already completed their username onboarding, redirect them directly
   if (user?.username) {

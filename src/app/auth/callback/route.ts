@@ -63,13 +63,16 @@ function processSetCookieHeaders(setCookieHeaders: string[], responseHeaders: He
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const verifier = url.searchParams.get("neon_auth_session_verifier");
-  const rawCallbackUrl = url.searchParams.get("callbackUrl") || "/profile";
+  const rawCallbackUrl = url.searchParams.get("callbackUrl");
 
-  // Prevent open redirect by validating callbackUrl is an internal path
+  // Prevent open redirect by validating callbackUrl is an internal path; default to /hackathons
   const callbackUrl =
-    rawCallbackUrl.startsWith("/") && !rawCallbackUrl.startsWith("//")
+    rawCallbackUrl &&
+    rawCallbackUrl !== "/profile" &&
+    rawCallbackUrl.startsWith("/") &&
+    !rawCallbackUrl.startsWith("//")
       ? rawCallbackUrl
-      : "/profile";
+      : "/hackathons";
 
   const responseHeaders = new Headers();
 
