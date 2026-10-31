@@ -78,7 +78,8 @@ function SignInForm() {
 
     startTransition(async () => {
       try {
-        const authCallbackUrl = `/auth/callback?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+        const appOrigin = typeof window !== "undefined" ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || "https://www.hack4win.online");
+        const authCallbackUrl = `${appOrigin}/auth/callback?callbackUrl=${encodeURIComponent(callbackUrl)}`;
         await signIn.social({
           provider: "google",
           callbackURL: authCallbackUrl,
