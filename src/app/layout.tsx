@@ -4,6 +4,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ModalAlertProvider } from "@/components/ui/modal-alert";
 import { PerformanceTimingPatch } from "@/components/providers/performance-timing-patch";
+import { Analytics } from "@vercel/analytics/next";
 
 import {
   SITE_URL,
@@ -146,6 +147,7 @@ export default function RootLayout({
         />
         <PerformanceTimingPatch />
         <ModalAlertProvider>{children}</ModalAlertProvider>
+        <Analytics />
       </body>
     </html>
   );
