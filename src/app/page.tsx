@@ -28,12 +28,9 @@ import { safeJsonLdReplacer } from "@/lib/json-ld";
 import { BRAND_LOGO } from "@/lib/constants/branding";
 import { BrandLogo } from "@/components/navigation/brand-logo";
 import { FeaturedHackathonCard } from "@/components/home/featured-hackathon-card";
-import { FeaturedProjectsShowcase } from "@/components/home/featured-projects-showcase";
 import { PlatformStatsTicker } from "@/components/home/platform-stats-ticker";
 import { HowItWorksSection } from "@/components/home/how-it-works-section";
 import { FeaturesBentoGrid } from "@/components/home/features-bento-grid";
-import { TracksEcosystemSection } from "@/components/home/tracks-ecosystem-section";
-import { CommunityTestimonials } from "@/components/home/community-testimonials";
 import { FAQAccordion } from "@/components/home/faq-accordion";
 import { SiteFooter } from "@/components/navigation/site-footer";
 
@@ -44,10 +41,9 @@ export default async function Home() {
   const isAdmin = session?.user.role === "admin";
   const userId = session?.user.id;
 
-  const [liveHackathons, featuredProjects, platformStats, submissionStats, registeredIds] =
+  const [liveHackathons, platformStats, submissionStats, registeredIds] =
     await Promise.all([
       hackathonRepository.listHackathons({ limit: 20, includeDrafts: isAdmin }),
-      hackathonRepository.getFeaturedSubmissions(6),
       hackathonRepository.getStats({ includeDrafts: false }),
       hackathonRepository.getSubmissionStats(),
       userId ? hackathonRepository.getUserRegisteredHackathonIds(userId) : Promise.resolve(new Set<string>()),
@@ -312,16 +308,7 @@ export default async function Home() {
         {/* 4. PLATFORM SUPERPOWERS BENTO GRID */}
         <FeaturesBentoGrid />
 
-        {/* 5. CURATED TRACKS & TECHNOLOGY ECOSYSTEM (Temporarily Hidden) */}
-        {/* <TracksEcosystemSection /> */}
-
-        {/* 6. FEATURED PROJECTS SHOWCASE */}
-        <FeaturedProjectsShowcase projects={featuredProjects} />
-
-        {/* 7. BUILDER TESTIMONIALS / COMMUNITY VOICES (Temporarily Hidden) */}
-        {/* <CommunityTestimonials /> */}
-
-        {/* 8. INTERACTIVE FAQ ACCORDION */}
+        {/* 5. INTERACTIVE FAQ ACCORDION */}
         <FAQAccordion />
 
         {/* 9. BOTTOM CALL TO ACTION BANNER */}
