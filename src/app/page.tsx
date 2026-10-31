@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Trophy,
-  Sparkles,
   Rocket,
   ArrowRight,
   Search,
@@ -262,14 +261,6 @@ export default async function Home() {
       <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-12 sm:py-16 text-center max-w-6xl mx-auto w-full space-y-16">
         {/* HERO SECTION */}
         <div className="flex flex-col items-center max-w-4xl mx-auto w-full">
-          <Badge
-            variant="secondary"
-            className="mb-6 px-4 py-1.5 text-xs font-semibold gap-2 rounded-full border bg-muted/60 shadow-xs"
-          >
-            <Sparkles className="size-3.5 text-primary" />
-            Hack4Win 2026 Hackathon Arena • Over $350,000 in Prizes
-          </Badge>
-
           <h1 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight max-w-4xl leading-[1.1] text-foreground">
             Build, Showcase & Compete in{" "}
             <span className="bg-gradient-to-r from-primary via-primary/80 to-amber-500 bg-clip-text text-transparent">
