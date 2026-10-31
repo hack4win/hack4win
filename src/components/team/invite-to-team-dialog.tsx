@@ -62,6 +62,10 @@ export function InviteToTeamDialog({
     subject: string;
     accept_url: string;
     service: string;
+    dispatched?: boolean;
+    isIpRestricted?: boolean;
+    detectedIp?: string;
+    guidanceUrl?: string;
   } | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -159,15 +163,48 @@ export function InviteToTeamDialog({
         {dispatchedEmail ? (
           /* Dispatched Email Success Screen */
           <div className="py-4 space-y-4 animate-in fade-in-50 duration-200">
-            <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 space-y-1">
-              <div className="flex items-center gap-2 font-bold text-sm">
-                <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
-                <span>Invitation Dispatched Successfully! 🎉</span>
+            {dispatchedEmail.isIpRestricted ? (
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 space-y-1.5 text-xs">
+                <div className="flex items-center gap-2 font-bold text-sm text-amber-700 dark:text-amber-400">
+                  <AlertCircle className="size-4 shrink-0" />
+                  <span>Invitation Link Ready &middot; Brevo IP Restriction Active</span>
+                </div>
+                <p className="leading-relaxed">
+                  The invitation link has been generated. However, Brevo blocked direct delivery because your server IP (<strong>{dispatchedEmail.detectedIp || "103.31.41.25"}</strong>) is not yet whitelisted in your Brevo account.
+                </p>
+                <div className="pt-1 flex items-center gap-2">
+                  <a
+                    href={dispatchedEmail.guidanceUrl || "https://app.brevo.com/security/authorised_ips"}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 font-bold underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-200"
+                  >
+                    <span>Authorize IP in Brevo Dashboard</span>
+                    <ExternalLink className="size-3" />
+                  </a>
+                </div>
               </div>
-              <p className="text-xs opacity-90">
-                An invitation email with a direct acceptance link has been dispatched to {dispatchedEmail.recipient_name}.
-              </p>
-            </div>
+            ) : dispatchedEmail.dispatched ? (
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 space-y-1">
+                <div className="flex items-center gap-2 font-bold text-sm">
+                  <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+                  <span>Invitation Dispatched Successfully! 🎉</span>
+                </div>
+                <p className="text-xs opacity-90">
+                  An invitation email with a direct acceptance link has been dispatched to {dispatchedEmail.recipient_name} ({dispatchedEmail.to}).
+                </p>
+              </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20 text-foreground space-y-1">
+                <div className="flex items-center gap-2 font-bold text-sm text-primary">
+                  <CheckCircle2 className="size-4 text-primary shrink-0" />
+                  <span>Invitation Link Generated! 🎟️</span>
+                </div>
+                <p className="text-xs opacity-90">
+                  Your team invitation link has been generated for {dispatchedEmail.recipient_name}.
+                </p>
+              </div>
+            )}
 
             {/* Email Dispatch Card */}
             <div className="p-4 rounded-2xl border bg-muted/20 space-y-3 text-xs">
@@ -175,8 +212,20 @@ export function InviteToTeamDialog({
                 <span className="font-semibold text-muted-foreground flex items-center gap-1.5">
                   <Mail className="size-3.5 text-primary" /> Invitation Dispatch Record
                 </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-background border text-emerald-600 font-semibold">
-                  Dispatched
+                <span
+                  className={`text-[10px] font-mono px-2 py-0.5 rounded-full border font-semibold ${
+                    dispatchedEmail.isIpRestricted
+                      ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
+                      : dispatchedEmail.dispatched
+                      ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+                      : "bg-muted text-muted-foreground border-border"
+                  }`}
+                >
+                  {dispatchedEmail.isIpRestricted
+                    ? "IP Whitelist Required"
+                    : dispatchedEmail.dispatched
+                    ? "Dispatched"
+                    : "Link Generated"}
                 </span>
               </div>
 

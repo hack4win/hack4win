@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/session";
 import { hackathonRepository } from "@/lib/db/hackathon-repository";
+import { userRepository } from "@/lib/db/user-repository";
 import { getHackathonStatus, type SubmissionTeamMember } from "@/lib/db/types";
 import { isValidHttpUrl } from "@/lib/url-validation";
 import { brevoService, HACK4WIN_SENDERS } from "@/lib/email/brevo-service";
@@ -307,6 +308,14 @@ export async function POST(
       }
     }
 
+    // Merge any accepted teammates from team invitations into finalTeamMembers
+    const acceptedTeammates = await userRepository.getAcceptedTeammates(hackathon.id, session.user.id);
+    for (const mate of acceptedTeammates) {
+      if (!finalTeamMembers.some((m) => m.id === mate.id)) {
+        finalTeamMembers.push(mate);
+      }
+    }
+
     const finalMemberIds = Array.from(
       new Set([
         session.user.id,
@@ -339,6 +348,9 @@ export async function POST(
       team_members: finalTeamMembers,
       team_member_ids: finalMemberIds,
     });
+
+    // Ensure all connected accepted team members are fully synchronized in database
+    await hackathonRepository.syncAcceptedTeamMembersForHackathon(hackathon.id, [session.user.id]);
 
     // Send project submission confirmation receipt asynchronously
     try {

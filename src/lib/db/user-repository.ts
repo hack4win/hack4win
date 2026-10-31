@@ -867,6 +867,51 @@ export class UserRepository implements IUserRepository {
       return 0;
     }
   }
+
+  /**
+   * Get all accepted teammates for a user in a hackathon (either sent by or received by user)
+   */
+  async getAcceptedTeammates(hackathonId: string, userId: string): Promise<SubmissionTeamMember[]> {
+    try {
+      const rows = await db`
+        SELECT DISTINCT
+          u.id,
+          u.name,
+          u.username,
+          u.email,
+          u.image,
+          ti.team_name,
+          ti.sender_id,
+          ti.receiver_id
+        FROM public.team_invitations ti
+        JOIN public.users u ON (
+          (ti.sender_id = ${userId} AND u.id = ti.receiver_id) OR
+          (ti.receiver_id = ${userId} AND u.id = ti.sender_id)
+        )
+        WHERE ti.hackathon_id = ${hackathonId}::uuid
+          AND ti.status = 'accepted';
+      `;
+
+      return rows.map((r: Record<string, unknown>) => {
+        const teamName = (r.team_name as string) || "";
+        const role = teamName.includes("(")
+          ? teamName.split("(")[1].replace(")", "").trim()
+          : "Co-Builder";
+        return {
+          id: r.id as string,
+          name: (r.name as string) || "Teammate",
+          username: (r.username as string) || null,
+          email: (r.email as string) || null,
+          image: (r.image as string) || null,
+          role: role || "Co-Builder",
+          status: "accepted" as const,
+        };
+      });
+    } catch (err) {
+      console.error("[getAcceptedTeammates Error]:", err);
+      return [];
+    }
+  }
 }
 
 // Singleton export following Dependency Inversion Principle

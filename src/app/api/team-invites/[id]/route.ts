@@ -184,39 +184,11 @@ export async function PATCH(
           : "Co-Builder",
       };
 
-      // Synchronize team member status in project submissions
-      await hackathonRepository.updateSubmissionTeamMemberStatus(
+      // Synchronize all accepted team members in project submissions
+      await hackathonRepository.syncAcceptedTeamMembersForHackathon(
         invitation.hackathon_id,
-        session.user.id,
-        "accepted",
-        session.user.id,
-        syncOptions
+        [invitation.sender_id, session.user.id]
       );
-      await hackathonRepository.updateSubmissionTeamMemberStatus(
-        invitation.hackathon_id,
-        id,
-        "accepted",
-        session.user.id,
-        syncOptions
-      );
-      if (session.user.email) {
-        await hackathonRepository.updateSubmissionTeamMemberStatus(
-          invitation.hackathon_id,
-          session.user.email,
-          "accepted",
-          session.user.id,
-          syncOptions
-        );
-      }
-      if (invitation.receiver_email) {
-        await hackathonRepository.updateSubmissionTeamMemberStatus(
-          invitation.hackathon_id,
-          invitation.receiver_email,
-          "accepted",
-          session.user.id,
-          syncOptions
-        );
-      }
 
       // Notify team leader asynchronously that invite was accepted
       try {

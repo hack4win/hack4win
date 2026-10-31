@@ -128,6 +128,7 @@ export interface IHackathonRepository {
       memberRole?: string;
     }
   ): Promise<void>;
+  syncAcceptedTeamMembersForHackathon(hackathonId: string, userIds?: string[]): Promise<void>;
   saveEvaluation(input: SaveEvaluationInput): Promise<ProjectEvaluation>;
   getEvaluationsBySubmission(submissionId: string): Promise<ProjectEvaluation[]>;
   getEvaluationsByHackathon(hackathonId: string): Promise<ProjectEvaluation[]>;
@@ -877,6 +878,10 @@ export class HackathonRepository implements IHackathonRepository {
       const includeDraftHackathons = Boolean(params?.includeDraftHackathons);
       const includePrivateHackathons = params?.includePrivateHackathons ?? Boolean(hackathonId);
 
+      if (hackathonId) {
+        await this.syncAcceptedTeamMembersForHackathon(hackathonId);
+      }
+
       const rows = await db`
         SELECT 
           s.id,
@@ -1374,10 +1379,140 @@ export class HackathonRepository implements IHackathonRepository {
   }
 
   /**
+   * Synchronize all accepted team members from team_invitations into hackathon_submissions
+   * Ensures that when an invite is accepted, all submissions for that team include all accepted teammates!
+   */
+  async syncAcceptedTeamMembersForHackathon(hackathonId: string, userIds?: string[]): Promise<void> {
+    try {
+      const acceptedInvs = await db`
+        SELECT 
+          ti.id as invite_id,
+          ti.sender_id,
+          ti.receiver_id,
+          ti.team_name,
+          u_s.id as s_id, u_s.name as s_name, u_s.username as s_username, u_s.email as s_email, u_s.image as s_image,
+          u_r.id as r_id, u_r.name as r_name, u_r.username as r_username, u_r.email as r_email, u_r.image as r_image
+        FROM public.team_invitations ti
+        JOIN public.users u_s ON u_s.id = ti.sender_id
+        LEFT JOIN public.users u_r ON u_r.id = ti.receiver_id
+        WHERE ti.hackathon_id = ${hackathonId}::uuid
+          AND ti.status = 'accepted'
+          AND ti.receiver_id IS NOT NULL;
+      `;
+
+      if (acceptedInvs.length === 0) return;
+
+      const teamMap = new Map<string, Map<string, SubmissionTeamMember>>();
+
+      for (const row of acceptedInvs) {
+        const sId = row.s_id as string;
+        const rId = row.r_id as string;
+        if (!sId || !rId) continue;
+
+        const sMember: SubmissionTeamMember = {
+          id: sId,
+          name: (row.s_name as string) || "Builder",
+          username: (row.s_username as string) || null,
+          email: (row.s_email as string) || null,
+          image: (row.s_image as string) || null,
+          role: "Co-Builder",
+          status: "accepted",
+        };
+
+        const teamName = (row.team_name as string) || "";
+        const rRole = teamName.includes("(") ? teamName.split("(")[1].replace(")", "").trim() : "Co-Builder";
+        const rMember: SubmissionTeamMember = {
+          id: rId,
+          name: (row.r_name as string) || "Builder",
+          username: (row.r_username as string) || null,
+          email: (row.r_email as string) || null,
+          image: (row.r_image as string) || null,
+          role: rRole || "Co-Builder",
+          status: "accepted",
+        };
+
+        if (!teamMap.has(sId)) teamMap.set(sId, new Map());
+        if (!teamMap.has(rId)) teamMap.set(rId, new Map());
+
+        teamMap.get(sId)!.set(rId, rMember);
+        teamMap.get(rId)!.set(sId, sMember);
+      }
+
+      // Fetch all submissions for this hackathon
+      const submissions = await db`
+        SELECT s.id, s.user_id, s.team_members, s.team_member_ids, u.name as user_name, u.username as user_username, u.email as user_email, u.image as user_image
+        FROM public.hackathon_submissions s
+        LEFT JOIN public.users u ON u.id = s.user_id
+        WHERE s.hackathon_id = ${hackathonId}::uuid;
+      `;
+
+      for (const sub of submissions) {
+        const subId = sub.id as string;
+        const creatorId = sub.user_id as string;
+        let existingMembers: SubmissionTeamMember[] = Array.isArray(sub.team_members)
+          ? [...(sub.team_members as SubmissionTeamMember[])]
+          : [];
+        let memberIds: string[] = Array.isArray(sub.team_member_ids)
+          ? [...(sub.team_member_ids as string[])]
+          : [creatorId];
+
+        // Ensure creator is in existing members
+        if (!existingMembers.some((m) => m.id === creatorId)) {
+          existingMembers.unshift({
+            id: creatorId,
+            name: (sub.user_name as string) || "Project Lead",
+            username: (sub.user_username as string) || null,
+            email: (sub.user_email as string) || null,
+            image: (sub.user_image as string) || null,
+            role: "Project Lead",
+            status: "accepted",
+          });
+        }
+        if (!memberIds.includes(creatorId)) {
+          memberIds.push(creatorId);
+        }
+
+        // Find all teammate IDs connected to any current member of this submission
+        let changed = false;
+        const currentMemberIds = new Set(existingMembers.map((m) => m.id).filter(Boolean));
+
+        for (const mId of Array.from(currentMemberIds)) {
+          const teammates = teamMap.get(mId);
+          if (teammates) {
+            for (const [tId, tMember] of teammates.entries()) {
+              if (!currentMemberIds.has(tId)) {
+                existingMembers.push(tMember);
+                currentMemberIds.add(tId);
+                if (!memberIds.includes(tId)) {
+                  memberIds.push(tId);
+                }
+                changed = true;
+              }
+            }
+          }
+        }
+
+        if (changed) {
+          await db`
+            UPDATE public.hackathon_submissions
+            SET team_members = ${JSON.stringify(existingMembers)}::jsonb,
+                team_member_ids = ${memberIds}::text[],
+                updated_at = NOW()
+            WHERE id = ${subId}::uuid;
+          `;
+        }
+      }
+    } catch (err) {
+      console.error("[syncAcceptedTeamMembersForHackathon Error]:", err);
+    }
+  }
+
+  /**
    * Get submission by specific user for this hackathon
    */
   async getUserSubmission(hackathonId: string, userId: string): Promise<HackathonSubmission | null> {
     try {
+      await this.syncAcceptedTeamMembersForHackathon(hackathonId, [userId]);
       const rows = await db`
         SELECT 
           s.*,

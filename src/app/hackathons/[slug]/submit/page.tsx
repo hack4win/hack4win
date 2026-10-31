@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getServerSession } from "@/lib/auth/session";
 import { hackathonRepository } from "@/lib/db/hackathon-repository";
+import { userRepository } from "@/lib/db/user-repository";
 import { UserMenu } from "@/components/navigation/user-menu";
 import { BrandLogo } from "@/components/navigation/brand-logo";
 import { Button } from "@/components/ui/button";
@@ -55,11 +56,12 @@ export default async function SubmitProjectPage({ params }: PageProps) {
     redirect(`/auth/choose-username?callbackUrl=/hackathons/${slug}/submit`);
   }
 
-  const [isRegistered, userReg, existingSubmission, participants] = await Promise.all([
+  const [isRegistered, userReg, existingSubmission, participants, acceptedTeammates] = await Promise.all([
     hackathonRepository.isUserRegistered(hackathon.id, session.user.id),
     hackathonRepository.getUserRegistration(hackathon.id, session.user.id),
     hackathonRepository.getUserSubmission(hackathon.id, session.user.id),
     hackathonRepository.getParticipants(hackathon.id),
+    userRepository.getAcceptedTeammates(hackathon.id, session.user.id),
   ]);
 
   const isPrivileged = session.user.role === "admin" || hackathon.organizer_id === session.user.id;
@@ -109,6 +111,7 @@ export default async function SubmitProjectPage({ params }: PageProps) {
           isRegistered={isRegistered}
           existingSubmission={existingSubmission}
           availableParticipants={participants}
+          acceptedTeammates={acceptedTeammates}
         />
       </main>
 

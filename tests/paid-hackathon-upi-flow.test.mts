@@ -102,6 +102,9 @@ after(async () => {
 
 describe("Paid Hackathon UPI Flow E2E", () => {
   test("1. Admin creates a paid hackathon with UPI ID & registration fee", async () => {
+    const start = new Date(Date.now() + 86400000);
+    const end = new Date(Date.now() + 172800000);
+    const subDeadline = new Date(end.getTime() - 3600000);
     const res = await api("/api/admin/hackathons", {
       method: "POST",
       token: ADMIN_TOKEN,
@@ -110,10 +113,10 @@ describe("Paid Hackathon UPI Flow E2E", () => {
         tagline: "Build premier generative AI apps",
         description: "Registration fee required to participate in this exclusive hackathon.",
         slug: testHackathonSlug,
-        start_date: new Date(Date.now() + 86400000).toISOString(),
-        end_date: new Date(Date.now() + 172800000).toISOString(),
-        registration_deadline: new Date(Date.now() + 86400000).toISOString(),
-        submission_deadline: new Date(Date.now() + 172800000).toISOString(),
+        start_date: start.toISOString(),
+        end_date: end.toISOString(),
+        registration_deadline: start.toISOString(),
+        submission_deadline: subDeadline.toISOString(),
         status: "published",
         is_paid: true,
         registration_fee: 299,

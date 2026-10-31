@@ -224,6 +224,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const isIpRestricted = Boolean(
+      (brevoResult as Record<string, unknown> | null)?.isIpRestricted ||
+      String((brevoResult as Record<string, unknown> | null)?.warning || "").toLowerCase().includes("ip") ||
+      String((brevoResult as Record<string, unknown> | null)?.warning || "").toLowerCase().includes("authorised_ips")
+    );
+    const wasSimulated = (brevoResult as Record<string, unknown> | null)?.engineUsed === "simulated";
+    const actuallyDispatched = Boolean(
+      brevoResult &&
+      (brevoResult as Record<string, unknown>).success &&
+      !isIpRestricted &&
+      !wasSimulated
+    );
+
     // Official invitation notification record
     const dispatchedEmail = {
       to: targetReceiverEmail || "",
@@ -234,8 +247,11 @@ export async function POST(req: NextRequest) {
       preview_text: message || `Hey! Let's build something amazing together in ${hackathon.title}.`,
       accept_url: acceptUrl,
       timestamp: new Date().toISOString(),
-      dispatched: true,
-      service: "Hack4Win Brevo Dispatcher (REST API / SMTP Relay)",
+      dispatched: actuallyDispatched,
+      isIpRestricted,
+      detectedIp: "103.31.41.25",
+      guidanceUrl: "https://app.brevo.com/security/authorised_ips",
+      service: actuallyDispatched ? "Brevo Live Email Delivery" : "Hack4Win Brevo Dispatcher",
       brevoResult,
     };
 

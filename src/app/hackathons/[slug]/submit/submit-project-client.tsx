@@ -115,6 +115,7 @@ interface SubmitProjectClientProps {
   isRegistered: boolean;
   existingSubmission: HackathonSubmission | null;
   availableParticipants?: User[];
+  acceptedTeammates?: SubmissionTeamMember[];
 }
 
 export function SubmitProjectClient({
@@ -123,6 +124,7 @@ export function SubmitProjectClient({
   isRegistered,
   existingSubmission,
   availableParticipants = [],
+  acceptedTeammates = [],
 }: SubmitProjectClientProps) {
   const router = useRouter();
   const { showAlert } = useModalAlert();
@@ -140,21 +142,30 @@ export function SubmitProjectClient({
 
   // Team members state
   const [teamMembers, setTeamMembers] = useState<SubmissionTeamMember[]>(() => {
+    let initialList: SubmissionTeamMember[] = [];
     if (existingSubmission?.team_members && existingSubmission.team_members.length > 0) {
-      return existingSubmission.team_members;
+      initialList = [...existingSubmission.team_members];
+    } else if (sessionUser) {
+      initialList = [
+        {
+          id: sessionUser.id,
+          name: sessionUser.name || "Creator",
+          email: sessionUser.email,
+          image: sessionUser.image || null,
+          role: "Project Lead",
+          status: "accepted",
+        },
+      ];
     }
-    return sessionUser
-      ? [
-          {
-            id: sessionUser.id,
-            name: sessionUser.name || "Creator",
-            email: sessionUser.email,
-            image: sessionUser.image || null,
-            role: "Project Lead",
-            status: "accepted",
-          },
-        ]
-      : [];
+    // Automatically include accepted teammates who accepted via "Work Together"
+    if (Array.isArray(acceptedTeammates) && acceptedTeammates.length > 0) {
+      for (const mate of acceptedTeammates) {
+        if (!initialList.some((m) => m.id === mate.id)) {
+          initialList.push(mate);
+        }
+      }
+    }
+    return initialList;
   });
 
   // 2-Way Add Team Member state
