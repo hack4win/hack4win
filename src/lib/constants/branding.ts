@@ -4,15 +4,15 @@
  */
 export const BRAND_LOGO = {
   s3UrlWebp:
-    "https://br-polished-unit-b3lk45ku.storage.c-4.ap-southeast-1.aws.neon.tech/do4win/branding/hack4win-logo-v3.webp",
+    "https://br-polished-unit-b3lk45ku.storage.c-4.ap-southeast-1.aws.neon.tech/do4win/branding/hack4win-logo-v4.webp",
   s3UrlPng:
-    "https://br-polished-unit-b3lk45ku.storage.c-4.ap-southeast-1.aws.neon.tech/do4win/branding/hack4win-logo-v3.png",
+    "https://br-polished-unit-b3lk45ku.storage.c-4.ap-southeast-1.aws.neon.tech/do4win/branding/hack4win-logo-v4.png",
   s3UrlIcon:
-    "https://br-polished-unit-b3lk45ku.storage.c-4.ap-southeast-1.aws.neon.tech/do4win/branding/hack4win-icon-v3.png",
+    "https://br-polished-unit-b3lk45ku.storage.c-4.ap-southeast-1.aws.neon.tech/do4win/branding/hack4win-icon-v4.png",
   localLogoWebp: "/logo.webp",
   localLogoPng: "/logo.png",
   localIconPng: "/icon.png",
-  faviconIco: "/favicon.ico",
+  faviconIco: "/favicon.ico?v=4",
   alt: "Hack4Win Logo",
   siteName: "Hack4Win",
   domainSuffix: ".online",

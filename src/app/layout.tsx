@@ -45,11 +45,15 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon.ico?v=4", sizes: "any" },
+      { url: "/icon-32x32.png?v=4", sizes: "32x32", type: "image/png" },
+      { url: "/icon-16x16.png?v=4", sizes: "16x16", type: "image/png" },
+      { url: "/icon.png?v=4", sizes: "192x192", type: "image/png" },
       { url: BRAND_ASSETS.iconPng, type: "image/png" },
     ],
-    shortcut: "/favicon.ico",
+    shortcut: "/favicon.ico?v=4",
     apple: [
+      { url: "/apple-icon.png?v=4", sizes: "180x180", type: "image/png" },
       { url: BRAND_ASSETS.iconPng, sizes: "180x180", type: "image/png" },
     ],
   },
