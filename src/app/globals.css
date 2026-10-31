@@ -186,4 +186,10 @@
     background-color: #27272a;
     color: #fafafa;
   }
+
+  /* Performance: Offscreen rendering optimization via modern CSS */
+  .content-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 320px;
+  }
 }

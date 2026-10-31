@@ -44,6 +44,7 @@ export function HackathonThumbnail({
         src={src}
         alt={alt}
         className="size-full object-cover"
+        decoding="async"
         onError={() => setHasError(true)}
       />
     </div>

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { db } from "./index";
 import {
   Hackathon,
@@ -204,13 +205,12 @@ export class HackathonRepository implements IHackathonRepository {
     const rows = await db`
       SELECT 
         h.*, 
-        COALESCE(r.p_count, 0)::int as participant_count
+        COALESCE((
+          SELECT COUNT(*)::int 
+          FROM public.hackathon_registrations 
+          WHERE hackathon_id = h.id
+        ), 0) as participant_count
       FROM public.hackathons h
-      LEFT JOIN (
-        SELECT hackathon_id, COUNT(*)::int as p_count 
-        FROM public.hackathon_registrations 
-        GROUP BY hackathon_id
-      ) r ON r.hackathon_id = h.id
       WHERE h.id = ${id}::uuid
       LIMIT 1;
     `;
@@ -226,13 +226,12 @@ export class HackathonRepository implements IHackathonRepository {
     const rows = await db`
       SELECT 
         h.*, 
-        COALESCE(r.p_count, 0)::int as participant_count
+        COALESCE((
+          SELECT COUNT(*)::int 
+          FROM public.hackathon_registrations 
+          WHERE hackathon_id = h.id
+        ), 0) as participant_count
       FROM public.hackathons h
-      LEFT JOIN (
-        SELECT hackathon_id, COUNT(*)::int as p_count 
-        FROM public.hackathon_registrations 
-        GROUP BY hackathon_id
-      ) r ON r.hackathon_id = h.id
       WHERE h.slug = ${slug.toLowerCase().trim()}
       LIMIT 1;
     `;
@@ -530,13 +529,12 @@ export class HackathonRepository implements IHackathonRepository {
       const rows = await db`
         SELECT 
           h.*,
-          COALESCE(r.p_count, 0)::int as participant_count
+          COALESCE((
+            SELECT COUNT(*)::int 
+            FROM public.hackathon_registrations 
+            WHERE hackathon_id = h.id
+          ), 0) as participant_count
         FROM public.hackathons h
-        LEFT JOIN (
-          SELECT hackathon_id, COUNT(*)::int as p_count 
-          FROM public.hackathon_registrations 
-          GROUP BY hackathon_id
-        ) r ON r.hackathon_id = h.id
         WHERE h.status = ${status}
           AND (${includeDrafts}::boolean = true OR h.status != 'draft')
         ORDER BY h.start_date DESC
@@ -548,13 +546,12 @@ export class HackathonRepository implements IHackathonRepository {
     const rows = await db`
       SELECT 
         h.*,
-        COALESCE(r.p_count, 0)::int as participant_count
+        COALESCE((
+          SELECT COUNT(*)::int 
+          FROM public.hackathon_registrations 
+          WHERE hackathon_id = h.id
+        ), 0) as participant_count
       FROM public.hackathons h
-      LEFT JOIN (
-        SELECT hackathon_id, COUNT(*)::int as p_count 
-        FROM public.hackathon_registrations 
-        GROUP BY hackathon_id
-      ) r ON r.hackathon_id = h.id
       WHERE (${includeDrafts}::boolean = true OR h.status != 'draft')
       ORDER BY h.start_date DESC
       LIMIT ${limit} OFFSET ${offset};
@@ -572,18 +569,21 @@ export class HackathonRepository implements IHackathonRepository {
     ended: number;
   }> {
     const includeDrafts = Boolean(options?.includeDrafts);
-    const totalResult = includeDrafts
-      ? await db`SELECT COUNT(*)::int as count FROM public.hackathons;`
-      : await db`SELECT COUNT(*)::int as count FROM public.hackathons WHERE status != 'draft';`;
-    const upcomingResult = await db`SELECT COUNT(*)::int as count FROM public.hackathons WHERE status = 'upcoming';`;
-    const ongoingResult = await db`SELECT COUNT(*)::int as count FROM public.hackathons WHERE status = 'ongoing';`;
-    const endedResult = await db`SELECT COUNT(*)::int as count FROM public.hackathons WHERE status = 'ended';`;
-
+    const rows = await db`
+      SELECT 
+        COUNT(*)::int as total,
+        COUNT(*) FILTER (WHERE status = 'upcoming')::int as upcoming,
+        COUNT(*) FILTER (WHERE status = 'ongoing')::int as ongoing,
+        COUNT(*) FILTER (WHERE status = 'ended')::int as ended
+      FROM public.hackathons
+      WHERE (${includeDrafts}::boolean = true OR status != 'draft');
+    `;
+    const r = (rows[0] || {}) as Record<string, number>;
     return {
-      total: totalResult[0]?.count ?? 0,
-      upcoming: upcomingResult[0]?.count ?? 0,
-      ongoing: ongoingResult[0]?.count ?? 0,
-      ended: endedResult[0]?.count ?? 0,
+      total: r.total ?? 0,
+      upcoming: r.upcoming ?? 0,
+      ongoing: r.ongoing ?? 0,
+      ended: r.ended ?? 0,
     };
   }
 
@@ -2155,5 +2155,9 @@ export class HackathonRepository implements IHackathonRepository {
   }
 }
 
-// Singleton instance export
-export const hackathonRepository = new HackathonRepository();
+// Singleton instance export with per-request deduplication cache
+const repo = new HackathonRepository();
+repo.findById = cache(repo.findById.bind(repo));
+repo.findBySlug = cache(repo.findBySlug.bind(repo));
+repo.getSubmissionById = cache(repo.getSubmissionById.bind(repo));
+export const hackathonRepository = repo;

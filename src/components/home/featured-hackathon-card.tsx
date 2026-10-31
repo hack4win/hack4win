@@ -196,7 +196,7 @@ export function FeaturedHackathonCard({ hackathon, isRegistered }: FeaturedHacka
     : 0;
 
   return (
-    <Card className="hover:border-primary/50 hover:shadow-lg transition-all duration-300 rounded-3xl overflow-hidden flex flex-col group border bg-card relative">
+    <Card className="hover:border-primary/50 hover:shadow-lg transition-all duration-300 rounded-3xl overflow-hidden flex flex-col group border bg-card relative content-auto">
       {/* Banner / Visual Top */}
       <Link href={`/hackathons/${hackathon.slug}`} className="block relative overflow-hidden">
         {hackathon.banner_url ? (
@@ -204,6 +204,8 @@ export function FeaturedHackathonCard({ hackathon, isRegistered }: FeaturedHacka
             <img
               src={hackathon.banner_url}
               alt={hackathon.title}
+              loading="lazy"
+              decoding="async"
               className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />

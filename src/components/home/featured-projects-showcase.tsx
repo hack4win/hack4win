@@ -146,6 +146,8 @@ export function FeaturedProjectsShowcase({ projects }: FeaturedProjectsShowcaseP
                       <img
                         src={p.cover_image}
                         alt={p.title}
+                        loading="lazy"
+                        decoding="async"
                         className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                     ) : (

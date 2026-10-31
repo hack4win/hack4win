@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { db } from "./index";
 import {
   User,
@@ -525,18 +526,18 @@ export class UserRepository implements IUserRepository {
    * Get administrative platform user metrics
    */
   async getStats(): Promise<{ totalUsers: number; adminCount: number; recentSignups: number }> {
-    const totalResult = await db`SELECT COUNT(*)::int as count FROM public.users;`;
-    const adminResult = await db`SELECT COUNT(*)::int as count FROM public.users WHERE role = 'admin';`;
-    const recentResult = await db`
-      SELECT COUNT(*)::int as count 
-      FROM public.users 
-      WHERE created_at >= NOW() - INTERVAL '7 days';
+    const rows = await db`
+      SELECT 
+        COUNT(*)::int as total,
+        COUNT(*) FILTER (WHERE role = 'admin')::int as admin_count,
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days')::int as recent_signups
+      FROM public.users;
     `;
-
+    const r = (rows[0] || {}) as Record<string, number>;
     return {
-      totalUsers: totalResult[0]?.count ?? 0,
-      adminCount: adminResult[0]?.count ?? 0,
-      recentSignups: recentResult[0]?.count ?? 0,
+      totalUsers: r.total ?? 0,
+      adminCount: r.admin_count ?? 0,
+      recentSignups: r.recent_signups ?? 0,
     };
   }
 
@@ -927,5 +928,9 @@ export class UserRepository implements IUserRepository {
   }
 }
 
-// Singleton export following Dependency Inversion Principle
-export const userRepository = new UserRepository();
+// Singleton export following Dependency Inversion Principle with per-request deduplication cache
+const userRepo = new UserRepository();
+userRepo.findById = cache(userRepo.findById.bind(userRepo));
+userRepo.findByEmail = cache(userRepo.findByEmail.bind(userRepo));
+userRepo.findByUsername = cache(userRepo.findByUsername.bind(userRepo));
+export const userRepository = userRepo;

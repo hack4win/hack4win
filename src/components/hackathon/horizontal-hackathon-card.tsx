@@ -203,7 +203,7 @@ export function HorizontalHackathonCard({ hackathon, isRegistered }: HorizontalH
 
   return (
     <div
-      className={`group overflow-hidden border border-l-4 sm:border-l-[6px] rounded-2xl bg-card hover:shadow-md transition-all duration-300 flex flex-col sm:flex-row ${statusStyles.leftBorder} ${
+      className={`group overflow-hidden content-auto border border-l-4 sm:border-l-[6px] rounded-2xl bg-card hover:shadow-md transition-all duration-300 flex flex-col sm:flex-row ${statusStyles.leftBorder} ${
         isRegistered ? "ring-1 ring-emerald-500/25 bg-gradient-to-r from-emerald-500/[0.03] via-card to-card" : ""
       }`}
     >
@@ -216,6 +216,8 @@ export function HorizontalHackathonCard({ hackathon, isRegistered }: HorizontalH
           <img
             src={hackathon.banner_url}
             alt={hackathon.title}
+            loading="lazy"
+            decoding="async"
             className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (

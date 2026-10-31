@@ -467,6 +467,8 @@ export function ProjectDetailsClient({
                   <img
                     src={currentMedia.url}
                     alt={currentMedia.title}
+                    fetchPriority="high"
+                    decoding="async"
                     className="size-full object-contain"
                   />
                   {/* Subtle hover zoom prompt */}
@@ -592,6 +594,8 @@ export function ProjectDetailsClient({
                               <img
                                 src={item.thumbnailUrl}
                                 alt={item.title}
+                                loading="lazy"
+                                decoding="async"
                                 className="size-full object-cover group-hover/thumb:scale-105 transition-transform"
                               />
                             ) : (
@@ -611,6 +615,8 @@ export function ProjectDetailsClient({
                             <img
                               src={item.thumbnailUrl || item.url}
                               alt={item.title}
+                              loading="lazy"
+                              decoding="async"
                               className="size-full object-cover group-hover/thumb:scale-105 transition-transform"
                             />
                             <span className="absolute bottom-1 left-1.5 bg-black/75 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md truncate max-w-[85%]">

@@ -402,7 +402,7 @@ export function ProjectsDirectoryClient({
               return (
                 <Card
                   key={p.id}
-                  className="group rounded-3xl border bg-card hover:border-primary/50 hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col justify-between"
+                  className="group rounded-3xl border bg-card hover:border-primary/50 hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col justify-between content-auto"
                 >
                   <div>
                     {/* Project Banner & Badges */}
@@ -414,6 +414,8 @@ export function ProjectsDirectoryClient({
                         <img
                           src={p.cover_image}
                           alt={p.title}
+                          loading="lazy"
+                          decoding="async"
                           className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       ) : (

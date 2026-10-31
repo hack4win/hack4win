@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { User, AuthSession } from "@/lib/db/types";
@@ -7,9 +8,10 @@ import { User, AuthSession } from "@/lib/db/types";
  * 
  * Directly queries the Neon PostgreSQL session store for fast, reliable,
  * zero-network-hop session validation in Server Components and Route Handlers.
+ * Wrapped in React cache() for zero-cost per-request deduplication.
  */
 
-export async function getServerSession(): Promise<AuthSession | null> {
+export const getServerSession = cache(async function getServerSession(): Promise<AuthSession | null> {
   const cookieStore = await cookies();
   const sessionToken =
     cookieStore.get("neon-auth.session_token")?.value ||
@@ -147,7 +149,7 @@ export async function getServerSession(): Promise<AuthSession | null> {
     console.error("[getServerSession Error]:", error);
     return null;
   }
-}
+});
 
 /**
  * Require an authenticated session in Server Actions / Components

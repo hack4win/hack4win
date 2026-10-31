@@ -254,6 +254,8 @@ export default async function HackathonDetailPage({ params, searchParams }: Page
               <img
                 src={hackathon.banner_url}
                 alt={hackathon.title}
+                fetchPriority="high"
+                decoding="async"
                 className="size-full object-cover"
               />
             ) : (

@@ -2,8 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  compress: true,
   experimental: {
     agentUpgrade: "security",
+    optimizePackageImports: ["lucide-react", "@base-ui/react"],
   },
   turbopack: {
     rules: {
@@ -14,6 +16,7 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       {
         protocol: "https",
