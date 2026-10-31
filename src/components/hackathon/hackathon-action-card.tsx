@@ -454,11 +454,36 @@ export function HackathonActionCard({
                   Rejected
                 </Badge>
               </div>
+            ) : isPaid && (!paymentStatus || paymentStatus === "unpaid") ? (
+              <div className="space-y-2">
+                <div className="w-full p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-between gap-2 text-xs font-bold px-3">
+                  <div className="flex items-center gap-1.5">
+                    <CreditCard className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                    <span>Payment Pending ({feeCurrency}{registrationFee || 0})</span>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] font-bold border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 rounded-full"
+                  >
+                    Unpaid
+                  </Badge>
+                </div>
+                <div className="p-3 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-300 space-y-1.5">
+                  <p className="text-muted-foreground leading-relaxed">
+                    Submit your transaction UTR and screenshot to complete registration and submit your project.
+                  </p>
+                  <Button asChild variant="outline" size="sm" className="w-full rounded-xl text-xs font-bold h-7 gap-1">
+                    <Link href={`/hackathons/${slug}/register`}>
+                      <span>Pay &amp; Submit Proof &rarr;</span>
+                    </Link>
+                  </Button>
+                </div>
+              </div>
             ) : (
               <div className="w-full p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-between gap-2 text-xs font-bold px-3">
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                  <span>Registered! 🎉</span>
+                  <span>{isPaid ? "Registered & Verified! 🎉" : "Registered! 🎉"}</span>
                 </div>
                 <Badge
                   variant="outline"

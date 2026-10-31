@@ -668,7 +668,10 @@ export class HackathonRepository implements IHackathonRepository {
         college_name = COALESCE(EXCLUDED.college_name, hackathon_registrations.college_name),
         academic_year = COALESCE(EXCLUDED.academic_year, hackathon_registrations.academic_year),
         branch = COALESCE(EXCLUDED.branch, hackathon_registrations.branch),
-        payment_status = COALESCE(EXCLUDED.payment_status, hackathon_registrations.payment_status),
+        payment_status = CASE
+          WHEN EXCLUDED.payment_reference IS NOT NULL OR EXCLUDED.payment_screenshot_url IS NOT NULL THEN EXCLUDED.payment_status
+          ELSE hackathon_registrations.payment_status
+        END,
         payment_reference = COALESCE(EXCLUDED.payment_reference, hackathon_registrations.payment_reference),
         payment_screenshot_url = COALESCE(EXCLUDED.payment_screenshot_url, hackathon_registrations.payment_screenshot_url),
         payment_amount = COALESCE(EXCLUDED.payment_amount, hackathon_registrations.payment_amount),

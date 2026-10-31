@@ -168,21 +168,44 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
     // Payment details handling for paid hackathons
     const isPaid = Boolean(hackathon.is_paid && Number(hackathon.registration_fee || 0) > 0);
-    const paymentRef = typeof body?.payment_reference === "string" ? body.payment_reference.trim().slice(0, 100) : null;
-    const paymentScreenshotUrl = typeof body?.payment_screenshot_url === "string" ? body.payment_screenshot_url.trim() : null;
+    const existingRegistration = await hackathonRepository.getUserRegistration(hackathon.id, session.user.id);
+
+    const hasNewPaymentProof = Boolean(
+      (typeof body?.payment_reference === "string" && body.payment_reference.trim().length > 0) ||
+      (typeof body?.payment_screenshot_url === "string" && body.payment_screenshot_url.trim().length > 0)
+    );
+
+    const paymentRef = typeof body?.payment_reference === "string" && body.payment_reference.trim().length > 0
+      ? body.payment_reference.trim().slice(0, 100)
+      : existingRegistration?.payment_reference || null;
+
+    const paymentScreenshotUrl = typeof body?.payment_screenshot_url === "string" && body.payment_screenshot_url.trim().length > 0
+      ? body.payment_screenshot_url.trim()
+      : existingRegistration?.payment_screenshot_url || null;
+
     const paymentAmount =
       body?.payment_amount !== undefined && body?.payment_amount !== null
         ? Number(body.payment_amount)
+        : existingRegistration?.payment_amount != null
+        ? Number(existingRegistration.payment_amount)
         : Number(hackathon.registration_fee || 0);
 
-    let paymentStatus: "unpaid" | "pending_verification" | "verified" | "rejected" = "unpaid";
-    let paymentSubmittedAt: string | null = null;
+    let paymentStatus: "unpaid" | "pending_verification" | "verified" | "rejected" =
+      existingRegistration?.payment_status || "unpaid";
+    let paymentSubmittedAt: string | null = existingRegistration?.payment_submitted_at || null;
 
     if (isPaid) {
-      if (paymentRef || paymentScreenshotUrl) {
+      if (hasNewPaymentProof) {
+        // User explicitly submitted new payment proof -> awaiting verification
         paymentStatus = "pending_verification";
         registrationStatus = "pending";
         paymentSubmittedAt = new Date().toISOString();
+      } else if (existingRegistration) {
+        // Preserve existing payment status (e.g. verified or pending) when toggling participation preference
+        paymentStatus = existingRegistration.payment_status || "unpaid";
+        if (existingRegistration.status === "approved") {
+          registrationStatus = "approved";
+        }
       } else {
         paymentStatus = "unpaid";
         registrationStatus = "pending";
