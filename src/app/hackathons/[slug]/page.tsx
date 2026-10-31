@@ -39,6 +39,7 @@ import { getSafeExternalUrl } from "@/lib/url-validation";
 import { HackathonTimelineCountdown } from "@/components/hackathon/hackathon-timeline-countdown";
 import { HackathonActionCard } from "@/components/hackathon/hackathon-action-card";
 import { HackathonTabs } from "@/components/hackathon/hackathon-tabs";
+import { HackathonThumbnail } from "@/components/hackathon/hackathon-thumbnail";
 
 import type { Metadata } from "next";
 
@@ -247,7 +248,8 @@ export default async function HackathonDetailPage({ params, searchParams }: Page
       <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 md:p-8 space-y-8">
         {/* Hero Banner Card */}
         <div className="rounded-3xl border bg-card shadow-xs relative overflow-hidden">
-          <div className="h-44 sm:h-48 md:h-52 w-full bg-muted relative rounded-t-3xl overflow-hidden">
+          {/* Top Banner Image with Gradient Overlay */}
+          <div className="h-44 sm:h-52 md:h-60 w-full bg-muted relative rounded-t-3xl overflow-hidden">
             {hackathon.banner_url ? (
               <img
                 src={hackathon.banner_url}
@@ -259,98 +261,146 @@ export default async function HackathonDetailPage({ params, searchParams }: Page
                 <Trophy className="size-20" />
               </div>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-card via-card/65 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-card via-card/50 to-transparent" />
           </div>
 
           {/* 2-Column Responsive Layout: Left Details & Right Action Card */}
-          <div className="px-6 pb-6 sm:px-8 sm:pb-8 -mt-16 sm:-mt-24 relative z-10 flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 lg:gap-8">
-            {/* Left Content Area (Pills, Title, Tagline, Host) */}
-            <div className="flex-1 space-y-3.5 min-w-0 pt-2 sm:pt-4">
-              {/* Status & Format Pills */}
-              <div className="flex flex-wrap items-center gap-2">
-                {currentStatus === "ongoing" ? (
-                  <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-xs font-semibold gap-1.5 rounded-full px-3 py-1">
-                    <Radio className="size-3.5 animate-pulse" /> Live Competition
-                  </Badge>
-                ) : currentStatus === "upcoming" ? (
-                  <Badge className="bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30 text-xs font-semibold gap-1.5 rounded-full px-3 py-1">
-                    <Clock className="size-3.5" /> Upcoming
-                  </Badge>
-                ) : currentStatus === "ended" ? (
-                  <Badge variant="outline" className="text-muted-foreground text-xs font-medium rounded-full px-3 py-1">
-                    Ended
-                  </Badge>
-                ) : (
-                  <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/20 text-xs font-medium rounded-full px-3 py-1">
-                    Draft
-                  </Badge>
-                )}
+          <div className="px-6 pb-6 sm:px-8 sm:pb-8 -mt-12 sm:-mt-16 relative z-10 flex flex-col lg:flex-row items-stretch lg:items-start justify-between gap-6 lg:gap-8">
+            {/* Left Content Area (Avatar, Badges, Title, Tagline, Host, Highlights, Timeline) */}
+            <div className="flex-1 space-y-5 min-w-0">
+              {/* Header: Overlapping Thumbnail + Badges */}
+              <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-5">
+                {/* Square Cover Avatar with Resilient Error Fallback */}
+                <HackathonThumbnail
+                  src={hackathon.thumbnail_url}
+                  alt={hackathon.title}
+                  fallbackText={hackathon.title}
+                  className="size-20 sm:size-24 md:size-28"
+                />
 
-                {hackathon.is_private && (
-                  <Badge className="bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30 text-xs font-semibold gap-1.5 rounded-full px-3 py-1">
-                    <Lock className="size-3.5" /> Private Campus Event
+                {/* Status & Format Pills */}
+                <div className="flex flex-wrap items-center gap-2 pb-1">
+                  {currentStatus === "ongoing" ? (
+                    <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-xs font-semibold gap-1.5 rounded-full px-3 py-1">
+                      <Radio className="size-3.5 animate-pulse" /> Live Competition
+                    </Badge>
+                  ) : currentStatus === "upcoming" ? (
+                    <Badge className="bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30 text-xs font-semibold gap-1.5 rounded-full px-3 py-1">
+                      <Clock className="size-3.5" /> Upcoming
+                    </Badge>
+                  ) : currentStatus === "ended" ? (
+                    <Badge variant="outline" className="text-muted-foreground text-xs font-medium rounded-full px-3 py-1">
+                      Ended
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/20 text-xs font-medium rounded-full px-3 py-1">
+                      Draft
+                    </Badge>
+                  )}
+
+                  {hackathon.is_private && (
+                    <Badge className="bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30 text-xs font-semibold gap-1.5 rounded-full px-3 py-1">
+                      <Lock className="size-3.5" /> Private Campus Event
+                    </Badge>
+                  )}
+
+                  {isPaid && (
+                    <Badge className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-xs font-semibold gap-1.5 rounded-full px-3 py-1">
+                      <CreditCard className="size-3.5" /> Entry: {hackathon.fee_currency || "₹"}{hackathon.registration_fee}
+                    </Badge>
+                  )}
+
+                  <Badge variant="outline" className="capitalize text-xs rounded-full px-3 py-1">
+                    {hackathon.format}
                   </Badge>
-                )}
 
-                {isPaid && (
-                  <Badge className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-xs font-semibold gap-1.5 rounded-full px-3 py-1">
-                    <CreditCard className="size-3.5" /> Entry: {hackathon.fee_currency || "₹"}{hackathon.registration_fee}
+                  <Badge variant="outline" className="text-xs rounded-full px-3 py-1">
+                    {hackathon.location}
                   </Badge>
-                )}
-
-                <Badge variant="outline" className="capitalize text-xs rounded-full px-3 py-1">
-                  {hackathon.format}
-                </Badge>
-
-                <Badge variant="outline" className="text-xs rounded-full px-3 py-1">
-                  {hackathon.location}
-                </Badge>
+                </div>
               </div>
 
-              {/* Title & Host Info with Square Cover Image */}
-              <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-5 pt-1 min-w-0">
-                {/* Square Cover Image / Thumbnail */}
-                {hackathon.thumbnail_url ? (
-                  <div className="relative size-20 sm:size-24 md:size-28 rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-border/80 bg-muted shrink-0 shadow-md">
-                    <img
-                      src={hackathon.thumbnail_url}
-                      alt={hackathon.title}
-                      className="size-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="relative size-20 sm:size-24 md:size-28 rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-border/80 bg-primary/10 text-primary flex items-center justify-center shrink-0 shadow-md">
-                    <Trophy className="size-10 sm:size-12 stroke-[1.5]" />
-                  </div>
-                )}
-
-                <div className="space-y-2 min-w-0 flex-1">
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-foreground break-words">
-                    {hackathon.title}
-                  </h1>
-                  <p className="text-sm sm:text-base text-muted-foreground leading-relaxed break-words">
-                    {hackathon.tagline}
-                  </p>
-                  <div className="text-xs text-muted-foreground flex items-center gap-2 pt-1 flex-wrap">
-                    <span className="flex items-center gap-1.5">
-                      <Building className="size-3.5 text-primary shrink-0" />
-                      <span>Hosted by <strong className="text-foreground">{hackathon.organizer_name}</strong></span>
-                    </span>
-                    {getSafeExternalUrl(hackathon.website_url) && (
-                      <>
-                        <span>&middot;</span>
-                        <a
-                          href={getSafeExternalUrl(hackathon.website_url)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline inline-flex items-center gap-1 truncate max-w-xs"
-                        >
-                          Official Website <ExternalLink className="size-3 shrink-0" />
-                        </a>
-                      </>
-                    )}
-                  </div>
+              {/* Title, Tagline, & Host Info */}
+              <div className="space-y-2">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-foreground break-words">
+                  {hackathon.title}
+                </h1>
+                <p className="text-sm sm:text-base text-muted-foreground leading-relaxed break-words max-w-2xl">
+                  {hackathon.tagline}
+                </p>
+                <div className="text-xs text-muted-foreground flex items-center gap-2 pt-1 flex-wrap">
+                  <span className="flex items-center gap-1.5">
+                    <Building className="size-3.5 text-primary shrink-0" />
+                    <span>Hosted by <strong className="text-foreground">{hackathon.organizer_name}</strong></span>
+                  </span>
+                  {getSafeExternalUrl(hackathon.website_url) && (
+                    <>
+                      <span>&middot;</span>
+                      <a
+                        href={getSafeExternalUrl(hackathon.website_url)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline inline-flex items-center gap-1 truncate max-w-xs"
+                      >
+                        Official Website <ExternalLink className="size-3 shrink-0" />
+                      </a>
+                    </>
+                  )}
                 </div>
+              </div>
+
+              {/* Key Quick Highlights Grid (Fills Left Side Beautifully) */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 pt-1">
+                <div className="p-3 sm:p-3.5 rounded-2xl border bg-muted/30 hover:bg-muted/50 transition-colors flex flex-col justify-center min-w-0">
+                  <span className="text-[0.68rem] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-1">
+                    <Award className="size-3.5 text-primary shrink-0" /> Total Prizes
+                  </span>
+                  <span className="text-base sm:text-lg font-black text-primary mt-1 tracking-tight break-words" title={cleanPrizePool}>
+                    {cleanPrizePool}
+                  </span>
+                </div>
+
+                <div className="p-3 sm:p-3.5 rounded-2xl border bg-muted/30 hover:bg-muted/50 transition-colors flex flex-col justify-center min-w-0">
+                  <span className="text-[0.68rem] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-1">
+                    <Calendar className="size-3.5 text-primary shrink-0" /> Duration
+                  </span>
+                  <span className="text-base sm:text-lg font-bold text-foreground mt-1 truncate">
+                    {durationDays} Days
+                  </span>
+                </div>
+
+                <div className="p-3 sm:p-3.5 rounded-2xl border bg-muted/30 hover:bg-muted/50 transition-colors flex flex-col justify-center min-w-0">
+                  <span className="text-[0.68rem] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-1">
+                    <Users className="size-3.5 text-primary shrink-0" /> Team Size
+                  </span>
+                  <span className="text-base sm:text-lg font-bold text-foreground mt-1 truncate">
+                    1 - {hackathon.max_team_size} Builders
+                  </span>
+                </div>
+
+                <div className="p-3 sm:p-3.5 rounded-2xl border bg-muted/30 hover:bg-muted/50 transition-colors flex flex-col justify-center min-w-0">
+                  <span className="text-[0.68rem] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-1">
+                    <MapPin className="size-3.5 text-primary shrink-0" /> Format
+                  </span>
+                  <span className="text-base sm:text-lg font-bold capitalize text-foreground mt-1 truncate">
+                    {hackathon.format}
+                  </span>
+                </div>
+              </div>
+
+              {/* Timeline & Key Milestones Strip */}
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-muted/40 border border-border/60 text-xs text-muted-foreground flex-wrap">
+                <Calendar className="size-3.5 text-primary shrink-0" />
+                <span>
+                  Kickoff <strong className="text-foreground">{new Date(hackathon.start_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</strong>
+                </span>
+                <span>&middot;</span>
+                <span>
+                  Deadline <strong className="text-foreground">{new Date(hackathon.submission_deadline || hackathon.end_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</strong>
+                </span>
+                <span className="ml-auto font-medium text-foreground hidden sm:inline">
+                  {currentStatus === "ongoing" ? "🔥 Submissions Open" : currentStatus === "upcoming" ? "⏳ Starts Soon" : "🏁 Concluded"}
+                </span>
               </div>
             </div>
 
@@ -380,45 +430,6 @@ export default async function HackathonDetailPage({ params, searchParams }: Page
                 initialPaymentReference={paymentReference}
               />
             </div>
-          </div>
-        </div>
-
-        {/* Quick Highlights Ribbon */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-          <div className="p-4 rounded-2xl border bg-card shadow-2xs flex flex-col justify-center min-w-0 overflow-hidden">
-            <span className="text-[0.68rem] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-1">
-              <Award className="size-3.5 text-primary shrink-0" /> Total Prizes
-            </span>
-            <span className="text-base sm:text-xl font-black text-primary mt-1 tracking-tight break-words line-clamp-2" title={cleanPrizePool}>
-              {cleanPrizePool}
-            </span>
-          </div>
-
-          <div className="p-4 rounded-2xl border bg-card shadow-2xs flex flex-col justify-center min-w-0">
-            <span className="text-[0.68rem] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-1">
-              <Calendar className="size-3.5 text-primary shrink-0" /> Duration
-            </span>
-            <span className="text-base sm:text-xl font-bold text-foreground mt-1 truncate">
-              {durationDays} Days
-            </span>
-          </div>
-
-          <div className="p-4 rounded-2xl border bg-card shadow-2xs flex flex-col justify-center min-w-0">
-            <span className="text-[0.68rem] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-1">
-              <Users className="size-3.5 text-primary shrink-0" /> Team Size
-            </span>
-            <span className="text-base sm:text-xl font-bold text-foreground mt-1 truncate">
-              1 - {hackathon.max_team_size} Participants
-            </span>
-          </div>
-
-          <div className="p-4 rounded-2xl border bg-card shadow-2xs flex flex-col justify-center min-w-0">
-            <span className="text-[0.68rem] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-1">
-              <MapPin className="size-3.5 text-primary shrink-0" /> Format
-            </span>
-            <span className="text-base sm:text-xl font-bold capitalize text-foreground mt-1 truncate">
-              {hackathon.format}
-            </span>
           </div>
         </div>
 
