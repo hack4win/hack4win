@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Database, KeyRound, HardDrive, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { getServerSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
+import { EmailTestSection } from "@/components/admin/email-test-section";
 
 /**
  * Admin Infrastructure Settings Page (Server Component)
@@ -143,6 +144,9 @@ export default async function AdminSettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Outgoing Mail Delivery & Diagnostic Testing */}
+        <EmailTestSection adminEmail={session.user.email} />
       </div>
     </main>
   );

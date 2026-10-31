@@ -25,6 +25,7 @@ export interface SendEmailOptions {
   campaignId?: string;
   unsubscribeUrl?: string;
   headers?: Record<string, string>;
+  forceLive?: boolean;
 }
 
 export interface SendEmailResult {
@@ -151,11 +152,15 @@ export function isTestOrDummyEmail(email: string): boolean {
  */
 export function shouldSimulateEmail(
   recipients?: (string | EmailRecipient)[],
-  options?: { subject?: string; tags?: string[] }
+  options?: { subject?: string; tags?: string[]; forceLive?: boolean }
 ): {
   simulate: boolean;
   reason?: string;
 } {
+  // If explicitly forced live (e.g. from Admin Settings test email tool), bypass simulation
+  if (options?.forceLive) {
+    return { simulate: false };
+  }
   // Explicit kill-switch or test flags
   if (
     process.env.DISABLE_REAL_EMAILS === "true" ||
@@ -259,7 +264,11 @@ export function analyzeBrevoError(error: unknown): BrevoErrorAnalysis {
  * 1. Send via Brevo REST API v3 (Direct HTTPS: https://api.brevo.com/v3/smtp/email)
  */
 export async function sendViaBrevoApi(options: SendEmailOptions): Promise<SendEmailResult> {
-  const simCheck = shouldSimulateEmail(options.to);
+  const simCheck = shouldSimulateEmail(options.to, {
+    subject: options.subject,
+    tags: options.tags,
+    forceLive: options.forceLive,
+  });
   if (simCheck.simulate) {
     console.log(`🛡️ [EMAIL QUOTA PROTECTED] (Brevo API simulated): ${simCheck.reason}`);
     return {
@@ -336,7 +345,11 @@ export async function sendViaBrevoApi(options: SendEmailOptions): Promise<SendEm
  * 2. Send via Brevo SMTP Relay (Nodemailer, smtp-relay.brevo.com:587 STARTTLS)
  */
 export async function sendViaBrevoSmtp(options: SendEmailOptions): Promise<SendEmailResult> {
-  const simCheck = shouldSimulateEmail(options.to);
+  const simCheck = shouldSimulateEmail(options.to, {
+    subject: options.subject,
+    tags: options.tags,
+    forceLive: options.forceLive,
+  });
   if (simCheck.simulate) {
     console.log(`🛡️ [EMAIL QUOTA PROTECTED] (Brevo SMTP simulated): ${simCheck.reason}`);
     return {
@@ -419,7 +432,11 @@ export async function sendViaBrevoSmtp(options: SendEmailOptions): Promise<SendE
  */
 export async function sendEmail(options: SendEmailOptions): Promise<SendEmailResult> {
   // First evaluate simulation to protect quota and prevent sending test/E2E emails
-  const simCheck = shouldSimulateEmail(options.to, { subject: options.subject, tags: options.tags });
+  const simCheck = shouldSimulateEmail(options.to, {
+    subject: options.subject,
+    tags: options.tags,
+    forceLive: options.forceLive,
+  });
   if (simCheck.simulate) {
     console.log(`🛡️ [EMAIL QUOTA PROTECTED] sendEmail: ${simCheck.reason}`);
     console.log(`   Subject: "${options.subject}"`);
