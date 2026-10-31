@@ -5,6 +5,16 @@ import "./globals.css";
 import { ModalAlertProvider } from "@/components/ui/modal-alert";
 import { PerformanceTimingPatch } from "@/components/providers/performance-timing-patch";
 
+import {
+  SITE_URL,
+  SITE_NAME,
+  SITE_TAGLINE,
+  SITE_DESCRIPTION,
+  TWITTER_HANDLE,
+  PRIMARY_KEYWORDS,
+  BRAND_ASSETS,
+} from "@/lib/seo/config";
+
 const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
@@ -18,52 +28,41 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://hack4win.online"),
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "Hack4Win | Hackathon Platform - Build, Showcase & Win",
+    default: `Hack4Win | ${SITE_TAGLINE}`,
     template: "%s | Hack4Win",
   },
-  description: "Join global hackathons, collaborate with top builders, and win prizes on hack4win.online.",
-  keywords: [
-    "hackathons",
-    "ai hackathons",
-    "web3 challenges",
-    "developers",
-    "coding competitions",
-    "bounties",
-    "open source software",
-    "tech hackathon",
-    "devpost alternative",
-    "hack4win",
-    "Hack4Win",
-  ],
-  authors: [{ name: "Hack4Win Team", url: "https://hack4win.online" }],
-  creator: "Hack4Win",
-  publisher: "Hack4Win",
+  description: SITE_DESCRIPTION,
+  keywords: PRIMARY_KEYWORDS,
+  applicationName: SITE_NAME,
+  authors: [{ name: "Hack4Win Engineering Team", url: SITE_URL }],
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
   category: "Technology",
   alternates: {
-    canonical: "./",
+    canonical: SITE_URL,
   },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
-      { url: "https://br-polished-unit-b3lk45ku.storage.c-4.ap-southeast-1.aws.neon.tech/do4win/branding/hack4win-icon.png", type: "image/png" },
+      { url: BRAND_ASSETS.iconPng, type: "image/png" },
     ],
     shortcut: "/favicon.ico",
     apple: [
-      { url: "https://br-polished-unit-b3lk45ku.storage.c-4.ap-southeast-1.aws.neon.tech/do4win/branding/hack4win-icon.png", sizes: "180x180", type: "image/png" },
+      { url: BRAND_ASSETS.iconPng, sizes: "180x180", type: "image/png" },
     ],
   },
   openGraph: {
-    title: "Hack4Win | The Global Hackathon Platform",
-    description: "Join global hackathons, collaborate with top builders, and win prizes on hack4win.online.",
-    url: "https://hack4win.online",
-    siteName: "Hack4Win",
+    title: `Hack4Win | ${SITE_TAGLINE}`,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    siteName: SITE_NAME,
     locale: "en_US",
     type: "website",
     images: [
       {
-        url: "https://br-polished-unit-b3lk45ku.storage.c-4.ap-southeast-1.aws.neon.tech/do4win/branding/hack4win-logo.png",
+        url: BRAND_ASSETS.logoPng,
         width: 512,
         height: 512,
         alt: "Hack4Win Platform Logo",
@@ -72,13 +71,14 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Hack4Win | Hackathon Platform - Build, Showcase & Win",
-    description: "Join global hackathons, collaborate with top builders, and win prizes on hack4win.online.",
-    creator: "@hack4win",
-    site: "@hack4win",
-    images: [
-      "https://br-polished-unit-b3lk45ku.storage.c-4.ap-southeast-1.aws.neon.tech/do4win/branding/hack4win-logo.png",
-    ],
+    title: `Hack4Win | ${SITE_TAGLINE}`,
+    description: SITE_DESCRIPTION,
+    creator: TWITTER_HANDLE,
+    site: TWITTER_HANDLE,
+    images: [BRAND_ASSETS.logoPng],
+  },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
   },
   robots: {
     index: true,

@@ -1,17 +1,19 @@
 import type { MetadataRoute } from "next";
 import { hackathonRepository } from "@/lib/db/hackathon-repository";
 import { userRepository } from "@/lib/db/user-repository";
+import { SITE_URL } from "@/lib/seo/config";
 
 export const dynamic = "force-dynamic";
 
 /**
  * Next.js Dynamic Sitemap Generator
+ * Target Domain: https://hack4win.online
  * 
- * Generates sitemap.xml dynamically with fresh URLs for hackathons,
+ * Generates fresh sitemap.xml with canonical URLs for hackathons,
  * project showcases, and builder profiles.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://hack4win.online";
+  const baseUrl = SITE_URL;
 
   // 1. Core Platform Pages
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -25,7 +27,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${baseUrl}/hackathons`,
       lastModified: new Date(),
       changeFrequency: "daily",
-      priority: 0.9,
+      priority: 0.95,
     },
     {
       url: `${baseUrl}/projects`,
@@ -36,14 +38,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       url: `${baseUrl}/host`,
       lastModified: new Date(),
-      changeFrequency: "monthly",
+      changeFrequency: "weekly",
       priority: 0.85,
     },
   ];
 
   try {
-    // 2. Dynamic Published Hackathons (excluding private campus hackathons from public index)
-    const hackathons = await hackathonRepository.listHackathons({ limit: 200, includeDrafts: false });
+    // 2. Dynamic Published Hackathons (excluding drafts and private campus hackathons)
+    const hackathons = await hackathonRepository.listHackathons({ limit: 250, includeDrafts: false });
     const hackathonRoutes: MetadataRoute.Sitemap = hackathons
       .filter((h) => h.status !== "draft" && !h.is_private)
       .map((h) => ({
@@ -53,7 +55,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.85,
       }));
 
-    // 3. Dynamic Public Projects (only approved from published hackathons)
+    // 3. Dynamic Public Projects (only approved from published public hackathons)
     const publicSubmissions = await hackathonRepository.getAllSubmissions({
       limit: 500,
       status: "approved",
@@ -75,7 +77,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         url: `${baseUrl}/u/${u.username}`,
         lastModified: new Date(u.updated_at || u.created_at),
         changeFrequency: "weekly",
-        priority: 0.7,
+        priority: 0.75,
       }));
 
     return [...staticRoutes, ...hackathonRoutes, ...projectRoutes, ...userRoutes];

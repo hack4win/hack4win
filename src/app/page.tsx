@@ -34,6 +34,14 @@ import { FeaturesBentoGrid } from "@/components/home/features-bento-grid";
 import { FAQAccordion } from "@/components/home/faq-accordion";
 import { SiteFooter } from "@/components/navigation/site-footer";
 
+import {
+  SITE_URL,
+  SITE_NAME,
+  SITE_TAGLINE,
+  SITE_DESCRIPTION,
+  BRAND_ASSETS,
+} from "@/lib/seo/config";
+
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
@@ -84,7 +92,7 @@ export default async function Home() {
     })
     .slice(0, 6);
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://hack4win.online";
+  const baseUrl = SITE_URL;
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -92,8 +100,17 @@ export default async function Home() {
         "@type": "WebSite",
         "@id": `${baseUrl}/#website`,
         "url": baseUrl,
-        "name": "Hack4Win",
-        "description": "Global Hackathon Platform - Build, Showcase & Win",
+        "name": SITE_NAME,
+        "alternateName": [
+          "Hack4Win Online",
+          "Hack 4 Win",
+          "Hack4Win Platform",
+          "Hack4Win Hackathons",
+        ],
+        "description": SITE_TAGLINE,
+        "publisher": {
+          "@id": `${baseUrl}/#organization`,
+        },
         "potentialAction": [
           {
             "@type": "SearchAction",
@@ -108,10 +125,86 @@ export default async function Home() {
       {
         "@type": "Organization",
         "@id": `${baseUrl}/#organization`,
-        "name": "Hack4Win",
+        "name": SITE_NAME,
+        "legalName": "Hack4Win Platform",
         "url": baseUrl,
-        "logo": BRAND_LOGO.s3UrlPng,
-        "description": "The Premier Global Hackathon Arena & Software Showcase",
+        "logo": {
+          "@type": "ImageObject",
+          "url": BRAND_ASSETS.logoPng,
+          "width": 512,
+          "height": 512,
+        },
+        "sameAs": [
+          "https://twitter.com/hack4win",
+          "https://github.com/hack4win",
+        ],
+        "description": SITE_DESCRIPTION,
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": `${baseUrl}/#application`,
+        "name": SITE_NAME,
+        "applicationCategory": "DeveloperApplication, BusinessApplication",
+        "operatingSystem": "All",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD",
+        },
+      },
+      {
+        "@type": "FAQPage",
+        "@id": `${baseUrl}/#faq`,
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Is it completely free to participate in hackathons on Hack4Win?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes, joining as a participant or builder is 100% free! You can register for active competitions, explore API credits from sponsors, form squads, and submit your builds without any fees.",
+            },
+          },
+          {
+            "@type": "Question",
+            "name": "Can I participate solo, or do I need to be in a team?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Both! You are completely welcome to build and submit as a solo participant. If you prefer to collaborate, our two-way matchmaking lets you send email invitations or connect with builders searching for your specific skill set.",
+            },
+          },
+          {
+            "@type": "Question",
+            "name": "How does the project judging and 50-point rubric work?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Our platform uses a transparent 50-point rubric across 5 balanced criteria (10 points each): Innovation & Originality, Technical Architecture, UI/UX Design & Polish, Potential Real-World Impact, and Demo Presentation. Verified industry judges grade each dimension.",
+            },
+          },
+          {
+            "@type": "Question",
+            "name": "Who retains the Intellectual Property (IP) of projects built here?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "You and your team retain 100% ownership of all source code, design assets, and intellectual property you create. Hack4Win and hackathon sponsors claim zero equity or IP rights over your software.",
+            },
+          },
+          {
+            "@type": "Question",
+            "name": "How and when are cash prizes and awards distributed?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Once judging concludes and official winners are announced on the public leaderboard, cash prizes are disbursed directly to team leads via Stripe, bank wire, or PayPal within 7-14 business days.",
+            },
+          },
+          {
+            "@type": "Question",
+            "name": "How can company sponsors or dev ecosystems host a hackathon?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Organizers and DevRel teams can spin up branded hackathons with custom prize structures, custom tracks, markdown rulebooks, and dedicated judging consoles via hack4win.online/host.",
+            },
+          },
+        ],
       },
     ],
   };

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { getServerSession } from "@/lib/auth/session";
 import { hackathonRepository } from "@/lib/db/hackathon-repository";
 import { safeJsonLdReplacer } from "@/lib/json-ld";
+import { SITE_URL } from "@/lib/seo/config";
 import { ProjectsDirectoryClient } from "./projects-directory-client";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +11,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Project Showcase & Hackathon Builds | Hack4Win",
   description:
-    "Explore cutting-edge software and applications built by developers across global hackathons on Hack4Win. Inspect open-source repositories, test live interactive demos, and discover winner submissions.",
+    "Explore cutting-edge software and applications built by developers across global hackathons on Hack4Win. Inspect open-source repositories, test live interactive demos, and discover winner submissions on hack4win.online.",
   keywords: [
     "hackathon projects",
     "software showcase",
@@ -20,15 +21,16 @@ export const metadata: Metadata = {
     "ai agents",
     "web3 applications",
     "hack4win showcase",
+    "hack4win online",
   ],
   alternates: {
-    canonical: "/projects",
+    canonical: `${SITE_URL}/projects`,
   },
   openGraph: {
     title: "Project Showcase & Hackathon Builds | Hack4Win",
     description:
-      "Explore cutting-edge software and applications built by developers across global hackathons on Hack4Win.",
-    url: "https://hack4win.online/projects",
+      "Explore cutting-edge software and applications built by developers across global hackathons on Hack4Win (hack4win.online).",
+    url: `${SITE_URL}/projects`,
     siteName: "Hack4Win",
     type: "website",
   },
@@ -36,7 +38,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Project Showcase & Hackathon Builds | Hack4Win",
     description:
-      "Explore cutting-edge software and applications built by developers across global hackathons on Hack4Win.",
+      "Explore cutting-edge software and applications built by developers across global hackathons on Hack4Win (hack4win.online).",
   },
 };
 
@@ -72,31 +74,54 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
     )
   ).sort();
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://hack4win.online";
+  const baseUrl = SITE_URL;
 
-  // Schema.org ItemList JSON-LD
+  // Schema.org ItemList + BreadcrumbList JSON-LD
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "ItemList",
-    name: "Hackathon Project Showcase",
-    description: "Software applications and projects shipped during Hack4Win hackathons",
-    numberOfItems: submissions.length,
-    itemListElement: submissions.slice(0, 30).map((p, idx) => ({
-      "@type": "ListItem",
-      position: idx + 1,
-      item: {
-        "@type": "SoftwareApplication",
-        name: p.title,
-        description: p.tagline || p.description.slice(0, 160),
-        url: `${baseUrl}/projects/${p.id}`,
-        applicationCategory: "DeveloperApplication",
-        operatingSystem: "Web",
-        author: {
-          "@type": "Person",
-          name: p.user_name || "Hackathon Builder",
-        },
+    "@graph": [
+      {
+        "@type": "ItemList",
+        "@id": `${baseUrl}/projects#itemlist`,
+        name: "Hackathon Project Showcase",
+        description: "Software applications and projects shipped during Hack4Win hackathons (hack4win.online)",
+        numberOfItems: submissions.length,
+        itemListElement: submissions.slice(0, 30).map((p, idx) => ({
+          "@type": "ListItem",
+          position: idx + 1,
+          item: {
+            "@type": "SoftwareApplication",
+            name: p.title,
+            description: p.tagline || p.description.slice(0, 160),
+            url: `${baseUrl}/projects/${p.id}`,
+            applicationCategory: "DeveloperApplication",
+            operatingSystem: "Web",
+            author: {
+              "@type": "Person",
+              name: p.user_name || "Hackathon Builder",
+            },
+          },
+        })),
       },
-    })),
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${baseUrl}/projects#breadcrumbs`,
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Home",
+            item: baseUrl,
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Projects",
+            item: `${baseUrl}/projects`,
+          },
+        ],
+      },
+    ],
   };
 
   return (

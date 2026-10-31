@@ -15,6 +15,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { getHackathonStatus } from "@/lib/db/types";
+import { SITE_URL } from "@/lib/seo/config";
 import { HackathonFilters } from "@/components/hackathon/hackathon-filters";
 import { HorizontalHackathonCard } from "@/components/hackathon/horizontal-hackathon-card";
 import { HackathonSortSelect } from "@/components/hackathon/hackathon-sort-select";
@@ -37,29 +38,32 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Explore Hackathons & Coding Challenges",
-  description: "Browse world-class online and in-person hackathons on Hack4Win. Compete for cash prizes, developer bounties, and showcase your builds.",
+  description: "Browse world-class online and in-person hackathons on Hack4Win. Compete for cash prizes, developer bounties, and showcase your builds on hack4win.online.",
   keywords: [
     "hackathons",
+    "hack4win online",
+    "hack4win hackathons",
     "coding competitions",
     "ai challenges",
     "web3 bounties",
     "software competitions",
     "developer challenges",
+    "online hackathon list",
   ],
   alternates: {
-    canonical: "/hackathons",
+    canonical: `${SITE_URL}/hackathons`,
   },
   openGraph: {
     title: "Explore Hackathons & Competitions | Hack4Win",
-    description: "Discover upcoming and active hackathons, assemble developer squads, and compete for global bounties.",
-    url: "https://hack4win.online/hackathons",
+    description: "Discover upcoming and active hackathons, assemble developer squads, and compete for global bounties on hack4win.online.",
+    url: `${SITE_URL}/hackathons`,
     siteName: "Hack4Win",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
     title: "Explore Hackathons & Competitions | Hack4Win",
-    description: "Discover upcoming and active hackathons, assemble developer squads, and compete for global bounties.",
+    description: "Discover upcoming and active hackathons, assemble developer squads, and compete for global bounties on hack4win.online.",
   },
 };
 
@@ -77,7 +81,7 @@ export default async function HackathonsBrowsePage({ searchParams }: BrowsePageP
     userId ? hackathonRepository.getUserRegisteredHackathonIds(userId) : Promise.resolve(new Set<string>()),
   ]);
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://hack4win.online";
+  const baseUrl = SITE_URL;
 
   // Filter hackathons visible to current viewer:
   // 1. Unpublished drafts are strictly admin-only.
@@ -252,22 +256,45 @@ export default async function HackathonsBrowsePage({ searchParams }: BrowsePageP
 
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "ItemList",
-    "name": "Hackathons and Developer Competitions",
-    "description": "Active and upcoming hackathons on Hack4Win",
-    "numberOfItems": filteredHackathons.length,
-    "itemListElement": filteredHackathons.slice(0, 20).map((h, idx) => ({
-      "@type": "ListItem",
-      "position": idx + 1,
-      "item": {
-        "@type": "Event",
-        "name": h.title,
-        "description": h.tagline,
-        "url": `${baseUrl}/hackathons/${h.slug}`,
-        "startDate": h.start_date,
-        "endDate": h.end_date,
+    "@graph": [
+      {
+        "@type": "ItemList",
+        "@id": `${baseUrl}/hackathons#itemlist`,
+        "name": "Hackathons and Developer Competitions",
+        "description": "Active and upcoming hackathons on Hack4Win (hack4win.online)",
+        "numberOfItems": filteredHackathons.length,
+        "itemListElement": filteredHackathons.slice(0, 20).map((h, idx) => ({
+          "@type": "ListItem",
+          "position": idx + 1,
+          "item": {
+            "@type": "Event",
+            "name": h.title,
+            "description": h.tagline,
+            "url": `${baseUrl}/hackathons/${h.slug}`,
+            "startDate": h.start_date,
+            "endDate": h.end_date,
+          },
+        })),
       },
-    })),
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${baseUrl}/hackathons#breadcrumbs`,
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": baseUrl,
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Hackathons",
+            "item": `${baseUrl}/hackathons`,
+          },
+        ],
+      },
+    ],
   };
 
   return (

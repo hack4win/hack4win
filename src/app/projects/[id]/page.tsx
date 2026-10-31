@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getServerSession } from "@/lib/auth/session";
 import { hackathonRepository } from "@/lib/db/hackathon-repository";
 import { safeJsonLdReplacer } from "@/lib/json-ld";
+import { SITE_URL } from "@/lib/seo/config";
 import { ProjectDetailsClient } from "./project-details-client";
 
 import type { Metadata } from "next";
@@ -34,7 +35,7 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
     };
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://hack4win.online";
+  const baseUrl = SITE_URL;
   const canonicalUrl = `${baseUrl}/projects/${submission.id}`;
 
   return {
@@ -45,10 +46,11 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
       ...(submission.tech_stack || []),
       "hackathon project",
       "hack4win showcase",
-      "open source",
+      "open source software",
+      "hack4win online",
     ],
     alternates: {
-      canonical: `/projects/${submission.id}`,
+      canonical: canonicalUrl,
     },
     openGraph: {
       title: `${submission.title} | Hack4Win Project Showcase`,
@@ -95,21 +97,50 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
     .filter((s) => s.id !== submission.id)
     .slice(0, 3);
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://hack4win.online";
+  const baseUrl = SITE_URL;
   const softwareJsonLd = {
     "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": submission.title,
-    "description": submission.tagline || submission.description.slice(0, 200),
-    "applicationCategory": "DeveloperApplication",
-    "operatingSystem": "All",
-    "author": {
-      "@type": "Person",
-      "name": submission.user_name || "Builder",
-    },
-    "codeRepository": submission.github_url || undefined,
-    "url": submission.demo_url || `${baseUrl}/projects/${submission.id}`,
-    "image": submission.cover_image ? [submission.cover_image] : undefined,
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        "@id": `${baseUrl}/projects/${submission.id}#software`,
+        "name": submission.title,
+        "description": submission.tagline || submission.description.slice(0, 200),
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "All",
+        "author": {
+          "@type": "Person",
+          "name": submission.user_name || "Builder",
+        },
+        "codeRepository": submission.github_url || undefined,
+        "url": submission.demo_url || `${baseUrl}/projects/${submission.id}`,
+        "image": submission.cover_image ? [submission.cover_image] : undefined,
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${baseUrl}/projects/${submission.id}#breadcrumbs`,
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": baseUrl,
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Projects",
+            "item": `${baseUrl}/projects`,
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": submission.title,
+            "item": `${baseUrl}/projects/${submission.id}`,
+          },
+        ],
+      },
+    ],
   };
 
   return (

@@ -5,6 +5,7 @@ import { getServerSession } from "@/lib/auth/session";
 import { userRepository } from "@/lib/db/user-repository";
 import { skillRepository } from "@/lib/db/skill-repository";
 import { safeJsonLdReplacer } from "@/lib/json-ld";
+import { SITE_URL } from "@/lib/seo/config";
 import { UserMenu } from "@/components/navigation/user-menu";
 import { BrandLogo } from "@/components/navigation/brand-logo";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   const handle = user.username ? `@${user.username}` : user.name || "builder";
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://hack4win.online";
+  const baseUrl = SITE_URL;
   const canonicalPath = `/u/${user.username || user.id}`;
   const canonicalUrl = `${baseUrl}${canonicalPath}`;
 
@@ -46,7 +47,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: `${user.name || "Builder"} (${handle}) - Portfolio & Hackathon Builds | Hack4Win`,
     description:
       user.bio ||
-      `Explore hackathons, software submissions, and tech stacks built by ${user.name} on Hack4Win.`,
+      `Explore hackathons, software submissions, and tech stacks built by ${user.name} on Hack4Win (hack4win.online).`,
     keywords: [
       user.name || "Builder",
       user.username || "",
@@ -54,9 +55,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       "builder portfolio",
       "hackathon developer",
       "hack4win profile",
+      "hack4win online",
     ].filter(Boolean),
     alternates: {
-      canonical: canonicalPath,
+      canonical: canonicalUrl,
     },
     openGraph: {
       title: `${user.name || "Builder"} (${handle}) | Hack4Win Profile`,
@@ -108,7 +110,7 @@ export default async function UsernameProfilePage({ params, searchParams }: Page
     isOwner ? userRepository.getUserInvitations(user.id) : Promise.resolve([]),
   ]);
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://hack4win.online";
+  const baseUrl = SITE_URL;
   const personJsonLd = {
     "@context": "https://schema.org",
     "@type": "ProfilePage",

@@ -43,6 +43,8 @@ import { HackathonThumbnail } from "@/components/hackathon/hackathon-thumbnail";
 
 import type { Metadata } from "next";
 
+import { SITE_URL } from "@/lib/seo/config";
+
 interface PageProps {
   params: Promise<{ slug: string }>;
   searchParams?: Promise<{ tab?: string }>;
@@ -67,8 +69,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://hack4win.online";
-  const canonicalUrl = `${baseUrl}/hackathons/${hackathon.slug}`;
+  const canonicalUrl = `${SITE_URL}/hackathons/${hackathon.slug}`;
 
   return {
     title: `${hackathon.title} - Hackathon Challenge & Bounties`,
@@ -79,9 +80,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       hackathon.format,
       ...(hackathon.tags || []),
       "hack4win challenge",
+      "hack4win online",
     ],
     alternates: {
-      canonical: `/hackathons/${hackathon.slug}`,
+      canonical: canonicalUrl,
     },
     openGraph: {
       title: `${hackathon.title} | Hack4Win Hackathon`,
@@ -146,47 +148,80 @@ export default async function HackathonDetailPage({ params, searchParams }: Page
   const durationDays = Math.max(1, Math.round((endMs - startMs) / (1000 * 60 * 60 * 24)));
   const cleanPrizePool = (hackathon.prize_pool || "").replace(/^\$+\s*/, "$").replace(/^₹+\s*/, "₹");
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://hack4win.online";
+  const baseUrl = SITE_URL;
+  const isPaidFee = Boolean(hackathon.is_paid && Number(hackathon.registration_fee || 0) > 0);
+  const feeCurrency = hackathon.fee_currency === "₹" ? "INR" : "USD";
+  const feePrice = isPaidFee ? String(hackathon.registration_fee || 0) : "0";
+
   const eventJsonLd = {
     "@context": "https://schema.org",
-    "@type": "Event",
-    "name": hackathon.title,
-    "description": hackathon.tagline || hackathon.description.slice(0, 250),
-    "startDate": hackathon.start_date,
-    "endDate": hackathon.end_date,
-    "eventStatus": "https://schema.org/EventScheduled",
-    "eventAttendanceMode":
-      hackathon.format.toLowerCase() === "in-person"
-        ? "https://schema.org/OfflineEventAttendanceMode"
-        : hackathon.format.toLowerCase() === "hybrid"
-        ? "https://schema.org/MixedEventAttendanceMode"
-        : "https://schema.org/OnlineEventAttendanceMode",
-    "location":
-      hackathon.format.toLowerCase() === "in-person" && hackathon.location
-        ? {
-            "@type": "Place",
-            "name": hackathon.location,
-            "address": hackathon.location,
-          }
-        : {
-            "@type": "VirtualLocation",
-            "url": `${baseUrl}/hackathons/${hackathon.slug}`,
+    "@graph": [
+      {
+        "@type": "Event",
+        "@id": `${baseUrl}/hackathons/${hackathon.slug}#event`,
+        "name": hackathon.title,
+        "description": hackathon.tagline || hackathon.description.slice(0, 250),
+        "startDate": hackathon.start_date,
+        "endDate": hackathon.end_date,
+        "eventStatus": "https://schema.org/EventScheduled",
+        "eventAttendanceMode":
+          hackathon.format.toLowerCase() === "in-person"
+            ? "https://schema.org/OfflineEventAttendanceMode"
+            : hackathon.format.toLowerCase() === "hybrid"
+            ? "https://schema.org/MixedEventAttendanceMode"
+            : "https://schema.org/OnlineEventAttendanceMode",
+        "location":
+          hackathon.format.toLowerCase() === "in-person" && hackathon.location
+            ? {
+                "@type": "Place",
+                "name": hackathon.location,
+                "address": hackathon.location,
+              }
+            : {
+                "@type": "VirtualLocation",
+                "url": `${baseUrl}/hackathons/${hackathon.slug}`,
+              },
+        "image": hackathon.banner_url ? [hackathon.banner_url] : [],
+        "organizer": {
+          "@type": "Organization",
+          "name": hackathon.organizer_name || "Hack4Win Arena",
+          "url": baseUrl,
+        },
+        "offers": {
+          "@type": "Offer",
+          "name": isPaidFee ? "Paid Competition Entry" : "Free Hackathon Registration",
+          "price": feePrice,
+          "priceCurrency": feeCurrency,
+          "availability": "https://schema.org/InStock",
+          "url": `${baseUrl}/hackathons/${hackathon.slug}`,
+          "validFrom": hackathon.start_date,
+        },
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${baseUrl}/hackathons/${hackathon.slug}#breadcrumbs`,
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": baseUrl,
           },
-    "image": hackathon.banner_url ? [hackathon.banner_url] : [],
-    "organizer": {
-      "@type": "Organization",
-      "name": hackathon.organizer_name || "Hack4Win",
-      "url": baseUrl,
-    },
-    "offers": {
-      "@type": "Offer",
-      "name": "Hackathon Registration",
-      "price": "0",
-      "priceCurrency": "USD",
-      "availability": "https://schema.org/InStock",
-      "url": `${baseUrl}/hackathons/${hackathon.slug}`,
-      "validFrom": hackathon.start_date,
-    },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Hackathons",
+            "item": `${baseUrl}/hackathons`,
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": hackathon.title,
+            "item": `${baseUrl}/hackathons/${hackathon.slug}`,
+          },
+        ],
+      },
+    ],
   };
 
   return (
