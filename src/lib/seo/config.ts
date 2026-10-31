@@ -13,9 +13,9 @@ export const SITE_DESCRIPTION =
 export const TWITTER_HANDLE = "@hack4win";
 
 export const BRAND_ASSETS = {
-  logoPng: "https://br-polished-unit-b3lk45ku.storage.c-4.ap-southeast-1.aws.neon.tech/do4win/branding/hack4win-logo-v2.png",
-  iconPng: "https://br-polished-unit-b3lk45ku.storage.c-4.ap-southeast-1.aws.neon.tech/do4win/branding/hack4win-icon-v2.png",
-  ogImageFallback: "https://br-polished-unit-b3lk45ku.storage.c-4.ap-southeast-1.aws.neon.tech/do4win/branding/hack4win-logo-v2.png",
+  logoPng: "https://br-polished-unit-b3lk45ku.storage.c-4.ap-southeast-1.aws.neon.tech/do4win/branding/hack4win-logo-v3.png",
+  iconPng: "https://br-polished-unit-b3lk45ku.storage.c-4.ap-southeast-1.aws.neon.tech/do4win/branding/hack4win-icon-v3.png",
+  ogImageFallback: "https://br-polished-unit-b3lk45ku.storage.c-4.ap-southeast-1.aws.neon.tech/do4win/branding/hack4win-logo-v3.png",
 };
 
 /**
