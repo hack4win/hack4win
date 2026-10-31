@@ -151,7 +151,7 @@ export function ModalAlertProvider({ children }: { children: React.ReactNode }) 
       {children}
 
       <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
-        <DialogContent className="sm:max-w-md p-6 rounded-3xl gap-5 border shadow-xl bg-card">
+        <DialogContent className="sm:max-w-lg md:max-w-xl p-6 sm:p-7 rounded-3xl gap-5 border shadow-xl bg-card">
           <div className="flex items-start gap-4">
             {getIcon()}
             <div className="flex-1 space-y-1.5 pt-0.5">

@@ -659,7 +659,7 @@ export function HackathonActionCard({
 
       {/* Choice Modal: Join as Solo vs Looking for Team */}
       <Dialog open={isJoinModalOpen} onOpenChange={setIsJoinModalOpen}>
-        <DialogContent className="sm:max-w-md rounded-3xl p-6">
+        <DialogContent className="sm:max-w-xl md:max-w-2xl rounded-3xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
           <DialogHeader className="pb-3 border-b">
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="rounded-full text-[10px] font-bold text-primary border-primary/20 bg-primary/5">

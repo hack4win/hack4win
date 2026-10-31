@@ -1411,7 +1411,7 @@ export function OrganizerStudentsClient({
 
       {/* Add Emails Dialog */}
       <Dialog open={isAddEmailsModalOpen} onOpenChange={setIsAddEmailsModalOpen}>
-        <DialogContent className="sm:max-w-lg rounded-3xl p-6">
+        <DialogContent className="sm:max-w-xl md:max-w-2xl rounded-3xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
           <DialogHeader className="pb-3 border-b">
             <div className="flex items-center gap-2">
               <Badge className="bg-purple-600 text-white rounded-full text-[10px] font-bold">
@@ -1508,7 +1508,7 @@ export function OrganizerStudentsClient({
           }
         }}
       >
-        <DialogContent className="sm:max-w-xl rounded-3xl p-6">
+        <DialogContent className="sm:max-w-3xl md:max-w-4xl rounded-3xl p-6 sm:p-8 max-h-[92vh] overflow-y-auto">
           <DialogHeader className="pb-3 border-b">
             <div className="flex items-center gap-2">
               <Badge className="bg-emerald-600 text-white rounded-full text-[10px] font-bold">

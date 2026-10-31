@@ -368,7 +368,7 @@ export function JudgesClient({ initialJudges, hackathons }: JudgesClientProps) {
 
       {/* Invite Judge Modal */}
       <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-        <DialogContent className="sm:max-w-md rounded-2xl">
+        <DialogContent className="sm:max-w-xl md:max-w-2xl rounded-3xl p-6 sm:p-8">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2">
               <Gavel className="size-5 text-purple-600" />

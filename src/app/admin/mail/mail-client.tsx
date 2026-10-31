@@ -1411,7 +1411,7 @@ export function MailClient({
 
       {/* Brevo Service Connection & Diagnostics Modal */}
       <Dialog open={isBrevoModalOpen} onOpenChange={setIsBrevoModalOpen}>
-        <DialogContent className="sm:max-w-lg rounded-2xl p-6">
+        <DialogContent className="sm:max-w-xl md:max-w-2xl rounded-3xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
           <DialogHeader className="pb-3 border-b">
             <div className="flex items-center gap-2">
               <Badge

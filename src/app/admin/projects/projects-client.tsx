@@ -1071,7 +1071,7 @@ export function AdminProjectsClient({
 
       {/* 5. DELETE CONFIRMATION MODAL */}
       <Dialog open={!!projectToDelete} onOpenChange={(open) => !open && setProjectToDelete(null)}>
-        <DialogContent className="max-w-md rounded-3xl">
+        <DialogContent className="sm:max-w-lg md:max-w-xl rounded-3xl p-6 sm:p-7">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-destructive flex items-center gap-2">
               <Trash2 className="size-5" /> Delete Project Submission

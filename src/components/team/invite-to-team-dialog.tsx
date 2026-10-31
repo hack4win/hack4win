@@ -140,7 +140,7 @@ export function InviteToTeamDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg rounded-3xl p-6">
+      <DialogContent className="sm:max-w-xl md:max-w-2xl rounded-3xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
         <DialogHeader className="pb-3 border-b">
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="rounded-full text-[10px] font-bold gap-1 text-primary border-primary/20 bg-primary/5">

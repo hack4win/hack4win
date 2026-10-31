@@ -381,7 +381,7 @@ export function UsersClient({ initialUsers, initialTotal, currentUser }: UsersCl
             </Button>
 
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-              <DialogContent className="sm:max-w-md rounded-2xl">
+              <DialogContent className="sm:max-w-lg md:max-w-xl rounded-3xl p-6 sm:p-8">
                 <DialogHeader>
                   <DialogTitle className="text-lg font-bold">Create Platform User</DialogTitle>
                   <DialogDescription>
