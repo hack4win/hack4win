@@ -190,29 +190,33 @@ export async function PATCH(
         [invitation.sender_id, session.user.id]
       );
 
-      // Notify team leader asynchronously that invite was accepted
+      // Notify team leader synchronously that invite was accepted
       try {
         const senderUser = await userRepository.findById(invitation.sender_id);
         if (senderUser?.email) {
+          const host = req.headers.get("host") || "localhost:3000";
+          const protocol = req.headers.get("x-forwarded-proto") || "http";
+          const baseUrl = `${protocol}://${host}`;
+          const teamRosterUrl = `${baseUrl}/hackathons/${invitation.hackathon_slug || ""}`;
+
           const emailTemplate = getTeamInviteAcceptedEmailTemplate({
             leaderName: senderUser.name || "Team Lead",
             memberEmail: session.user.email || invitation.receiver_email || "Teammate",
             memberName: session.user.name || undefined,
             teamName: invitation.team_name || "Innovation Team",
             hackathonTitle: invitation.hackathon_title || "Hackathon Challenge",
-            teamRosterUrl: `${process.env.NEXTAUTH_URL || "https://hack4win.online"}/hackathons/${invitation.hackathon_slug || ""}`,
+            teamRosterUrl,
           });
 
-          brevoService
-            .sendEmail({
-              to: [{ email: senderUser.email, name: senderUser.name || "Team Lead" }],
-              subject: emailTemplate.subject,
-              htmlContent: emailTemplate.html,
-              textContent: emailTemplate.text,
-              sender: HACK4WIN_SENDERS.NOTIFICATIONS,
-              engine: "auto",
-            })
-            .catch((err) => console.warn("[Brevo Team Invite Accepted Email Warning]:", err.message));
+          const brevoResult = await brevoService.sendEmail({
+            to: [{ email: senderUser.email, name: senderUser.name || "Team Lead" }],
+            subject: emailTemplate.subject,
+            htmlContent: emailTemplate.html,
+            textContent: emailTemplate.text,
+            sender: HACK4WIN_SENDERS.NOTIFICATIONS,
+            tags: ["team-invite-accepted", "transactional"],
+          });
+          console.log("📨 [TEAM INVITE ACCEPTED EMAIL DISPATCHED]:", JSON.stringify(brevoResult, null, 2));
         }
       } catch (leaderEmailErr) {
         console.warn("[Brevo Team Invite Accepted Email Error]:", leaderEmailErr);
@@ -256,5 +260,85 @@ export async function PATCH(
   } catch (error) {
     console.error("[PATCH invite error]:", error);
     return NextResponse.json({ error: "Failed to update invitation" }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getServerSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { id } = await params;
+    const invitation = await userRepository.getInvitationById(id);
+    if (!invitation) {
+      return NextResponse.json({ error: "Invitation not found" }, { status: 404 });
+    }
+
+    const isSender = invitation.sender_id === session.user.id;
+    const isReceiver =
+      invitation.receiver_id === session.user.id ||
+      (Boolean(session.user.email) &&
+        Boolean(invitation.receiver_email) &&
+        invitation.receiver_email!.toLowerCase() === session.user.email.toLowerCase());
+
+    if (!isSender && !isReceiver && session.user.role !== "admin") {
+      return NextResponse.json(
+        { error: "Only the sender, recipient, or an admin can revoke or delete this invitation" },
+        { status: 403 }
+      );
+    }
+
+    // If invitation was accepted, unlink the two users from any shared project submissions
+    if (invitation.status === "accepted" && invitation.receiver_id) {
+      await hackathonRepository.removeTeammateFromHackathon(
+        invitation.hackathon_id,
+        invitation.sender_id,
+        invitation.receiver_id
+      );
+
+      // Check remaining teammates for sender
+      const senderTeammates = await userRepository.getAcceptedTeammates(
+        invitation.hackathon_id,
+        invitation.sender_id
+      );
+      if (senderTeammates.length <= 1) {
+        await hackathonRepository.registerUser(
+          invitation.hackathon_id,
+          invitation.sender_id,
+          "looking_for_team"
+        );
+      }
+
+      // Check remaining teammates for receiver
+      const receiverTeammates = await userRepository.getAcceptedTeammates(
+        invitation.hackathon_id,
+        invitation.receiver_id
+      );
+      if (receiverTeammates.length <= 1) {
+        await hackathonRepository.registerUser(
+          invitation.hackathon_id,
+          invitation.receiver_id,
+          "looking_for_team"
+        );
+      }
+    }
+
+    // Delete the invitation
+    await userRepository.deleteInvitation(id);
+
+    return NextResponse.json({
+      success: true,
+      message: invitation.status === "accepted"
+        ? "Successfully left the team and unlinked collaboration."
+        : "Invitation cancelled.",
+    });
+  } catch (error) {
+    console.error("[DELETE invite error]:", error);
+    return NextResponse.json({ error: "Failed to delete invitation" }, { status: 500 });
   }
 }

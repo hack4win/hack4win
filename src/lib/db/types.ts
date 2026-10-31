@@ -404,7 +404,7 @@ export interface TeamInvitation {
   team_name?: string | null;
   message?: string | null;
   contact_info?: string | null;
-  status: "pending" | "accepted" | "declined";
+  status: "pending" | "accepted" | "declined" | "revoked";
   created_at: string;
   updated_at: string;
 }

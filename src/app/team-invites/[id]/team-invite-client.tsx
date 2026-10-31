@@ -69,6 +69,32 @@ export function TeamInviteClient({ invitation, currentUser }: TeamInviteClientPr
     }
   };
 
+  const handleLeaveTeam = async () => {
+    if (!currentUser) return;
+    if (!confirm("Are you sure you want to leave this team? You will be unlinked from shared project submissions and can build solo or invite another teammate.")) {
+      return;
+    }
+
+    setIsProcessing(true);
+    setFeedback(null);
+
+    try {
+      const res = await fetch(`/api/team-invites/${invitation.id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to leave team");
+      }
+      setStatus("revoked");
+      setFeedback("You have left the team and disconnected the collaboration. You can now build solo or invite another teammate.");
+    } catch (err) {
+      setFeedback(err instanceof Error ? err.message : "Error leaving team");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div className="max-w-xl mx-auto py-8 px-4 space-y-6">
       <Card className="border rounded-3xl shadow-sm overflow-hidden py-0 gap-0">
@@ -210,9 +236,23 @@ export function TeamInviteClient({ invitation, currentUser }: TeamInviteClientPr
               </Button>
             </div>
           ) : (
-            <div className="pt-3 border-t flex justify-end">
+            <div className="pt-3 border-t flex flex-col sm:flex-row items-center justify-between gap-3">
+              {status === "accepted" ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleLeaveTeam}
+                  disabled={isProcessing}
+                  className="w-full sm:w-auto rounded-full text-xs font-semibold text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/10 cursor-pointer"
+                >
+                  {isProcessing ? <Loader2 className="size-3.5 animate-spin mr-1.5" /> : null}
+                  <span>Leave Team / Disconnect</span>
+                </Button>
+              ) : null}
+
               {invitation.hackathon_slug && (
-                <Button asChild className="rounded-full text-xs font-bold gap-1.5">
+                <Button asChild className="w-full sm:w-auto rounded-full text-xs font-bold gap-1.5 ml-auto">
                   <Link href={`/hackathons/${invitation.hackathon_slug}?tab=projects`}>
                     Go to Hackathon Showcase <ArrowRight className="size-3.5" />
                   </Link>

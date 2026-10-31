@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useModalAlert } from "@/components/ui/modal-alert";
 import {
   Rocket,
@@ -76,6 +77,7 @@ export function DevpostProfileView({
   initialTab = "projects",
 }: DevpostProfileViewProps) {
   const isSelf = currentUser?.id === user.id;
+  const router = useRouter();
   const { showAlert } = useModalAlert();
   const [activeTab, setActiveTab] = useState<"projects" | "hackathons" | "invites" | "about" | "edit">(initialTab);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
@@ -118,6 +120,37 @@ export function DevpostProfileView({
       await showAlert({
         title: "Invitation Error",
         message: err instanceof Error ? err.message : "Failed to update invitation",
+        type: "error",
+      });
+    } finally {
+      setRespondingInviteId(null);
+    }
+  };
+
+  const handleLeaveTeam = async (inviteId: string) => {
+    if (!confirm("Are you sure you want to leave this team / disconnect from this teammate?")) {
+      return;
+    }
+    setRespondingInviteId(inviteId);
+    try {
+      const res = await fetch(`/api/team-invites/${inviteId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to disconnect team");
+      }
+      setInvites((prev) => prev.filter((inv) => inv.id !== inviteId));
+      await showAlert({
+        title: "Team Collaboration Disconnected",
+        message: "You have left the team. Shared project teammates have been unlinked.",
+        type: "info",
+      });
+      router.refresh();
+    } catch (err) {
+      await showAlert({
+        title: "Error Disconnecting",
+        message: err instanceof Error ? err.message : "Failed to disconnect from team",
         type: "error",
       });
     } finally {
@@ -1024,11 +1057,22 @@ export function DevpostProfileView({
                         <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
                           <CheckCircle2 className="size-4" /> You and {inv.sender_name || "your partner"} are official team partners!
                         </span>
-                        <Button asChild size="sm" className="rounded-full text-xs font-bold gap-1.5">
-                          <Link href={`/hackathons/${inv.hackathon_slug || inv.hackathon_id}/submit`}>
-                            <Rocket className="size-3" /> Submit Team Project
-                          </Link>
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleLeaveTeam(inv.id)}
+                            disabled={respondingInviteId === inv.id}
+                            className="rounded-full text-xs font-semibold text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/10 cursor-pointer"
+                          >
+                            Leave Team
+                          </Button>
+                          <Button asChild size="sm" className="rounded-full text-xs font-bold gap-1.5">
+                            <Link href={`/hackathons/${inv.hackathon_slug || inv.hackathon_id}/submit`}>
+                              <Rocket className="size-3" /> Submit Team Project
+                            </Link>
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </Card>
@@ -1113,9 +1157,9 @@ export function DevpostProfileView({
                       </Badge>
                     </div>
 
-                    {/* Invite Link Copy & View */}
+                    {/* Invite Link Copy & View & Disconnect */}
                     <div className="pt-3 border-t flex flex-wrap items-center justify-between gap-3 text-xs">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <Button
                           size="sm"
                           variant="outline"
@@ -1135,6 +1179,28 @@ export function DevpostProfileView({
                             Open Invitation Page <ExternalLink className="size-3 ml-1" />
                           </Link>
                         </Button>
+
+                        {inv.status === "accepted" ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleLeaveTeam(inv.id)}
+                            disabled={respondingInviteId === inv.id}
+                            className="rounded-full text-xs h-8 font-semibold text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/10 cursor-pointer"
+                          >
+                            Disconnect Teammate
+                          </Button>
+                        ) : inv.status === "pending" ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleLeaveTeam(inv.id)}
+                            disabled={respondingInviteId === inv.id}
+                            className="rounded-full text-xs h-8 text-muted-foreground hover:text-rose-600 cursor-pointer"
+                          >
+                            Cancel Invite
+                          </Button>
+                        ) : null}
                       </div>
 
                       <span className="text-[11px] text-muted-foreground">

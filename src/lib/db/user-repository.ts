@@ -42,7 +42,8 @@ export interface IUserRepository {
   }): Promise<TeamInvitation>;
   getUserInvitations(userId: string, userEmail?: string | null): Promise<TeamInvitation[]>;
   getInvitationById(inviteId: string): Promise<TeamInvitation | null>;
-  updateInvitationStatus(inviteId: string, status: "accepted" | "declined", receiverId?: string | null): Promise<TeamInvitation | null>;
+  updateInvitationStatus(inviteId: string, status: "accepted" | "declined" | "revoked", receiverId?: string | null): Promise<TeamInvitation | null>;
+  deleteInvitation(inviteId: string): Promise<boolean>;
   linkPendingInvitations(userId: string, email: string): Promise<void>;
   getAcceptedInviteCount(hackathonId: string, senderId: string): Promise<number>;
 }
@@ -815,7 +816,7 @@ export class UserRepository implements IUserRepository {
    */
   async updateInvitationStatus(
     inviteId: string,
-    status: "accepted" | "declined",
+    status: "accepted" | "declined" | "revoked",
     receiverId?: string | null
   ): Promise<TeamInvitation | null> {
     try {
@@ -831,6 +832,18 @@ export class UserRepository implements IUserRepository {
       return (rows[0] as unknown as TeamInvitation) || null;
     } catch {
       return null;
+    }
+  }
+
+  /**
+   * Delete or permanently cancel an invitation
+   */
+  async deleteInvitation(inviteId: string): Promise<boolean> {
+    try {
+      await db`DELETE FROM public.team_invitations WHERE id = ${inviteId}::uuid;`;
+      return true;
+    } catch {
+      return false;
     }
   }
 

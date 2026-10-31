@@ -129,6 +129,7 @@ export interface IHackathonRepository {
     }
   ): Promise<void>;
   syncAcceptedTeamMembersForHackathon(hackathonId: string, userIds?: string[]): Promise<void>;
+  removeTeammateFromHackathon(hackathonId: string, userAId: string, userBId: string): Promise<void>;
   saveEvaluation(input: SaveEvaluationInput): Promise<ProjectEvaluation>;
   getEvaluationsBySubmission(submissionId: string): Promise<ProjectEvaluation[]>;
   getEvaluationsByHackathon(hackathonId: string): Promise<ProjectEvaluation[]>;
@@ -1507,6 +1508,49 @@ export class HackathonRepository implements IHackathonRepository {
       }
     } catch (err) {
       console.error("[syncAcceptedTeamMembersForHackathon Error]:", err);
+    }
+  }
+
+  /**
+   * Remove a teammate link from all submissions for a hackathon upon leaving/revoking team
+   */
+  async removeTeammateFromHackathon(
+    hackathonId: string,
+    userAId: string,
+    userBId: string
+  ): Promise<void> {
+    try {
+      const subs = await db`
+        SELECT id, user_id, team_members, team_member_ids
+        FROM public.hackathon_submissions
+        WHERE hackathon_id = ${hackathonId}::uuid
+          AND (user_id = ${userAId} OR user_id = ${userBId} OR ${userAId} = ANY(team_member_ids) OR ${userBId} = ANY(team_member_ids));
+      `;
+
+      for (const s of subs) {
+        let members: SubmissionTeamMember[] = Array.isArray(s.team_members) ? [...s.team_members] : [];
+        let memberIds: string[] = Array.isArray(s.team_member_ids) ? [...s.team_member_ids] : [];
+
+        if (s.user_id === userAId) {
+          members = members.filter((m) => m.id !== userBId);
+          memberIds = memberIds.filter((id) => id !== userBId);
+        } else if (s.user_id === userBId) {
+          members = members.filter((m) => m.id !== userAId);
+          memberIds = memberIds.filter((id) => id !== userAId);
+        } else {
+          members = members.filter((m) => m.id !== userAId && m.id !== userBId);
+          memberIds = memberIds.filter((id) => id !== userAId && id !== userBId);
+        }
+
+        await db`
+          UPDATE public.hackathon_submissions
+          SET team_members = ${JSON.stringify(members)}::jsonb,
+              team_member_ids = ${memberIds}
+          WHERE id = ${s.id}::uuid;
+        `;
+      }
+    } catch (err) {
+      console.error("[removeTeammateFromHackathon Error]:", err);
     }
   }
 
