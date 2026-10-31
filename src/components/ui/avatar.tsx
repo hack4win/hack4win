@@ -106,3 +106,4 @@ export {
   AvatarGroupCount,
   AvatarBadge,
 }
+export { UserAvatar } from "./user-avatar"

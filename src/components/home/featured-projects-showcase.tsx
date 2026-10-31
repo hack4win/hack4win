@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { HackathonSubmission } from "@/lib/db/types";
 import { getSafeExternalUrl } from "@/lib/url-validation";
 
@@ -222,24 +223,16 @@ export function FeaturedProjectsShowcase({ projects }: FeaturedProjectsShowcaseP
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="flex -space-x-1.5 overflow-hidden shrink-0">
                       {(members.length > 0 ? members.slice(0, 3) : [{ name: p.user_name, image: p.user_image }]).map(
-                        (m, mIdx) =>
-                          m.image ? (
-                            <img
-                              key={mIdx}
-                              src={m.image}
-                              alt={m.name || "Builder"}
-                              className="size-6 rounded-full object-cover ring-2 ring-background"
-                              title={m.name || "Builder"}
-                            />
-                          ) : (
-                            <div
-                              key={mIdx}
-                              className="size-6 rounded-full bg-primary/20 text-primary font-bold text-[9px] flex items-center justify-center ring-2 ring-background"
-                              title={m.name || "Builder"}
-                            >
-                              {m.name ? m.name[0].toUpperCase() : "B"}
-                            </div>
-                          )
+                        (m, mIdx) => (
+                          <UserAvatar
+                            key={mIdx}
+                            src={m.image}
+                            name={m.name || "Builder"}
+                            alt={m.name || "Builder"}
+                            className="size-6 rounded-full ring-2 ring-background shrink-0 bg-primary/20 text-primary"
+                            iconClassName="size-3 text-primary"
+                          />
+                        )
                       )}
                     </div>
                     <span className="text-[11px] font-medium text-muted-foreground truncate max-w-[100px]">

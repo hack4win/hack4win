@@ -40,6 +40,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { ImageUploader } from "@/components/ui/image-uploader";
@@ -1194,25 +1195,22 @@ export function SubmitProjectClient({
                     >
                       <div className="flex items-center gap-2.5 min-w-0 flex-1">
                         <div className="relative shrink-0">
-                          {member.image ? (
-                            <img
-                              src={member.image}
-                              alt={member.name || "Member"}
-                              className={`size-9 rounded-full object-cover ${
-                                isPending ? "ring-2 ring-amber-500/50 border border-dashed border-amber-500" : ""
-                              }`}
-                            />
-                          ) : (
-                            <div
-                              className={`size-9 rounded-full flex items-center justify-center font-bold text-xs ${
-                                isPending
-                                  ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-dashed border-amber-500/50"
-                                  : "bg-primary/10 text-primary"
-                              }`}
-                            >
-                              {member.name ? member.name[0].toUpperCase() : member.email ? member.email[0].toUpperCase() : "U"}
-                            </div>
-                          )}
+                          <UserAvatar
+                            src={member.image}
+                            name={member.name || member.email}
+                            alt={member.name || "Member"}
+                            className={`size-9 rounded-full ${
+                              isPending
+                                ? "ring-2 ring-amber-500/50 border border-dashed border-amber-500"
+                                : ""
+                            }`}
+                            fallbackClassName={
+                              isPending
+                                ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                                : "bg-primary/10 text-primary"
+                            }
+                            iconClassName="size-4.5"
+                          />
                           {isPending && (
                             <div className="absolute -bottom-0.5 -right-0.5 size-3.5 bg-amber-500 text-white rounded-full flex items-center justify-center shadow-xs">
                               <Clock className="size-2.5" />

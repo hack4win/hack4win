@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { TeamInvitation, SessionUser } from "@/lib/db/types";
 
@@ -86,17 +87,13 @@ export function TeamInviteClient({ invitation, currentUser }: TeamInviteClientPr
           </div>
 
           <div className="flex items-center gap-4 pt-2">
-            {invitation.sender_image ? (
-              <img
-                src={invitation.sender_image}
-                alt={invitation.sender_name || "Sender"}
-                className="size-16 rounded-2xl object-cover border-2 border-background shadow-xs shrink-0"
-              />
-            ) : (
-              <div className="size-16 rounded-2xl bg-primary/20 text-primary font-black text-2xl flex items-center justify-center border-2 border-background shadow-xs shrink-0">
-                {invitation.sender_name ? invitation.sender_name[0].toUpperCase() : "B"}
-              </div>
-            )}
+            <UserAvatar
+              src={invitation.sender_image}
+              name={invitation.sender_name}
+              alt={invitation.sender_name || "Sender"}
+              className="size-16 rounded-2xl border-2 border-background shadow-xs shrink-0 bg-primary/10 text-primary"
+              iconClassName="size-8 text-primary"
+            />
 
             <div className="space-y-1 min-w-0 flex-1">
               <h1 className="text-xl font-black text-foreground truncate">

@@ -30,6 +30,7 @@ import {
 import { compressImage } from "@/lib/utils/image-compression";
 import { isValidHttpUrl } from "@/lib/url-validation";
 import { useModalAlert } from "@/components/ui/modal-alert";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 export const COUNTRIES = [
   { code: "IN", name: "India", flag: "🇮🇳" },
@@ -493,17 +494,13 @@ export function ProfileEditor({ initialUser, availableSkills = [] }: ProfileEdit
             <div className="flex items-end gap-5">
               {/* Avatar with Camera Trigger */}
               <div className="relative group shrink-0">
-                <div className="size-28 sm:size-32 rounded-full border-4 border-background bg-card text-foreground font-black text-3xl flex items-center justify-center shadow-lg overflow-hidden">
-                  {avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      alt={name || "User Avatar"}
-                      className="size-full object-cover"
-                    />
-                  ) : (
-                    <span>{(name?.[0] || initialUser.email?.[0] || "U").toUpperCase()}</span>
-                  )}
-                </div>
+                <UserAvatar
+                  src={avatarUrl}
+                  name={name || initialUser.name}
+                  alt={name || "User Avatar"}
+                  className="size-28 sm:size-32 rounded-full border-4 border-background bg-card shadow-lg"
+                  iconClassName="size-14"
+                />
 
                 {/* Avatar Camera Overlay Button */}
                 <button

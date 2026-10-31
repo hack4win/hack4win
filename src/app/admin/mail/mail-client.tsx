@@ -6,6 +6,7 @@ import { useModalAlert } from "@/components/ui/modal-alert";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -884,13 +885,13 @@ export function MailClient({
                         {selectedUser ? (
                           <div className="flex items-center justify-between p-3 rounded-xl border border-primary/30 bg-primary/5">
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="size-9 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs uppercase shrink-0 overflow-hidden">
-                                {selectedUser.image ? (
-                                  <img src={selectedUser.image} alt={selectedUser.name || ""} className="size-full object-cover" />
-                                ) : (
-                                  (selectedUser.name?.[0] || selectedUser.email[0] || "U")
-                                )}
-                              </div>
+                              <UserAvatar
+                                src={selectedUser.image}
+                                name={selectedUser.name || "Builder"}
+                                alt={selectedUser.name || ""}
+                                className="size-9 rounded-full bg-primary/20 text-primary border shrink-0"
+                                iconClassName="size-4.5 text-primary"
+                              />
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   <span className="text-xs font-bold text-foreground truncate">
@@ -948,13 +949,13 @@ export function MailClient({
                                     className="w-full flex items-center justify-between p-2.5 text-left hover:bg-muted/50 transition-colors cursor-pointer group"
                                   >
                                     <div className="flex items-center gap-2.5 min-w-0">
-                                      <div className="size-7 rounded-full bg-muted flex items-center justify-center font-bold text-[10px] uppercase shrink-0 text-foreground overflow-hidden">
-                                        {u.image ? (
-                                          <img src={u.image} alt={u.name || ""} className="size-full object-cover" />
-                                        ) : (
-                                          (u.name?.[0] || u.email[0] || "U")
-                                        )}
-                                      </div>
+                                      <UserAvatar
+                                        src={u.image}
+                                        name={u.name || "User"}
+                                        alt={u.name || ""}
+                                        className="size-7 rounded-full bg-muted border shrink-0"
+                                        iconClassName="size-3.5 text-muted-foreground"
+                                      />
                                       <div className="min-w-0">
                                         <div className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors flex items-center gap-1.5">
                                           <span>{u.name || "Unnamed"}</span>

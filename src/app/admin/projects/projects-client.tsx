@@ -32,6 +32,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Dialog,
@@ -982,13 +983,13 @@ export function AdminProjectsClient({
                           className="p-2.5 rounded-xl border bg-card flex items-center justify-between gap-2"
                         >
                           <div className="flex items-center gap-2 min-w-0">
-                            {m.image ? (
-                              <img src={m.image} alt={m.name || "Member"} className="size-8 rounded-full object-cover" />
-                            ) : (
-                              <div className="size-8 rounded-full bg-primary/20 text-primary font-bold text-xs flex items-center justify-center">
-                                {m.name ? m.name[0].toUpperCase() : "B"}
-                              </div>
-                            )}
+                            <UserAvatar
+                              src={m.image}
+                              name={m.name || "Member"}
+                              alt={m.name || "Member"}
+                              className="size-8 rounded-full bg-primary/10 text-primary border shrink-0"
+                              iconClassName="size-4 text-primary"
+                            />
                             <div className="min-w-0">
                               <div className="font-bold text-xs truncate">{m.name || m.email}</div>
                               <div className="text-[10px] text-muted-foreground truncate">{m.role || "Co-Builder"}</div>

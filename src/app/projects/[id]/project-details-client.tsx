@@ -8,6 +8,7 @@ import { UserMenu } from "@/components/navigation/user-menu";
 import { BrandLogo } from "@/components/navigation/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { MarkdownPreview } from "@/components/ui/markdown-preview";
 import { SiteFooter } from "@/components/navigation/site-footer";
@@ -872,17 +873,13 @@ export function ProjectDetailsClient({
                       }
                       className="flex items-center gap-3 min-w-0 group"
                     >
-                      <div className="size-9 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center font-bold text-xs text-primary shrink-0 border">
-                        {member.image ? (
-                          <img
-                            src={member.image}
-                            alt={member.name || "Builder"}
-                            className="size-full object-cover"
-                          />
-                        ) : (
-                          <span>{(member.name || "U")[0]?.toUpperCase()}</span>
-                        )}
-                      </div>
+                      <UserAvatar
+                        src={member.image}
+                        name={member.name || member.email}
+                        alt={member.name || "Builder"}
+                        className="size-9 rounded-full bg-primary/10 text-primary border shrink-0"
+                        iconClassName="size-4.5 text-primary"
+                      />
                       <div className="min-w-0">
                         <div className="font-bold text-xs text-foreground group-hover:text-primary transition-colors truncate">
                           {member.name || member.email || "Builder"}

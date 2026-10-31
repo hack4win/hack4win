@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   Trophy,
   Gavel,
@@ -597,17 +598,13 @@ export function JudgingClient({
 
                       {/* Submitter info */}
                       <div className="flex items-center gap-2 pt-2 border-t">
-                        <div className="size-6 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center text-[10px] font-bold text-primary">
-                          {sub.user_image ? (
-                            <img
-                              src={sub.user_image}
-                              alt={sub.user_name || "User"}
-                              className="size-full object-cover"
-                            />
-                          ) : (
-                            <User className="size-3" />
-                          )}
-                        </div>
+                        <UserAvatar
+                          src={sub.user_image}
+                          name={sub.user_name || "Builder"}
+                          alt={sub.user_name || "User"}
+                          className="size-6 rounded-full bg-primary/10 text-primary border shrink-0"
+                          iconClassName="size-3 text-primary"
+                        />
                         <span className="text-xs font-medium text-foreground truncate">
                           {sub.user_name || "Anonymous Builder"}
                         </span>

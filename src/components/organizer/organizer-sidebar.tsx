@@ -7,6 +7,7 @@ import { BrandLogo } from "@/components/navigation/brand-logo";
 import { SessionUser } from "@/lib/db/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   Trophy,
   LayoutDashboard,
@@ -152,13 +153,13 @@ export function OrganizerSidebar({ user, children }: OrganizerSidebarProps) {
       {/* User Info & Footer */}
       <div className="p-4 border-t bg-muted/20 space-y-3">
         <div className="flex items-center gap-3">
-          <div className="size-9 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold text-xs flex items-center justify-center shrink-0">
-            {user.image ? (
-              <img src={user.image} alt={user.name || "Avatar"} className="size-full rounded-full object-cover" />
-            ) : (
-              (user.name?.[0] || user.email[0]).toUpperCase()
-            )}
-          </div>
+          <UserAvatar
+            src={user.image}
+            name={user.name || "Organizer"}
+            alt={user.name || "Avatar"}
+            className="size-9 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border"
+            iconClassName="size-4.5 text-blue-600 dark:text-blue-400"
+          />
           <div className="min-w-0 flex-1">
             <div className="font-semibold text-xs text-foreground truncate">
               {user.name || "Organizer"}

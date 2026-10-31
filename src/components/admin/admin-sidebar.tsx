@@ -7,6 +7,7 @@ import { BrandLogo } from "@/components/navigation/brand-logo";
 import { SessionUser } from "@/lib/db/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   Trophy,
   LayoutDashboard,
@@ -184,13 +185,13 @@ export function AdminSidebar({ user, children }: AdminSidebarProps) {
       {/* User Info & Footer */}
       <div className="p-4 border-t bg-muted/20 space-y-3">
         <div className="flex items-center gap-3">
-          <div className="size-9 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center shrink-0">
-            {user.image ? (
-              <img src={user.image} alt={user.name || "Avatar"} className="size-full rounded-full object-cover" />
-            ) : (
-              (user.name?.[0] || user.email[0]).toUpperCase()
-            )}
-          </div>
+          <UserAvatar
+            src={user.image}
+            name={user.name || "Admin"}
+            alt={user.name || "Avatar"}
+            className="size-9 rounded-full bg-primary/10 text-primary border"
+            iconClassName="size-4.5 text-primary"
+          />
           <div className="min-w-0 flex-1">
             <div className="font-semibold text-xs text-foreground truncate">
               {user.name || "Admin"}

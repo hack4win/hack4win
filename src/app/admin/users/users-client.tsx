@@ -7,6 +7,7 @@ import { useModalAlert } from "@/components/ui/modal-alert";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Search,
@@ -511,17 +512,13 @@ export function UsersClient({ initialUsers, initialTotal, currentUser }: UsersCl
                       <tr key={u.id} className="hover:bg-muted/20 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="size-10 rounded-full bg-primary/10 text-primary font-bold text-sm flex items-center justify-center shrink-0 overflow-hidden">
-                              {u.image ? (
-                                <img
-                                  src={u.image}
-                                  alt={u.name || "Avatar"}
-                                  className="size-full rounded-full object-cover"
-                                />
-                              ) : (
-                                (u.name?.[0] || u.email[0]).toUpperCase()
-                              )}
-                            </div>
+                            <UserAvatar
+                              src={u.image}
+                              name={u.name || "Anonymous"}
+                              alt={u.name || "Avatar"}
+                              className="size-10 rounded-full bg-primary/10 text-primary border"
+                              iconClassName="size-5 text-primary"
+                            />
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
                                 <span className="font-semibold text-foreground truncate">

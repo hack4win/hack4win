@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Gavel,
@@ -298,17 +299,13 @@ export function JudgesClient({ initialJudges, hackathons }: JudgesClientProps) {
                     <tr key={j.id} className="hover:bg-muted/20 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="size-10 rounded-full bg-purple-500/10 text-purple-600 font-bold text-sm flex items-center justify-center shrink-0 overflow-hidden">
-                            {j.image ? (
-                              <img
-                                src={j.image}
-                                alt={j.name}
-                                className="size-full rounded-full object-cover"
-                              />
-                            ) : (
-                              (j.name?.[0] || j.email[0]).toUpperCase()
-                            )}
-                          </div>
+                          <UserAvatar
+                            src={j.image}
+                            name={j.name}
+                            alt={j.name}
+                            className="size-10 rounded-full bg-purple-500/10 text-purple-600 border"
+                            iconClassName="size-5 text-purple-600 dark:text-purple-400"
+                          />
                           <div className="min-w-0">
                             <div className="font-semibold text-foreground truncate">{j.name}</div>
                             <div className="text-xs text-muted-foreground truncate">{j.email}</div>

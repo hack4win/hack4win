@@ -42,6 +42,7 @@ import {
 import { ProfileEditor, COUNTRIES } from "@/app/profile/profile-editor";
 import { InviteToTeamDialog } from "@/components/team/invite-to-team-dialog";
 import { getSafeExternalUrl } from "@/lib/url-validation";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 function GithubIcon({ className = "size-3.5" }: { className?: string }) {
   return (
@@ -170,17 +171,13 @@ export function DevpostProfileView({
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-16 sm:-mt-20">
             {/* Avatar & Verification */}
             <div className="relative inline-block shrink-0">
-              {user.image ? (
-                <img
-                  src={user.image}
-                  alt={user.name || "User avatar"}
-                  className="size-28 sm:size-32 rounded-3xl object-cover border-4 border-card shadow-md bg-card"
-                />
-              ) : (
-                <div className="size-28 sm:size-32 rounded-3xl bg-primary/20 text-primary font-black text-4xl flex items-center justify-center border-4 border-card shadow-md">
-                  {user.name ? user.name[0].toUpperCase() : "U"}
-                </div>
-              )}
+              <UserAvatar
+                src={user.image}
+                name={user.name}
+                alt={user.name || "User avatar"}
+                className="size-28 sm:size-32 rounded-3xl border-4 border-card shadow-md bg-card"
+                iconClassName="size-14"
+              />
               {user.email_verified && (
                 <div
                   className="absolute bottom-1 right-1 p-1 bg-emerald-500 text-white rounded-full border-2 border-card shadow-xs"
@@ -612,27 +609,21 @@ export function DevpostProfileView({
                                           isPending ? " (Not Accepted Yet)" : member.role ? ` (${member.role})` : ""
                                         }`}
                                       >
-                                        {member.image ? (
-                                          <img
-                                            src={member.image}
-                                            alt={member.name || "Builder"}
-                                            className={`size-6 rounded-full object-cover shadow-xs ${
-                                              isPending
-                                                ? "ring-2 ring-amber-500/80 border border-dashed border-amber-500"
-                                                : "ring-2 ring-card hover:ring-primary"
-                                            }`}
-                                          />
-                                        ) : (
-                                          <div
-                                            className={`size-6 rounded-full ring-2 shadow-xs flex items-center justify-center font-bold text-[9px] ${
-                                              isPending
-                                                ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 ring-amber-500/80 border border-dashed border-amber-500"
-                                                : "bg-primary/10 text-primary ring-card hover:ring-primary"
-                                            }`}
-                                          >
-                                            {member.name ? member.name[0].toUpperCase() : member.email ? member.email[0].toUpperCase() : "U"}
-                                          </div>
-                                        )}
+                                        <UserAvatar
+                                          src={member.image}
+                                          name={member.name}
+                                          alt={member.name || "Builder"}
+                                          className={`size-6 rounded-full shadow-xs ${
+                                            isPending
+                                              ? "ring-2 ring-amber-500/80 border border-dashed border-amber-500"
+                                              : "ring-2 ring-card hover:ring-primary"
+                                          }`}
+                                          fallbackClassName={
+                                            isPending
+                                              ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                                              : "bg-primary/10 text-primary"
+                                          }
+                                        />
                                         {isPending && (
                                           <div className="absolute -bottom-0.5 -right-0.5 size-2.5 bg-amber-500 rounded-full flex items-center justify-center">
                                             <Clock className="size-1.5 text-white" />
@@ -666,27 +657,21 @@ export function DevpostProfileView({
                                 }
                                 className="flex items-center gap-2 min-w-0 flex-1 group/user hover:text-primary transition-colors cursor-pointer"
                               >
-                                {members[0]?.image ? (
-                                  <img
-                                    src={members[0].image}
-                                    alt={members[0].name || "Builder"}
-                                    className={`size-5 rounded-full object-cover shrink-0 ring-1 ${
-                                      members[0]?.status === "pending"
-                                        ? "ring-amber-500/70 border border-dashed border-amber-500"
-                                        : "ring-border group-hover/user:ring-primary"
-                                    }`}
-                                  />
-                                ) : (
-                                  <div
-                                    className={`size-5 rounded-full flex items-center justify-center font-bold text-[9px] shrink-0 ring-1 ${
-                                      members[0]?.status === "pending"
-                                        ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 ring-amber-500/70"
-                                        : "bg-primary/10 text-primary ring-border group-hover/user:ring-primary"
-                                    }`}
-                                  >
-                                    {members[0]?.name ? members[0].name[0].toUpperCase() : members[0]?.email ? members[0].email[0].toUpperCase() : "H"}
-                                  </div>
-                                )}
+                                <UserAvatar
+                                  src={members[0]?.image}
+                                  name={members[0]?.name}
+                                  alt={members[0]?.name || "Builder"}
+                                  className={`size-5 rounded-full shrink-0 ring-1 ${
+                                    members[0]?.status === "pending"
+                                      ? "ring-amber-500/70 border border-dashed border-amber-500"
+                                      : "ring-border group-hover/user:ring-primary"
+                                  }`}
+                                  fallbackClassName={
+                                    members[0]?.status === "pending"
+                                      ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                                      : "bg-primary/10 text-primary"
+                                  }
+                                />
                                 <span className="font-semibold text-foreground group-hover/user:text-primary truncate max-w-[140px] sm:max-w-[180px]">
                                   {members[0]?.name || members[0]?.email || user.name || "Anonymous Builder"}
                                 </span>
@@ -937,17 +922,13 @@ export function DevpostProfileView({
                   <Card key={inv.id} className="rounded-2xl border bg-card p-5 space-y-4 hover:border-primary/40 transition-all">
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                       <div className="flex items-start gap-3 min-w-0 flex-1">
-                        {inv.sender_image ? (
-                          <img
-                            src={inv.sender_image}
-                            alt={inv.sender_name || "Sender"}
-                            className="size-10 rounded-full object-cover border shrink-0 mt-0.5"
-                          />
-                        ) : (
-                          <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm border border-primary/20 shrink-0 mt-0.5">
-                            {inv.sender_name ? inv.sender_name[0].toUpperCase() : "U"}
-                          </div>
-                        )}
+                        <UserAvatar
+                          src={inv.sender_image}
+                          name={inv.sender_name}
+                          alt={inv.sender_name || "Sender"}
+                          className="size-10 rounded-full border shrink-0 mt-0.5 bg-primary/10 text-primary"
+                          iconClassName="size-5 text-primary"
+                        />
                         <div className="min-w-0 flex-1 space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-bold text-sm text-foreground">

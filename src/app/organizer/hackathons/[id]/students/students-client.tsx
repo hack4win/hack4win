@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useModalAlert } from "@/components/ui/modal-alert";
 import {
@@ -995,13 +996,13 @@ export function OrganizerStudentsClient({
                         {/* Student Name & Avatar */}
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="size-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center overflow-hidden shrink-0 border text-xs">
-                              {s.image ? (
-                                <img src={s.image} alt={s.name} className="size-full object-cover" />
-                              ) : (
-                                s.name.slice(0, 2).toUpperCase()
-                              )}
-                            </div>
+                            <UserAvatar
+                              src={s.image}
+                              name={s.name}
+                              alt={s.name}
+                              className="size-9 rounded-full bg-primary/10 text-primary border"
+                              iconClassName="size-4.5 text-primary"
+                            />
                             <div className="min-w-0">
                               <div className="font-semibold text-foreground text-xs truncate flex items-center gap-1.5">
                                 <span>{s.name}</span>

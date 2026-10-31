@@ -3,6 +3,7 @@
 import React from "react";
 import { Star, Quote, Award, Sparkles, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 export function CommunityTestimonials() {
   const testimonials = [
@@ -80,10 +81,12 @@ export function CommunityTestimonials() {
             {/* Author info */}
             <div className="pt-4 border-t space-y-3">
               <div className="flex items-center gap-3">
-                <img
+                <UserAvatar
                   src={item.avatar}
+                  name={item.name}
                   alt={item.name}
-                  className="size-10 rounded-full object-cover border"
+                  className="size-10 rounded-full border"
+                  iconClassName="size-5"
                 />
                 <div className="min-w-0">
                   <div className="font-bold text-xs sm:text-sm text-foreground flex items-center gap-1">

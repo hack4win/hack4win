@@ -7,6 +7,7 @@ import { SessionUser } from "@/lib/db/types";
 import { signOut } from "@/lib/auth/auth-client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   User as UserIcon,
   ShieldCheck,
@@ -55,17 +56,13 @@ export function UserMenu({ user }: UserMenuProps) {
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 p-1.5 pr-3 rounded-full border bg-card hover:bg-muted/50 transition-all text-sm font-medium outline-none cursor-pointer"
       >
-        <div className="size-8 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center shrink-0">
-          {user.image ? (
-            <img
-              src={user.image}
-              alt={user.name || "User"}
-              className="size-full rounded-full object-cover"
-            />
-          ) : (
-            (user.name?.[0] || user.email[0]).toUpperCase()
-          )}
-        </div>
+        <UserAvatar
+          src={user.image}
+          name={user.name || user.email}
+          alt={user.name || "User"}
+          className="size-8 rounded-full border bg-primary/10 text-primary"
+          iconClassName="size-4 text-primary"
+        />
         <span className="max-w-[120px] truncate hidden sm:inline text-xs font-semibold">
           {user.name || user.email.split("@")[0]}
         </span>
