@@ -116,6 +116,15 @@ export function HackathonActionCard({
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
+      if (params.get("submissions_not_open") === "true") {
+        showAlert({
+          title: "Submissions Not Open Yet",
+          message: "This hackathon has not started yet. Project submissions will officially open when the hackathon begins!",
+          type: "info",
+        });
+        window.history.replaceState({}, "", `/hackathons/${slug}`);
+      }
+
       if (params.get("register") === "true" || params.get("register_required") === "true") {
         if (!isRegistered) {
           if (!isLoggedIn) {
@@ -576,9 +585,24 @@ export function HackathonActionCard({
               >
                 <Link href={`/hackathons/${slug}/register`}>
                   <CreditCard className="size-3.5" />
-                  Complete Payment to Submit ({feeCurrency}{registrationFee || 0})
+                  Complete Payment to Confirm Entry ({feeCurrency}{registrationFee || 0})
                 </Link>
               </Button>
+            ) : status === "upcoming" ? (
+              <div className="w-full space-y-1.5">
+                <Button
+                  disabled
+                  variant="outline"
+                  size="default"
+                  className="w-full rounded-full font-semibold text-xs gap-1.5 bg-muted/60 border-muted-foreground/20 text-muted-foreground cursor-not-allowed"
+                >
+                  <Clock className="size-3.5 text-primary" />
+                  Submissions Open at Hackathon Start
+                </Button>
+                <p className="text-[11px] text-center text-muted-foreground leading-tight px-1">
+                  You are registered! Project submissions will unlock once the hackathon officially begins.
+                </p>
+              </div>
             ) : (
               <Button
                 asChild

@@ -34,6 +34,9 @@ export interface UpiPaymentFormProps {
     id: string;
     slug: string;
     title: string;
+    status?: string;
+    start_date?: string;
+    end_date?: string;
     is_paid?: boolean;
     registration_fee?: number | null;
     fee_currency?: string;
@@ -263,11 +266,18 @@ export function UpiPaymentForm({
               <span>Open Hackathon Workspace &rarr;</span>
             </Link>
           </Button>
-          <Button asChild variant="outline" className="rounded-xl font-semibold">
-            <Link href={`/hackathons/${hackathon.slug}/submit`}>
-              <span>Submit Project</span>
-            </Link>
-          </Button>
+          {hackathon.start_date && new Date(hackathon.start_date).getTime() <= Date.now() ? (
+            <Button asChild variant="outline" className="rounded-xl font-semibold">
+              <Link href={`/hackathons/${hackathon.slug}/submit`}>
+                <span>Submit Project</span>
+              </Link>
+            </Button>
+          ) : (
+            <Button disabled variant="outline" className="rounded-xl font-semibold text-xs opacity-75 cursor-not-allowed">
+              <Clock className="size-3.5 mr-1 text-primary" />
+              <span>Submissions Open at Hackathon Start</span>
+            </Button>
+          )}
         </div>
       </div>
     );

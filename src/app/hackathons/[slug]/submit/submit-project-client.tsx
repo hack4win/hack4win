@@ -131,6 +131,7 @@ export function SubmitProjectClient({
 
   // Status checks for disabling/enabling actions
   const dynamicStatus = getHackathonStatus(hackathon);
+  const isUpcoming = dynamicStatus === "upcoming";
   const isEnded = dynamicStatus === "ended" || hackathon.status === "ended";
   const [isDeadlinePassed] = useState(() =>
     Boolean(
@@ -649,6 +650,17 @@ export function SubmitProjectClient({
       await showAlert({
         title: "Submissions Closed",
         message: "Submissions are currently closed for this hackathon challenge.",
+        type: "warning",
+      });
+      return;
+    }
+
+    if (isUpcoming && sessionUser?.role !== "admin" && hackathon.organizer_id !== sessionUser?.id) {
+      const msg = "Submissions have not opened yet. Please wait until the hackathon officially starts.";
+      setErrorMessage(msg);
+      await showAlert({
+        title: "Submissions Not Open Yet",
+        message: msg,
         type: "warning",
       });
       return;
@@ -1875,7 +1887,13 @@ export function SubmitProjectClient({
                 <Button
                   type="submit"
                   size="lg"
-                  disabled={isSubmitting || !title.trim() || !agreeRules || isSubmissionsClosed}
+                  disabled={
+                    isSubmitting ||
+                    !title.trim() ||
+                    !agreeRules ||
+                    isSubmissionsClosed ||
+                    (isUpcoming && sessionUser?.role !== "admin" && hackathon.organizer_id !== sessionUser?.id)
+                  }
                   className="w-full sm:w-auto rounded-full text-xs font-bold gap-2 px-8 shadow-sm cursor-pointer"
                 >
                   {isSubmitting ? (
@@ -1887,6 +1905,11 @@ export function SubmitProjectClient({
                     <>
                       <Clock className="size-4" />
                       <span>Submissions Closed</span>
+                    </>
+                  ) : isUpcoming && sessionUser?.role !== "admin" && hackathon.organizer_id !== sessionUser?.id ? (
+                    <>
+                      <Clock className="size-4" />
+                      <span>Submissions Open at Hackathon Start</span>
                     </>
                   ) : (
                     <>

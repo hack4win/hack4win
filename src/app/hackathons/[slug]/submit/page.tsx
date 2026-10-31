@@ -8,6 +8,7 @@ import { UserMenu } from "@/components/navigation/user-menu";
 import { BrandLogo } from "@/components/navigation/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Trophy } from "lucide-react";
+import { getHackathonStatus } from "@/lib/db/types";
 import { SubmitProjectClient } from "./submit-project-client";
 
 interface PageProps {
@@ -65,6 +66,12 @@ export default async function SubmitProjectPage({ params }: PageProps) {
   ]);
 
   const isPrivileged = session.user.role === "admin" || hackathon.organizer_id === session.user.id;
+
+  // If hackathon is upcoming (has not started yet), submissions are not open to participants
+  const currentStatus = getHackathonStatus(hackathon);
+  if (currentStatus === "upcoming" && !isPrivileged) {
+    redirect(`/hackathons/${slug}?submissions_not_open=true`);
+  }
 
   // Enforce registration requirement: unregistered users are not allowed to submit projects
   if (!isRegistered && !isPrivileged) {

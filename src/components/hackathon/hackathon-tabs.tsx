@@ -79,6 +79,7 @@ export function HackathonTabs({
 
   // Status checks for disabling/enabling actions
   const dynamicStatus = getHackathonStatus(hackathon);
+  const isUpcoming = dynamicStatus === "upcoming";
   const isEnded = dynamicStatus === "ended" || hackathon.status === "ended";
   const [isDeadlinePassed] = useState(() =>
     Boolean(
@@ -379,6 +380,13 @@ export function HackathonTabs({
               >
                 <Clock className="size-3.5" /> Submissions Closed
               </Badge>
+            ) : isUpcoming ? (
+              <Badge
+                variant="outline"
+                className="rounded-full px-3.5 py-1.5 text-xs font-semibold gap-1.5 text-muted-foreground bg-muted/50 border-muted-foreground/30 shrink-0"
+              >
+                <Clock className="size-3.5 text-primary" /> Submissions Open at Hackathon Start
+              </Badge>
             ) : isRegistered ? (
               <Button
                 asChild
@@ -428,11 +436,13 @@ export function HackathonTabs({
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   {isSubmissionsClosed
                     ? "Submissions for this hackathon have concluded. No projects were submitted before the deadline."
+                    : isUpcoming
+                    ? "This hackathon has not started yet. Project submissions will open once the hackathon officially begins! Assemble your squad, brainstorm ideas, and get ready to build."
                     : "Project submissions are open for this hackathon! Form your team, build your prototype, and be the first to showcase your solution on the leaderboard."}
                 </p>
               </div>
 
-              {!isSubmissionsClosed && (
+              {!isSubmissionsClosed && !isUpcoming && (
                 <div className="pt-2">
                   {isRegistered ? (
                     <Button
