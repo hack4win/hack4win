@@ -41,6 +41,7 @@ import {
   UserCheck,
   User as UserIcon,
   Clock,
+  CreditCard,
 } from "lucide-react";
 import { InviteToTeamDialog } from "@/components/team/invite-to-team-dialog";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -378,19 +379,39 @@ export function HackathonTabs({
               >
                 <Clock className="size-3.5" /> Submissions Closed
               </Badge>
-            ) : currentUser ? (
+            ) : isRegistered ? (
               <Button
                 asChild
-                className="rounded-full text-xs font-bold gap-1.5 cursor-pointer"
+                className="rounded-full text-xs font-bold gap-1.5 cursor-pointer shadow-xs"
               >
                 <Link href={`/hackathons/${hackathon.slug}/submit`}>
                   <Plus className="size-3.5" /> Submit a Project
                 </Link>
               </Button>
             ) : (
-              <Button asChild className="rounded-full text-xs font-bold gap-1.5">
-                <Link href={`/auth/signin?callbackUrl=/hackathons/${hackathon.slug}/submit`}>
-                  Sign in to Submit Project
+              <Button
+                asChild
+                className="rounded-full text-xs font-bold gap-1.5 cursor-pointer shadow-xs"
+              >
+                <Link
+                  href={
+                    hackathon.is_paid
+                      ? `/hackathons/${hackathon.slug}/register`
+                      : currentUser
+                      ? `/hackathons/${hackathon.slug}?register=true`
+                      : `/auth/signin?callbackUrl=/hackathons/${hackathon.slug}`
+                  }
+                >
+                  {hackathon.is_paid ? (
+                    <CreditCard className="size-3.5" />
+                  ) : (
+                    <Sparkles className="size-3.5" />
+                  )}
+                  {currentUser
+                    ? hackathon.is_paid
+                      ? `Register & Pay (${hackathon.currency || "₹"}${hackathon.registration_fee || 0})`
+                      : "Register for Hackathon to Submit"
+                    : "Sign in to Register"}
                 </Link>
               </Button>
             )}
@@ -413,10 +434,10 @@ export function HackathonTabs({
 
               {!isSubmissionsClosed && (
                 <div className="pt-2">
-                  {currentUser ? (
+                  {isRegistered ? (
                     <Button
                       asChild
-                      className="rounded-full text-xs font-bold gap-1.5 cursor-pointer px-6"
+                      className="rounded-full text-xs font-bold gap-1.5 cursor-pointer px-6 shadow-xs"
                     >
                       <Link href={`/hackathons/${hackathon.slug}/submit`}>
                         <Plus className="size-3.5" />
@@ -424,9 +445,29 @@ export function HackathonTabs({
                       </Link>
                     </Button>
                   ) : (
-                    <Button asChild className="rounded-full text-xs font-bold gap-1.5 px-6">
-                      <Link href={`/auth/signin?callbackUrl=/hackathons/${hackathon.slug}/submit`}>
-                        Join Hackathon & Submit
+                    <Button
+                      asChild
+                      className="rounded-full text-xs font-bold gap-1.5 px-6 cursor-pointer shadow-xs"
+                    >
+                      <Link
+                        href={
+                          hackathon.is_paid
+                            ? `/hackathons/${hackathon.slug}/register`
+                            : currentUser
+                            ? `/hackathons/${hackathon.slug}?register=true`
+                            : `/auth/signin?callbackUrl=/hackathons/${hackathon.slug}`
+                        }
+                      >
+                        {hackathon.is_paid ? (
+                          <CreditCard className="size-3.5" />
+                        ) : (
+                          <Sparkles className="size-3.5" />
+                        )}
+                        {currentUser
+                          ? hackathon.is_paid
+                            ? `Register & Pay (${hackathon.currency || "₹"}${hackathon.registration_fee || 0})`
+                            : "Register for Hackathon to Submit"
+                          : "Sign in to Register & Submit"}
                       </Link>
                     </Button>
                   )}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -112,6 +112,26 @@ export function HackathonActionCard({
   const [collegeNameInput, setCollegeNameInput] = useState("");
   const [academicYearInput, setAcademicYearInput] = useState("");
   const [branchInput, setBranchInput] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("register") === "true" || params.get("register_required") === "true") {
+        if (!isRegistered) {
+          if (!isLoggedIn) {
+            window.location.href = isPaid
+              ? `/auth/signin?callbackUrl=/hackathons/${slug}/register`
+              : `/auth/signin?callbackUrl=/hackathons/${slug}`;
+          } else if (isPaid) {
+            router.push(`/hackathons/${slug}/register`);
+          } else {
+            setSelectedJoinType("looking_for_team");
+            setIsJoinModalOpen(true);
+          }
+        }
+      }
+    }
+  }, [isRegistered, isLoggedIn, isPaid, slug, router]);
 
   const handleOpenJoinFlow = () => {
     if (!isLoggedIn) {
@@ -522,7 +542,7 @@ export function HackathonActionCard({
                 <Clock className="size-3.5" />
                 Submissions Closed
               </Button>
-            ) : registrationStatus === "pending" ? (
+            ) : registrationStatus === "pending" || (isPaid && paymentStatus === "pending_verification") ? (
               <Button
                 disabled
                 variant="outline"
@@ -530,16 +550,29 @@ export function HackathonActionCard({
                 className="w-full rounded-full font-semibold text-xs gap-1.5 bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300 cursor-not-allowed"
               >
                 <Clock className="size-3.5" />
-                Awaiting Organizer Approval
+                {isPaid && paymentStatus === "pending_verification"
+                  ? "Payment Verification Pending"
+                  : "Awaiting Organizer Approval"}
               </Button>
-            ) : registrationStatus === "rejected" ? (
+            ) : registrationStatus === "rejected" || (isPaid && paymentStatus === "rejected") ? (
               <Button
                 disabled
                 variant="outline"
                 size="default"
                 className="w-full rounded-full font-semibold text-xs gap-1.5 bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300 cursor-not-allowed"
               >
-                Registration Not Approved
+                {isPaid && paymentStatus === "rejected" ? "Payment Proof Rejected" : "Registration Not Approved"}
+              </Button>
+            ) : isPaid && (!paymentStatus || paymentStatus === "unpaid") ? (
+              <Button
+                asChild
+                size="default"
+                className="w-full rounded-full font-bold text-xs gap-1.5 shadow-xs cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                <Link href={`/hackathons/${slug}/register`}>
+                  <CreditCard className="size-3.5" />
+                  Complete Payment to Submit ({feeCurrency}{registrationFee || 0})
+                </Link>
               </Button>
             ) : (
               <Button

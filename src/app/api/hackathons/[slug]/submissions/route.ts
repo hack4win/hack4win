@@ -160,11 +160,24 @@ export async function POST(
       }
     }
 
-    // Auto-register user if not already registered (checking participant capacity and private campus eligibility)
+    // Check registration requirement: Unregistered users cannot submit projects directly
     const isAlreadyRegistered = await hackathonRepository.isUserRegistered(hackathon.id, session.user.id);
-    if (!isAlreadyRegistered) {
-      // SECURITY GATE: If the hackathon is private, verify private access before allowing auto-registration
-      if (hackathon.is_private && session.user.role !== "admin" && hackathon.organizer_id !== session.user.id) {
+    const isPrivileged = session.user.role === "admin" || hackathon.organizer_id === session.user.id;
+
+    if (!isAlreadyRegistered && !isPrivileged) {
+      // If hackathon is capped and full, check capacity first
+      if (hackathon.max_participants && hackathon.max_participants > 0) {
+        const currentCount = await hackathonRepository.getParticipantCount(hackathon.id);
+        if (currentCount >= hackathon.max_participants) {
+          return NextResponse.json(
+            { error: "This hackathon has reached its maximum participant capacity." },
+            { status: 400 }
+          );
+        }
+      }
+
+      // SECURITY GATE: If the hackathon is private, verify private access credentials first
+      if (hackathon.is_private) {
         const accessCheck = await hackathonRepository.verifyPrivateAccess(hackathon, {
           userId: session.user.id,
           userEmail: session.user.email,
@@ -198,20 +211,18 @@ export async function POST(
         }
       }
 
-      if (hackathon.max_participants && hackathon.max_participants > 0) {
-        const currentCount = await hackathonRepository.getParticipantCount(hackathon.id);
-        if (currentCount >= hackathon.max_participants) {
-          return NextResponse.json(
-            { error: "This hackathon has reached its maximum participant capacity." },
-            { status: 400 }
-          );
-        }
-      }
-      await hackathonRepository.registerUser(hackathon.id, session.user.id);
-    } else {
+      // Unregistered users are blocked from direct submission
+      return NextResponse.json(
+        {
+          error: "You must register for this hackathon before submitting a project. Please complete registration first.",
+          not_registered: true,
+        },
+        { status: 403 }
+      );
+    } else if (isAlreadyRegistered && !isPrivileged) {
       // User is already registered: verify registration status is approved
       const userReg = await hackathonRepository.getUserRegistration(hackathon.id, session.user.id);
-      if (userReg && session.user.role !== "admin" && hackathon.organizer_id !== session.user.id) {
+      if (userReg) {
         if (userReg.status === "pending") {
           return NextResponse.json(
             {
@@ -226,6 +237,15 @@ export async function POST(
             {
               error: "Your registration request was not approved by the event organizer.",
               registration_status: "rejected",
+            },
+            { status: 403 }
+          );
+        }
+        if (hackathon.is_paid && userReg.payment_status !== "verified") {
+          return NextResponse.json(
+            {
+              error: "Your registration payment has not been verified yet. Please wait for the organizer to verify your payment proof before submitting.",
+              payment_status: userReg.payment_status,
             },
             { status: 403 }
           );

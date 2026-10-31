@@ -55,11 +55,33 @@ export default async function SubmitProjectPage({ params }: PageProps) {
     redirect(`/auth/choose-username?callbackUrl=/hackathons/${slug}/submit`);
   }
 
-  const [isRegistered, existingSubmission, participants] = await Promise.all([
+  const [isRegistered, userReg, existingSubmission, participants] = await Promise.all([
     hackathonRepository.isUserRegistered(hackathon.id, session.user.id),
+    hackathonRepository.getUserRegistration(hackathon.id, session.user.id),
     hackathonRepository.getUserSubmission(hackathon.id, session.user.id),
     hackathonRepository.getParticipants(hackathon.id),
   ]);
+
+  const isPrivileged = session.user.role === "admin" || hackathon.organizer_id === session.user.id;
+
+  // Enforce registration requirement: unregistered users are not allowed to submit projects
+  if (!isRegistered && !isPrivileged) {
+    if (hackathon.is_paid) {
+      redirect(`/hackathons/${slug}/register`);
+    } else {
+      redirect(`/hackathons/${slug}?register_required=true`);
+    }
+  }
+
+  // If user registration is pending or rejected, redirect to hackathon details with notice
+  if (userReg && (userReg.status === "pending" || userReg.status === "rejected") && !isPrivileged) {
+    redirect(`/hackathons/${slug}?verification_pending=true`);
+  }
+
+  // If paid hackathon and payment proof is not yet verified, redirect to registration payment receipt
+  if (hackathon.is_paid && userReg?.payment_status !== "verified" && !isPrivileged) {
+    redirect(`/hackathons/${slug}/register`);
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">

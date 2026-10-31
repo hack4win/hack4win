@@ -653,6 +653,22 @@ export function SubmitProjectClient({
       return;
     }
 
+    if (!isRegistered && sessionUser.role !== "admin" && hackathon.organizer_id !== sessionUser.id) {
+      const msg = "You must register for this hackathon before submitting a project. Please complete registration first.";
+      setErrorMessage(msg);
+      await showAlert({
+        title: "Registration Required",
+        message: msg,
+        type: "warning",
+      });
+      if (hackathon.is_paid) {
+        router.push(`/hackathons/${hackathon.slug}/register`);
+      } else {
+        router.push(`/hackathons/${hackathon.slug}?register=true`);
+      }
+      return;
+    }
+
     if (!title.trim() || title.trim().length < 3) {
       const msg = "Project title is required and must be at least 3 characters long.";
       setErrorMessage(msg);
@@ -832,11 +848,24 @@ export function SubmitProjectClient({
         )}
 
         {sessionUser && !isRegistered && (
-          <div className="p-3.5 rounded-2xl bg-primary/5 border border-primary/20 text-xs flex items-center gap-2.5 text-foreground mt-4">
-            <Sparkles className="size-4 text-primary shrink-0" />
-            <span>
-              You are currently submitting as <strong>{sessionUser.name || sessionUser.email}</strong>. Submitting will automatically register your team to the hackathon!
-            </span>
+          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="size-4 shrink-0" />
+              <span>
+                You must register for this hackathon before submitting a project.
+              </span>
+            </div>
+            <Button asChild size="sm" className="rounded-full text-xs font-bold shrink-0">
+              <Link
+                href={
+                  hackathon.is_paid
+                    ? `/hackathons/${hackathon.slug}/register`
+                    : `/hackathons/${hackathon.slug}?register=true`
+                }
+              >
+                {hackathon.is_paid ? "Register & Pay to Submit" : "Register for Hackathon"}
+              </Link>
+            </Button>
           </div>
         )}
 
@@ -1799,29 +1828,63 @@ export function SubmitProjectClient({
                 </span>
               </div>
 
-              <Button
-                type="submit"
-                size="lg"
-                disabled={isSubmitting || !sessionUser || !title.trim() || !agreeRules || isSubmissionsClosed}
-                className="w-full sm:w-auto rounded-full text-xs font-bold gap-2 px-8 shadow-sm cursor-pointer"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    <span>Submitting Project...</span>
-                  </>
-                ) : isSubmissionsClosed ? (
-                  <>
-                    <Clock className="size-4" />
-                    <span>Submissions Closed</span>
-                  </>
-                ) : (
-                  <>
+              {!sessionUser ? (
+                <Button
+                  asChild
+                  size="lg"
+                  className="w-full sm:w-auto rounded-full text-xs font-bold gap-2 px-8 shadow-sm cursor-pointer"
+                >
+                  <Link href={`/auth/signin?callbackUrl=/hackathons/${hackathon.slug}/submit`}>
                     <Rocket className="size-4" />
-                    <span>Submit Project to {hackathon.title}</span>
-                  </>
-                )}
-              </Button>
+                    <span>Sign In to Register &amp; Submit</span>
+                  </Link>
+                </Button>
+              ) : !isRegistered ? (
+                <Button
+                  asChild
+                  size="lg"
+                  className="w-full sm:w-auto rounded-full text-xs font-bold gap-2 px-8 shadow-sm cursor-pointer"
+                >
+                  <Link
+                    href={
+                      hackathon.is_paid
+                        ? `/hackathons/${hackathon.slug}/register`
+                        : `/hackathons/${hackathon.slug}?register=true`
+                    }
+                  >
+                    <Rocket className="size-4" />
+                    <span>
+                      {hackathon.is_paid
+                        ? `Register & Pay (${hackathon.currency || "₹"}${hackathon.registration_fee || 0}) to Submit`
+                        : "Register for Hackathon to Submit"}
+                    </span>
+                  </Link>
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  size="lg"
+                  disabled={isSubmitting || !title.trim() || !agreeRules || isSubmissionsClosed}
+                  className="w-full sm:w-auto rounded-full text-xs font-bold gap-2 px-8 shadow-sm cursor-pointer"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      <span>Submitting Project...</span>
+                    </>
+                  ) : isSubmissionsClosed ? (
+                    <>
+                      <Clock className="size-4" />
+                      <span>Submissions Closed</span>
+                    </>
+                  ) : (
+                    <>
+                      <Rocket className="size-4" />
+                      <span>Submit Project to {hackathon.title}</span>
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
