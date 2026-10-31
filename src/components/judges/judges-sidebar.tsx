@@ -17,7 +17,9 @@ import {
   LogOut,
   Shield,
   CheckCircle2,
+  Bell,
 } from "lucide-react";
+import { NotificationBell } from "@/components/navigation/notification-bell";
 import { authClient } from "@/lib/auth/auth-client";
 
 interface JudgesSidebarProps {
@@ -34,6 +36,7 @@ export function JudgesSidebar({ user, children }: JudgesSidebarProps) {
       group: "Judge Workspace",
       items: [
         { label: "Dashboard", href: "/judges", icon: LayoutDashboard },
+        { label: "Notifications", href: "/notifications", icon: Bell },
         { label: "Evaluation Queue", href: "/judges/evaluations", icon: Gavel },
       ],
     },
@@ -147,12 +150,12 @@ export function JudgesSidebar({ user, children }: JudgesSidebarProps) {
 
       {/* User Info & Footer */}
       <div className="p-4 border-t bg-muted/20 space-y-3">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <UserAvatar
             src={user.image}
             name={user.name || "Judge"}
             alt={user.name || "Avatar"}
-            className="size-9 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border"
+            className="size-9 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border shrink-0"
             iconClassName="size-4.5 text-purple-600 dark:text-purple-400"
           />
           <div className="min-w-0 flex-1">
@@ -161,6 +164,7 @@ export function JudgesSidebar({ user, children }: JudgesSidebarProps) {
             </div>
             <div className="text-[0.68rem] text-muted-foreground truncate">{user.email}</div>
           </div>
+          <NotificationBell user={user} />
           <Button
             variant="ghost"
             size="icon-sm"
@@ -186,14 +190,17 @@ export function JudgesSidebar({ user, children }: JudgesSidebarProps) {
           <span>Hack4Win <Badge variant="outline" className="text-[0.65rem] py-0 px-1 ml-1 border-purple-500/30 text-purple-600">Judge</Badge></span>
         </Link>
 
-        <Button
-          variant="outline"
-          size="icon-sm"
-          onClick={() => setMobileOpen(true)}
-          className="rounded-full"
-        >
-          <Menu className="size-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <NotificationBell user={user} />
+          <Button
+            variant="outline"
+            size="icon-sm"
+            onClick={() => setMobileOpen(true)}
+            className="rounded-full"
+          >
+            <Menu className="size-4" />
+          </Button>
+        </div>
       </header>
 
       {/* Mobile Backdrop & Drawer */}

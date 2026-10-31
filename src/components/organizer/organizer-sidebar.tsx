@@ -20,7 +20,9 @@ import {
   Gavel,
   Shield,
   Layers,
+  Bell,
 } from "lucide-react";
+import { NotificationBell } from "@/components/navigation/notification-bell";
 import { authClient } from "@/lib/auth/auth-client";
 
 interface OrganizerSidebarProps {
@@ -37,6 +39,7 @@ export function OrganizerSidebar({ user, children }: OrganizerSidebarProps) {
       group: "Organizer Console",
       items: [
         { label: "Dashboard", href: "/organizer", icon: LayoutDashboard },
+        { label: "Notifications", href: "/notifications", icon: Bell },
         { label: "My Hackathons", href: "/organizer/hackathons", icon: Trophy },
         { label: "Create Challenge", href: "/organizer/hackathons/new", icon: PlusCircle },
         { label: "Judges Management", href: "/organizer/judges", icon: Gavel },
@@ -152,12 +155,12 @@ export function OrganizerSidebar({ user, children }: OrganizerSidebarProps) {
 
       {/* User Info & Footer */}
       <div className="p-4 border-t bg-muted/20 space-y-3">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <UserAvatar
             src={user.image}
             name={user.name || "Organizer"}
             alt={user.name || "Avatar"}
-            className="size-9 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border"
+            className="size-9 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border shrink-0"
             iconClassName="size-4.5 text-blue-600 dark:text-blue-400"
           />
           <div className="min-w-0 flex-1">
@@ -166,6 +169,7 @@ export function OrganizerSidebar({ user, children }: OrganizerSidebarProps) {
             </div>
             <div className="text-[0.68rem] text-muted-foreground truncate">{user.email}</div>
           </div>
+          <NotificationBell user={user} />
           <Button
             variant="ghost"
             size="icon-sm"
@@ -191,14 +195,17 @@ export function OrganizerSidebar({ user, children }: OrganizerSidebarProps) {
           <span>Hack4Win <Badge variant="outline" className="text-[0.65rem] py-0 px-1 ml-1 border-blue-500/30 text-blue-600">Organizer</Badge></span>
         </Link>
 
-        <Button
-          variant="outline"
-          size="icon-sm"
-          onClick={() => setMobileOpen(true)}
-          className="rounded-full"
-        >
-          <Menu className="size-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <NotificationBell user={user} />
+          <Button
+            variant="outline"
+            size="icon-sm"
+            onClick={() => setMobileOpen(true)}
+            className="rounded-full"
+          >
+            <Menu className="size-4" />
+          </Button>
+        </div>
       </header>
 
       {/* Mobile Backdrop & Drawer */}

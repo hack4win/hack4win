@@ -19,7 +19,9 @@ import {
   Users,
   Gavel,
   ExternalLink,
+  Bell,
 } from "lucide-react";
+import { NotificationBell } from "@/components/navigation/notification-bell";
 
 interface UserMenuProps {
   user: SessionUser;
@@ -50,12 +52,18 @@ export function UserMenu({ user }: UserMenuProps) {
     }
   };
 
+  const isPrivileged =
+    user.role === "admin" || user.role === "organizer" || user.role === "judge";
+
   return (
-    <div className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 p-1.5 pr-3 rounded-full border bg-card hover:bg-muted/50 transition-all text-sm font-medium outline-none cursor-pointer"
-      >
+    <div className="flex items-center gap-2">
+      {isPrivileged && <NotificationBell user={user} />}
+
+      <div className="relative">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center gap-2 p-1.5 pr-3 rounded-full border bg-card hover:bg-muted/50 transition-all text-sm font-medium outline-none cursor-pointer"
+        >
         <UserAvatar
           src={user.image}
           name={user.name || user.email}
@@ -107,6 +115,17 @@ export function UserMenu({ user }: UserMenuProps) {
               <UserIcon className="size-4 text-muted-foreground" />
               My Profile
             </Link>
+
+            {isPrivileged && (
+              <Link
+                href="/notifications"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs hover:bg-muted font-medium transition-colors text-primary"
+              >
+                <Bell className="size-4 text-primary" />
+                Notifications Center
+              </Link>
+            )}
 
             {user.username && (
               <Link
@@ -224,6 +243,7 @@ export function UserMenu({ user }: UserMenuProps) {
           </div>
         </>
       )}
+      </div>
     </div>
   );
 }
