@@ -40,7 +40,7 @@ export function BrandLogo({
   return (
     <div className={`flex items-center gap-2.5 ${className}`}>
       <div
-        className={`relative ${currentSize.class} shrink-0 overflow-hidden rounded-xl border border-white/10 shadow-xs bg-black/95 flex items-center justify-center p-0.5`}
+        className={`relative ${currentSize.class} shrink-0 overflow-hidden rounded-xl border border-border/40 shadow-xs bg-card flex items-center justify-center p-0.5`}
       >
         <img
           src={imgSrc}
