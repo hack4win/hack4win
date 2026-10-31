@@ -40,26 +40,10 @@ async function proxyAuthRequest(req: NextRequest) {
   // domains (e.g. www.hack4win.online) and preview URLs without throwing 403 INVALID_ORIGIN.
   forwardHeaders.set("origin", neonOrigin);
 
-  let body: BodyInit | undefined = undefined;
-  if (req.method !== "GET" && req.method !== "HEAD") {
-    const contentType = req.headers.get("content-type") || "";
-    if (contentType.includes("application/json")) {
-      const text = await req.text();
-      try {
-        const json = JSON.parse(text);
-        // If social sign-in callbackURL is absolute to the app domain, sanitize to relative
-        // to pass Neon Auth's redirect whitelist check.
-        if (json.callbackURL && typeof json.callbackURL === "string") {
-          json.callbackURL = json.callbackURL.replace(/^https?:\/\/[^\/]+/, "");
-        }
-        body = JSON.stringify(json);
-      } catch {
-        body = text;
-      }
-    } else {
-      body = await req.arrayBuffer();
-    }
-  }
+  const body =
+    req.method !== "GET" && req.method !== "HEAD"
+      ? await req.arrayBuffer()
+      : undefined;
 
   try {
     const upstreamRes = await fetch(targetUrl, {
