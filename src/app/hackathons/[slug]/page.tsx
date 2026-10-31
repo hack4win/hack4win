@@ -307,32 +307,49 @@ export default async function HackathonDetailPage({ params, searchParams }: Page
                 </Badge>
               </div>
 
-              {/* Title & Host Info */}
-              <div className="space-y-2 min-w-0 pt-1">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-foreground break-words">
-                  {hackathon.title}
-                </h1>
-                <p className="text-sm sm:text-base text-muted-foreground leading-relaxed break-words">
-                  {hackathon.tagline}
-                </p>
-                <div className="text-xs text-muted-foreground flex items-center gap-2 pt-1 flex-wrap">
-                  <span className="flex items-center gap-1.5">
-                    <Building className="size-3.5 text-primary shrink-0" />
-                    <span>Hosted by <strong className="text-foreground">{hackathon.organizer_name}</strong></span>
-                  </span>
-                  {getSafeExternalUrl(hackathon.website_url) && (
-                    <>
-                      <span>&middot;</span>
-                      <a
-                        href={getSafeExternalUrl(hackathon.website_url)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline inline-flex items-center gap-1 truncate max-w-xs"
-                      >
-                        Official Website <ExternalLink className="size-3 shrink-0" />
-                      </a>
-                    </>
-                  )}
+              {/* Title & Host Info with Square Cover Image */}
+              <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-5 pt-1 min-w-0">
+                {/* Square Cover Image / Thumbnail */}
+                {hackathon.thumbnail_url ? (
+                  <div className="relative size-20 sm:size-24 md:size-28 rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-border/80 bg-muted shrink-0 shadow-md">
+                    <img
+                      src={hackathon.thumbnail_url}
+                      alt={hackathon.title}
+                      className="size-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="relative size-20 sm:size-24 md:size-28 rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-border/80 bg-primary/10 text-primary flex items-center justify-center shrink-0 shadow-md">
+                    <Trophy className="size-10 sm:size-12 stroke-[1.5]" />
+                  </div>
+                )}
+
+                <div className="space-y-2 min-w-0 flex-1">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-foreground break-words">
+                    {hackathon.title}
+                  </h1>
+                  <p className="text-sm sm:text-base text-muted-foreground leading-relaxed break-words">
+                    {hackathon.tagline}
+                  </p>
+                  <div className="text-xs text-muted-foreground flex items-center gap-2 pt-1 flex-wrap">
+                    <span className="flex items-center gap-1.5">
+                      <Building className="size-3.5 text-primary shrink-0" />
+                      <span>Hosted by <strong className="text-foreground">{hackathon.organizer_name}</strong></span>
+                    </span>
+                    {getSafeExternalUrl(hackathon.website_url) && (
+                      <>
+                        <span>&middot;</span>
+                        <a
+                          href={getSafeExternalUrl(hackathon.website_url)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline inline-flex items-center gap-1 truncate max-w-xs"
+                        >
+                          Official Website <ExternalLink className="size-3 shrink-0" />
+                        </a>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

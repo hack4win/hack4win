@@ -263,12 +263,33 @@ export function HackathonActionCard({
 
   return (
     <>
-      <div className="p-5 sm:p-6 rounded-2xl border border-border/80 bg-card/95 backdrop-blur-md shadow-xl flex flex-col gap-4 w-full lg:w-[340px] lg:shrink-0 max-w-full max-h-[85vh] lg:max-h-[580px] overflow-y-auto overscroll-contain scrollbar-thin [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/25 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/45 [&::-webkit-scrollbar-thumb]:rounded-full">
+      <div className="p-5 sm:p-6 rounded-2xl border border-border/80 bg-card/95 backdrop-blur-md shadow-xl flex flex-col gap-4 w-full lg:w-[340px] lg:shrink-0 max-w-full h-fit transition-all duration-300">
+        {/* Hackathon Status Highlight Banner */}
+        {status === "ongoing" ? (
+          <div className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-800 dark:text-emerald-200 text-xs font-semibold">
+            <span className="relative flex size-2 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full size-2 bg-emerald-500" />
+            </span>
+            <span className="leading-tight flex-1">Hacking Live Now &middot; Submissions Open</span>
+          </div>
+        ) : status === "upcoming" ? (
+          <div className="flex items-center gap-2 p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/25 text-blue-800 dark:text-blue-200 text-xs font-semibold">
+            <Clock className="size-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+            <span className="leading-tight flex-1">Upcoming Challenge &middot; Register Now</span>
+          </div>
+        ) : status === "ended" ? (
+          <div className="flex items-center gap-2 p-2.5 rounded-xl bg-muted/60 border border-border text-muted-foreground text-xs font-semibold">
+            <CheckCircle2 className="size-3.5 text-muted-foreground shrink-0" />
+            <span className="leading-tight flex-1">Challenge Ended &middot; Submissions Closed</span>
+          </div>
+        ) : null}
+
         {/* Prize Header */}
         <div className="flex items-center justify-between gap-3 pb-3 border-b border-border/60">
           <span className="text-xs text-muted-foreground font-medium shrink-0">Total Prize Pool</span>
           <span
-            className="text-xl sm:text-2xl font-black text-primary tracking-tight text-right break-words line-clamp-1"
+            className="text-xl sm:text-2xl font-black text-primary tracking-tight text-right break-words"
             title={cleanPrize}
           >
             {cleanPrize}

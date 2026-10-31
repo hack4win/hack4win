@@ -257,10 +257,10 @@ export function HackathonTimelineCountdown({
   ];
 
   const timeUnits = [
-    { label: "Days", short: "Days", value: timeRemaining.days },
-    { label: "Hours", short: "Hrs", value: timeRemaining.hours },
-    { label: "Minutes", short: "Mins", value: timeRemaining.minutes },
-    { label: "Seconds", short: "Secs", value: timeRemaining.seconds },
+    { label: "Days", short: "DAYS", value: timeRemaining.days },
+    { label: "Hours", short: "HRS", value: timeRemaining.hours },
+    { label: "Minutes", short: "MINS", value: timeRemaining.minutes },
+    { label: "Seconds", short: "SECS", value: timeRemaining.seconds },
   ];
 
   return (
@@ -275,11 +275,11 @@ export function HackathonTimelineCountdown({
         {/* Header with responsive wrapping so title and badge never squeeze or clip */}
         <CardHeader
           className={cn(
-            "py-4 px-4 sm:px-6 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3",
+            "py-3.5 px-4 sm:px-5 border-b space-y-2",
             statusTheme.headerBg
           )}
         >
-          <div className="space-y-1 min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
             <span
               className={cn(
                 "text-[0.68rem] font-black uppercase tracking-wider flex items-center gap-1.5",
@@ -289,13 +289,13 @@ export function HackathonTimelineCountdown({
               {statusTheme.categoryIcon}
               <span>{statusTheme.categoryLabel}</span>
             </span>
-            <CardTitle className="text-base sm:text-lg font-black tracking-tight text-foreground leading-snug break-words">
-              {phaseTitle}
-            </CardTitle>
+            <div className="shrink-0">
+              {statusTheme.badge}
+            </div>
           </div>
-          <div className="shrink-0 self-start sm:self-center">
-            {statusTheme.badge}
-          </div>
+          <CardTitle className="text-base sm:text-lg font-black tracking-tight text-foreground leading-tight">
+            {phaseTitle}
+          </CardTitle>
         </CardHeader>
 
         <CardContent className="p-4 sm:p-6 space-y-4">
@@ -338,9 +338,8 @@ export function HackathonTimelineCountdown({
                   >
                     {mounted ? String(unit.value).padStart(2, "0") : "--"}
                   </span>
-                  <span className="text-[10px] sm:text-xs font-bold text-muted-foreground mt-1.5 leading-none text-center">
-                    <span className="hidden sm:inline">{unit.short}</span>
-                    <span className="sm:hidden">{unit.short}</span>
+                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground mt-1.5 leading-none text-center whitespace-nowrap">
+                    {unit.short}
                   </span>
                 </div>
               ))}
