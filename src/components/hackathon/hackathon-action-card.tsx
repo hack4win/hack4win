@@ -84,7 +84,7 @@ export function HackathonActionCard({
   initialPaymentReference = null,
 }: HackathonActionCardProps) {
   const router = useRouter();
-  const { showAlert, showConfirm } = useModalAlert();
+  const { showAlert } = useModalAlert();
 
   const [isRegistered, setIsRegistered] = useState(initialIsRegistered);
   const [registrationStatus, setRegistrationStatus] = useState<"approved" | "pending" | "rejected">(
@@ -239,47 +239,6 @@ export function HackathonActionCard({
       });
     } finally {
       setIsSwitchingType(false);
-    }
-  };
-
-  const handleLeaveHackathon = async () => {
-    const confirmed = await showConfirm({
-      title: "Leave Hackathon?",
-      message: "Are you sure you want to leave this hackathon? Your registration and team status will be removed.",
-      confirmText: "Leave Hackathon",
-      cancelText: "Stay",
-      destructive: true,
-    });
-    if (!confirmed) {
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const res = await fetch(`/api/hackathons/${slug}/register`, {
-        method: "DELETE",
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Action failed");
-      }
-
-      setIsRegistered(false);
-      if (typeof data.count === "number") {
-        setCount(data.count);
-      }
-      router.refresh();
-    } catch (err) {
-      console.error("Registration leave error:", err);
-      await showAlert({
-        title: "Error Leaving Hackathon",
-        message: err instanceof Error ? err.message : "Failed to leave hackathon",
-        type: "error",
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -584,21 +543,6 @@ export function HackathonActionCard({
                   <Rocket className="size-3.5" />
                   Submit Project
                 </Link>
-              </Button>
-            )}
-
-            {/* Leave Hackathon */}
-            {!isSubmissionsClosed && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleLeaveHackathon}
-                disabled={isLoading}
-                className="w-full text-xs text-muted-foreground hover:text-destructive h-7 rounded-full cursor-pointer"
-              >
-                {isLoading ? <Loader2 className="size-3 animate-spin mr-1" /> : null}
-                Leave hackathon
               </Button>
             )}
           </div>

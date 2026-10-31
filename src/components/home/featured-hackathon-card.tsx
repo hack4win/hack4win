@@ -27,9 +27,10 @@ import { getHackathonStatus } from "@/lib/db/types";
 
 interface FeaturedHackathonCardProps {
   hackathon: Hackathon;
+  isRegistered?: boolean;
 }
 
-export function FeaturedHackathonCard({ hackathon }: FeaturedHackathonCardProps) {
+export function FeaturedHackathonCard({ hackathon, isRegistered }: FeaturedHackathonCardProps) {
   const dynamicStatus = getHackathonStatus(hackathon);
 
   const statusBadge = {
@@ -214,7 +215,7 @@ export function FeaturedHackathonCard({ hackathon }: FeaturedHackathonCardProps)
         )}
 
         {/* Format Badge (Top Left) */}
-        <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5">
+        <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 flex-wrap">
           <Badge className="bg-background/90 backdrop-blur-md border text-[11px] font-bold capitalize text-foreground shadow-xs">
             {hackathon.format || "Online"}
           </Badge>
@@ -226,6 +227,11 @@ export function FeaturedHackathonCard({ hackathon }: FeaturedHackathonCardProps)
           {hackathon.is_private && (
             <Badge className="bg-purple-950/80 backdrop-blur-md text-purple-200 border border-purple-400/30 text-[11px] font-bold rounded-full px-2 py-0.5 flex items-center gap-1 shadow-xs">
               <Lock className="size-2.5" /> Campus
+            </Badge>
+          )}
+          {isRegistered && (
+            <Badge className="bg-emerald-600 text-white border border-emerald-400/40 text-[11px] font-black rounded-full px-2.5 py-0.5 flex items-center gap-1 shadow-md">
+              <CheckCircle2 className="size-3" /> Registered
             </Badge>
           )}
         </div>
@@ -256,16 +262,23 @@ export function FeaturedHackathonCard({ hackathon }: FeaturedHackathonCardProps)
 
       {/* Card Header & Content */}
       <CardHeader className="gap-2 flex-1 pb-2 p-5 sm:p-6">
-        {/* Organizer info */}
-        {hackathon.organizer_name && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-            <Building className="size-3.5 text-primary shrink-0" />
-            <span className="text-[11px] text-muted-foreground">By</span>
-            <span className="font-bold text-foreground truncate max-w-[200px]">
-              {hackathon.organizer_name}
-            </span>
-          </div>
-        )}
+        {/* Organizer info & Registration indicator */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          {hackathon.organizer_name && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+              <Building className="size-3.5 text-primary shrink-0" />
+              <span className="text-[11px] text-muted-foreground">By</span>
+              <span className="font-bold text-foreground truncate max-w-[150px] sm:max-w-[200px]">
+                {hackathon.organizer_name}
+              </span>
+            </div>
+          )}
+          {isRegistered && (
+            <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10px] font-bold gap-1 rounded-full px-2 py-0.5 shadow-2xs">
+              <CheckCircle2 className="size-3 text-emerald-600 dark:text-emerald-400" /> You&apos;re Registered
+            </Badge>
+          )}
+        </div>
 
         {/* Title */}
         <CardTitle className="text-lg sm:text-xl font-black tracking-tight leading-snug group-hover:text-primary transition-colors line-clamp-1">

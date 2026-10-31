@@ -418,7 +418,11 @@ export default async function HackathonsBrowsePage({ searchParams }: BrowsePageP
             ) : (
               <div className="space-y-4 sm:space-y-5">
                 {filteredHackathons.map((h) => (
-                  <HorizontalHackathonCard key={h.id} hackathon={h} />
+                  <HorizontalHackathonCard
+                    key={h.id}
+                    hackathon={h}
+                    isRegistered={registeredIds.has(h.id)}
+                  />
                 ))}
               </div>
             )}

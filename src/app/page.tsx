@@ -290,7 +290,11 @@ export default async function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {publishedHackathons.length > 0 ? (
               publishedHackathons.slice(0, 3).map((h) => (
-                <FeaturedHackathonCard key={h.id} hackathon={h} />
+                <FeaturedHackathonCard
+                  key={h.id}
+                  hackathon={h}
+                  isRegistered={registeredIds.has(h.id)}
+                />
               ))
             ) : (
               <div className="col-span-3 p-12 text-center border rounded-2xl bg-card">

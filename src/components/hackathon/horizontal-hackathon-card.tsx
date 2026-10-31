@@ -24,9 +24,10 @@ import { getHackathonStatus } from "@/lib/db/types";
 
 interface HorizontalHackathonCardProps {
   hackathon: Hackathon;
+  isRegistered?: boolean;
 }
 
-export function HorizontalHackathonCard({ hackathon }: HorizontalHackathonCardProps) {
+export function HorizontalHackathonCard({ hackathon, isRegistered }: HorizontalHackathonCardProps) {
   const dynamicStatus = getHackathonStatus(hackathon);
 
   // Status Styling & Left Border configuration
@@ -202,7 +203,9 @@ export function HorizontalHackathonCard({ hackathon }: HorizontalHackathonCardPr
 
   return (
     <div
-      className={`group overflow-hidden border border-l-4 sm:border-l-[6px] rounded-2xl bg-card hover:shadow-md transition-all duration-300 flex flex-col sm:flex-row ${statusStyles.leftBorder}`}
+      className={`group overflow-hidden border border-l-4 sm:border-l-[6px] rounded-2xl bg-card hover:shadow-md transition-all duration-300 flex flex-col sm:flex-row ${statusStyles.leftBorder} ${
+        isRegistered ? "ring-1 ring-emerald-500/25 bg-gradient-to-r from-emerald-500/[0.03] via-card to-card" : ""
+      }`}
     >
       {/* Horizontal Left Banner Area */}
       <Link
@@ -222,13 +225,18 @@ export function HorizontalHackathonCard({ hackathon }: HorizontalHackathonCardPr
         )}
 
         {/* Overlay Format Tag */}
-        <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10">
+        <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10 flex-wrap">
           <Badge className="bg-black/75 backdrop-blur-md text-white border-0 text-[0.68rem] font-semibold capitalize rounded-full px-2.5 py-0.5">
             {hackathon.format}
           </Badge>
           {hackathon.is_private && (
             <Badge className="bg-purple-950/80 backdrop-blur-md text-purple-200 border border-purple-400/30 text-[0.68rem] font-bold rounded-full px-2 py-0.5 flex items-center gap-1">
               <Lock className="size-2.5" /> Private
+            </Badge>
+          )}
+          {isRegistered && (
+            <Badge className="bg-emerald-600 text-white border border-emerald-400/40 text-[0.68rem] font-black rounded-full px-2.5 py-0.5 flex items-center gap-1 shadow-md backdrop-blur-md">
+              <CheckCircle2 className="size-3" /> Registered
             </Badge>
           )}
         </div>
@@ -241,6 +249,16 @@ export function HorizontalHackathonCard({ hackathon }: HorizontalHackathonCardPr
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
               {statusStyles.badge}
+
+              {isRegistered && (
+                <Badge
+                  data-testid="user-registered-badge"
+                  className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-xs font-bold gap-1 rounded-full px-2.5 py-0.5 shadow-2xs"
+                >
+                  <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400" /> You&apos;re Registered
+                </Badge>
+              )}
+
               {hackathon.is_paid && hackathon.registration_fee && Number(hackathon.registration_fee) > 0 ? (
                 <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/25 text-xs font-semibold gap-1 rounded-full px-2.5 py-0.5">
                   <Ticket className="size-3" /> {hackathon.fee_currency || "₹"}{hackathon.registration_fee}
