@@ -420,7 +420,7 @@ export default async function HackathonDetailPage({ params, searchParams }: Page
           </div>
 
           {/* Right Column: Countdown, Timeline, Rules & Organizer */}
-          <div className="space-y-6">
+          <div className="space-y-6 min-w-0">
             {/* Live Countdown & Milestones Stepper */}
             <HackathonTimelineCountdown
               title={hackathon.title}
