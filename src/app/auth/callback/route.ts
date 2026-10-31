@@ -102,10 +102,10 @@ export async function GET(req: NextRequest) {
         const userId = data?.user?.id || data?.session?.userId;
 
         if (userId) {
-          // Look up user in public.users
+          // Look up user in public.users by ID
           let user = await userRepository.findById(String(userId));
 
-          // If user does not exist in public.users yet, provision from neon_auth.user
+          // If user does not exist in public.users yet, check by email or provision from neon_auth.user
           if (!user) {
             const neonUsers = await db`
               SELECT id, name, email, "emailVerified", image, role, "createdAt", "updatedAt"
@@ -116,27 +116,43 @@ export async function GET(req: NextRequest) {
 
             if (neonUsers && neonUsers.length > 0) {
               const nu = neonUsers[0];
-              const inserted = await db`
-                INSERT INTO public.users (id, name, username, email, email_verified, image, role, created_at, updated_at)
-                VALUES (
-                  ${nu.id.toString()},
-                  ${nu.name},
-                  NULL,
-                  ${nu.email},
-                  ${Boolean(nu.emailVerified)},
-                  ${nu.image},
-                  ${nu.role || "user"},
-                  ${nu.createdAt || new Date()},
-                  ${nu.updatedAt || new Date()}
-                )
-                ON CONFLICT (id) DO UPDATE SET
-                  name = COALESCE(EXCLUDED.name, public.users.name),
-                  email = COALESCE(EXCLUDED.email, public.users.email),
-                  image = COALESCE(EXCLUDED.image, public.users.image),
-                  updated_at = NOW()
-                RETURNING *;
-              `;
-              user = inserted[0] as unknown as User;
+              const existingByEmail = await userRepository.findByEmail(nu.email);
+
+              if (existingByEmail) {
+                // If account exists with this email, reconcile its ID with neon_auth.user
+                await db`
+                  UPDATE public.users
+                  SET id = ${nu.id.toString()},
+                      name = COALESCE(public.users.name, ${nu.name}),
+                      image = COALESCE(public.users.image, ${nu.image}),
+                      email_verified = ${Boolean(nu.emailVerified)},
+                      updated_at = NOW()
+                  WHERE id = ${existingByEmail.id};
+                `;
+                user = await userRepository.findById(String(userId));
+              } else {
+                const inserted = await db`
+                  INSERT INTO public.users (id, name, username, email, email_verified, image, role, created_at, updated_at)
+                  VALUES (
+                    ${nu.id.toString()},
+                    ${nu.name},
+                    NULL,
+                    ${nu.email},
+                    ${Boolean(nu.emailVerified)},
+                    ${nu.image},
+                    ${nu.role || "user"},
+                    ${nu.createdAt || new Date()},
+                    ${nu.updatedAt || new Date()}
+                  )
+                  ON CONFLICT (id) DO UPDATE SET
+                    name = COALESCE(EXCLUDED.name, public.users.name),
+                    email = COALESCE(EXCLUDED.email, public.users.email),
+                    image = COALESCE(EXCLUDED.image, public.users.image),
+                    updated_at = NOW()
+                  RETURNING *;
+                `;
+                user = inserted[0] as unknown as User;
+              }
             }
           }
 
